@@ -1,0 +1,11 @@
+{
+  "name": "pnetwork-v4",
+  "version": "1.0.0",
+  "description": "pNetwork v4 monorepo",
+  "main": " ",
+  "author": "pNetwork Devs",
+  "license": "MIT",
+  "workspaces": [
+    "solidity"
+  ]
+}
