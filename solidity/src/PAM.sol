@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 pragma solidity ^0.8.20;
 
-import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
-import { ECDSA } from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
-import { RLPReader } from "solidity-rlp/contracts/RLPReader.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+import {RLPReader} from "solidity-rlp/contracts/RLPReader.sol";
 
 contract PAM is Ownable {
     error InvalidEventRLP();
@@ -26,22 +26,41 @@ contract PAM is Ownable {
     uint256 public teeAddressChangeGraceThreshold;
     mapping(uint256 => address) public yahos;
 
-    function setTeeSigner(bytes calldata pubKey, bytes memory attestation) public onlyOwner {
+    function setTeeSigner(
+        bytes calldata pubKey,
+        bytes memory attestation
+    ) public onlyOwner {
         if (teeAddress == address(0)) {
             // Setting the teeAddress the first time
             teeAddress = _getAddressFromPublicKey(pubKey);
-            emit TeeSignerPendingChange(teeAddress, attestation, block.timestamp);
+            emit TeeSignerPendingChange(
+                teeAddress,
+                attestation,
+                block.timestamp
+            );
             emit TeeSignerChanged(teeAddress);
         } else {
             // The new address will be set after a grace period of 48 hours
             teeAddressNew = _getAddressFromPublicKey(pubKey);
-            teeAddressChangeGraceThreshold = block.timestamp + TEE_ADDRESS_CHANGE_GRACE_PERIOD;
-            emit TeeSignerPendingChange(teeAddressNew, attestation, teeAddressChangeGraceThreshold);
+            teeAddressChangeGraceThreshold =
+                block.timestamp +
+                TEE_ADDRESS_CHANGE_GRACE_PERIOD;
+            emit TeeSignerPendingChange(
+                teeAddressNew,
+                attestation,
+                teeAddressChangeGraceThreshold
+            );
         }
     }
 
-    function isAuthorized(bytes calldata statement, bytes memory signature) public returns (bool) {
-        if (teeAddressNew != address(0) && block.timestamp > teeAddressChangeGraceThreshold) {
+    function isAuthorized(
+        bytes calldata statement,
+        bytes memory signature
+    ) public returns (bool) {
+        if (
+            teeAddressNew != address(0) &&
+            block.timestamp > teeAddressChangeGraceThreshold
+        ) {
             teeAddress = teeAddressNew;
             teeAddressNew = address(0);
             emit TeeSignerChanged(teeAddress);
@@ -50,9 +69,9 @@ contract PAM is Ownable {
         return ECDSA.recover(sha256(statement), signature) == teeAddress;
     }
 
-    function _getAddressFromPublicKey(bytes calldata pubKey) internal pure returns (address) {
+    function _getAddressFromPublicKey(
+        bytes calldata pubKey
+    ) internal pure returns (address) {
         return address(uint160(uint256(keccak256(pubKey[1:]))));
     }
-
-
 }

@@ -41,7 +41,6 @@ interface IXERC20Lockbox {
 
     // error IXERC20Lockbox_WithdrawFailed();
 
-
     function IS_NATIVE() external view returns (bool);
 
     /**
@@ -57,7 +56,7 @@ interface IXERC20Lockbox {
      *
      */
 
-    function depositNative() payable external;
+    function depositNative() external payable;
 
     /**
      * @notice Deposit ERC20 tokens into the lockbox, and send the XERC20 to a user

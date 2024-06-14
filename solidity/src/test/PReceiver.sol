@@ -6,13 +6,16 @@ import {IPReceiver} from "../interfaces/IPReceiver.sol";
 contract PReceiver is IPReceiver {
     event UserData(uint256 amount, bytes data);
 
-    function receiveUserData(uint256 amount, bytes calldata userData) external override {
+    function receiveUserData(
+        uint256 amount,
+        bytes calldata userData
+    ) external override {
         emit UserData(amount, userData);
     }
 }
 
 contract PReceiverReverting is IPReceiver {
-    function receiveUserData(uint256, bytes calldata) pure external override {
+    function receiveUserData(uint256, bytes calldata) external pure override {
         require(false, "Revert!");
     }
 }
@@ -20,7 +23,7 @@ contract PReceiverReverting is IPReceiver {
 contract NotImplementingReceiveUserDataFxn {}
 
 contract PReceiverRevertingReturnBombing is IPReceiver {
-    function receiveUserData(uint256, bytes calldata) pure external override {
+    function receiveUserData(uint256, bytes calldata) external pure override {
         assembly {
             return(0, 1000000)
         }
@@ -28,7 +31,7 @@ contract PReceiverRevertingReturnBombing is IPReceiver {
 }
 
 contract PReceiverRevertingReturnBombingReverting is IPReceiver {
-    function receiveUserData(uint256, bytes calldata) pure external override {
+    function receiveUserData(uint256, bytes calldata) external pure override {
         assembly {
             revert(0, 1000000)
         }

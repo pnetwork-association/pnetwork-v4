@@ -8,12 +8,11 @@ import {IXERC20} from "./interfaces/IXERC20.sol";
 import {IXERC20Registry} from "./interfaces/IXERC20Registry.sol";
 import {IXERC20Lockbox} from "./interfaces/IXERC20Lockbox.sol";
 
-
 contract XERC20Registry is IXERC20Registry, AccessControl {
     struct Entry {
-        bytes32 erc20;  // sha256 of token utf-8 string if on different chains (i.e. EOS, algorand)
+        bytes32 erc20; // sha256 of token utf-8 string if on different chains (i.e. EOS, algorand)
         address xerc20; // type compatible with the underlying chain (would be an account for EOS)
-        bool isLocal;   // true if this is the home chain (where the erc20 token has been created)
+        bool isLocal; // true if this is the home chain (where the erc20 token has been created)
     }
 
     /**
@@ -44,7 +43,10 @@ contract XERC20Registry is IXERC20Registry, AccessControl {
     }
 
     modifier onlyRegistrar() {
-        require(hasRole(REGISTRAR_ROLE, _msgSender()), "Caller is not a registrar");
+        require(
+            hasRole(REGISTRAR_ROLE, _msgSender()),
+            "Caller is not a registrar"
+        );
         _;
     }
 
@@ -57,7 +59,11 @@ contract XERC20Registry is IXERC20Registry, AccessControl {
      * @dev In order to support multiple chains, ERC20 could also be an hash of
      * a string (i.e. support EOS account, algorand addresses etc..)
      */
-    function registerXERC20(bytes32 erc20, address xerc20, bool isLocal) external onlyRegistrar {
+    function registerXERC20(
+        bytes32 erc20,
+        address xerc20,
+        bool isLocal
+    ) external onlyRegistrar {
         require(erc20ToXERC20[erc20] == address(0), "AlreadyRegistered");
 
         if (isLocal) {
@@ -70,7 +76,6 @@ contract XERC20Registry is IXERC20Registry, AccessControl {
 
         emit XERC20Registered(erc20, xerc20, isLocal);
     }
-
 
     /**
      * @notice Removes an asset from the registry
@@ -86,19 +91,29 @@ contract XERC20Registry is IXERC20Registry, AccessControl {
         emit XERC20Deregistered(e.erc20, e.xerc20, e.isLocal);
     }
 
-    function getAssets(address xerc20) public view returns (bytes32, address, bool) {
+    function getAssets(
+        address xerc20
+    ) public view returns (bytes32, address, bool) {
         Entry memory e = xerc20ToEntry[xerc20];
 
-        require(e.xerc20 != address(0) && e.erc20 != bytes32(0), "Not registered");
+        require(
+            e.xerc20 != address(0) && e.erc20 != bytes32(0),
+            "Not registered"
+        );
 
         return (e.erc20, e.xerc20, e.isLocal);
     }
 
-    function getAssets(bytes32 erc20) external view returns (bytes32, address, bool) {
+    function getAssets(
+        bytes32 erc20
+    ) external view returns (bytes32, address, bool) {
         address xerc20 = erc20ToXERC20[erc20];
         Entry memory e = xerc20ToEntry[xerc20];
 
-        require(e.xerc20 != address(0) && e.erc20 != bytes32(0), "Not registered");
+        require(
+            e.xerc20 != address(0) && e.erc20 != bytes32(0),
+            "Not registered"
+        );
 
         return (e.erc20, e.xerc20, e.isLocal);
     }

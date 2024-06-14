@@ -8,14 +8,13 @@ import {IAdapter} from "./interfaces/IAdapter.sol";
 import {IFeesManager} from "./interfaces/IFeesManager.sol";
 import {IPReceiver} from "./interfaces/IPReceiver.sol";
 import {IXERC20} from "./interfaces/IXERC20.sol";
-import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {IXERC20Registry} from "./interfaces/IXERC20Registry.sol";
 import {IXERC20Lockbox} from "./interfaces/IXERC20Lockbox.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 import "hardhat/console.sol";
-
 
 contract Adapter is IAdapter, Ownable {
     using ExcessivelySafeCall for address;
@@ -26,7 +25,6 @@ contract Adapter is IAdapter, Ownable {
     bytes32 public constant SWAP_EVENT_TOPIC =
         0x218247aabc759e65b5bb92ccc074f9d62cd187259f2a0984c3c9cf91f67ff7cf;
     mapping(bytes32 => bool) public pastEvents;
-
 
     error UnsufficientAmount(uint256 amount, uint256 fees);
     error AlreadyProcessed(bytes32 operationId);
@@ -84,7 +82,6 @@ contract Adapter is IAdapter, Ownable {
         bytes data;
     }
 
-
     function swap(
         address token,
         uint256 amount,
@@ -94,34 +91,63 @@ contract Adapter is IAdapter, Ownable {
         swap(token, amount, recipient, destinationChainId, "");
     }
 
-    function swap(address token, uint256 amount, string memory recipient, bytes4 chainId, bytes memory data) public payable {
+    function swap(
+        address token,
+        uint256 amount,
+        string memory recipient,
+        bytes4 chainId,
+        bytes memory data
+    ) public payable {
         require(amount > 0 || token == address(0), "AmountLessThanZero");
-        (bytes32 erc20Bytes, address xerc20, bool isLocal) = IXERC20Registry(registry).getAssets(token);
+        (bytes32 erc20Bytes, address xerc20, bool isLocal) = IXERC20Registry(
+            registry
+        ).getAssets(token);
 
         uint256 feeAmount;
         uint256 swapAmount;
         address erc20 = address(uint160(uint256(erc20Bytes)));
         if (isLocal) {
-            feeAmount = IFeesManager(feesManager).calculateFee(erc20, amount, chainId);
+            feeAmount = IFeesManager(feesManager).calculateFee(
+                erc20,
+                amount,
+                chainId
+            );
             address lockbox = IXERC20(xerc20).lockbox();
             if (IXERC20Lockbox(lockbox).IS_NATIVE()) {
-                if (feeAmount > msg.value) revert UnsufficientAmount(amount, feeAmount);
+                if (feeAmount > msg.value)
+                    revert UnsufficientAmount(amount, feeAmount);
                 swapAmount = msg.value - feeAmount;
                 IFeesManager(feesManager).depositFee{value: feeAmount}();
                 IXERC20Lockbox(lockbox).depositNative{value: swapAmount}();
             } else {
-                if (feeAmount > amount) revert UnsufficientAmount(amount, feeAmount);
+                if (feeAmount > amount)
+                    revert UnsufficientAmount(amount, feeAmount);
                 swapAmount = amount - feeAmount;
-                SafeERC20.safeTransferFrom(IERC20(erc20), msg.sender, address(this), amount);
+                SafeERC20.safeTransferFrom(
+                    IERC20(erc20),
+                    msg.sender,
+                    address(this),
+                    amount
+                );
                 IERC20(erc20).approve(feesManager, feeAmount);
                 IFeesManager(feesManager).depositFee(erc20, feeAmount);
                 IERC20(erc20).approve(lockbox, swapAmount);
                 IXERC20Lockbox(lockbox).deposit(swapAmount);
             }
         } else {
-            SafeERC20.safeTransferFrom(IERC20(xerc20), msg.sender, address(this), amount);
-            feeAmount = IFeesManager(feesManager).calculateFee(xerc20, amount, chainId);
-            if (feeAmount > amount) revert UnsufficientAmount(amount, feeAmount);
+            SafeERC20.safeTransferFrom(
+                IERC20(xerc20),
+                msg.sender,
+                address(this),
+                amount
+            );
+            feeAmount = IFeesManager(feesManager).calculateFee(
+                xerc20,
+                amount,
+                chainId
+            );
+            if (feeAmount > amount)
+                revert UnsufficientAmount(amount, feeAmount);
             swapAmount = amount - feeAmount;
             IERC20(xerc20).approve(feesManager, feeAmount);
             IFeesManager(feesManager).depositFee(xerc20, feeAmount);
@@ -141,7 +167,15 @@ contract Adapter is IAdapter, Ownable {
 
     function _checkEventAndDecodeData(
         bytes calldata statement
-    ) internal view returns (uint256 originChainId, uint256[] memory ids, bytes32[] memory hashes) {
+    )
+        internal
+        view
+        returns (
+            uint256 originChainId,
+            uint256[] memory ids,
+            bytes32[] memory hashes
+        )
+    {
         //  Statement format:
         //    | version   | protocol   |  protocol_chain_id |   event id    | event_bytes |
         //    | (1 byte)  | (1 byte)   |    (32 bytes)      |  (32 bytes)   |  varlen     |
@@ -159,7 +193,8 @@ contract Adapter is IAdapter, Ownable {
         RLPReader.RLPItem[] memory eventContent = RLPReader.toList(eventRLP);
 
         // Event must contain address, logs and data
-        if (eventContent.length != 3) revert InvalidEventContentLength(eventContent.length);
+        if (eventContent.length != 3)
+            revert InvalidEventContentLength(eventContent.length);
 
         // MessageDispatched event parsing
         // address yahoAddress = RLPReader.toAddress(eventContent[0]);
@@ -176,7 +211,7 @@ contract Adapter is IAdapter, Ownable {
         // FIXME: check logs[1] ?
 
         (ids, hashes) = abi.decode(message.data, (uint256[], bytes32[]));
-     }
+    }
 
     function settle(bytes calldata statement, bytes memory signature) public {
         require(PAM(pam).isAuthorized(statement, signature), "Unauthorized");

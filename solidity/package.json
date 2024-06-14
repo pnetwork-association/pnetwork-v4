@@ -1,0 +1,14 @@
+{
+  "name": "@pnetwork/contracts",
+  "version": "1.0.0",
+  "description": "pNetwork v4 contracts",
+  "directories": {
+    "lib": "lib",
+    "test": "test"
+  },
+  "scripts": {
+    "prettier": "prettier --write ./src ./test"
+  },
+  "author": "gitmp01",
+  "license": "MIT"
+}
