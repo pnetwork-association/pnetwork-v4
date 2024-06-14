@@ -1,4 +1,13 @@
 {
   "solidity.packageDefaultDependenciesContractsDirectory": "src",
-  "solidity.packageDefaultDependenciesDirectory": "lib"
+  "solidity.packageDefaultDependenciesDirectory": "lib",
+  "files.exclude": {
+    "**/node_modules": true,
+    "**/*.js": {"when": "$(basename).ts"},
+    "**/*.map": {"when": "$(basename).map"},
+    "**/artifacts": true,
+    "**/cache": true,
+    "**/dist": true,
+    "**/types": true,
+  },
 }
