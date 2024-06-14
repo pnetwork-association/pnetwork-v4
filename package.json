@@ -10,6 +10,7 @@
     "solidity"
   ],
   "scripts": {
+    "test": "yarn run test",
     "prettier": "yarn workspaces run prettier"
   },
   "devDependencies": {

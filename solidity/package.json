@@ -7,7 +7,9 @@
     "test": "test"
   },
   "scripts": {
-    "prettier": "prettier --write ./src ./test"
+    "prettier": "prettier --write ./src ./test",
+    "test": "yarn test:forge",
+    "test:forge": "forge test"
   },
   "author": "gitmp01",
   "license": "MIT"
