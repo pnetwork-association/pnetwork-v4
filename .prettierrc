@@ -14,9 +14,12 @@
       }
     }
   ],
-  "importOrder": ["^@hyperlane-xyz/(.*)$", "^../(.*)$", "^./(.*)$"],
+  "importOrder": ["<THIRD_PARTY_MODULES>", "^[./]"],
   "importOrderSeparation": true,
   "importOrderSortSpecifiers": true,
   "importOrderParserPlugins": ["importAssertions", "typescript", "jsx"],
-  "plugins": ["prettier-plugin-solidity", "@trivago/prettier-plugin-sort-imports"]
+  "plugins": [
+    "prettier-plugin-solidity",
+    "@trivago/prettier-plugin-sort-imports"
+  ]
 }
