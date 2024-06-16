@@ -2,7 +2,9 @@
 src = "src"
 out = "out"
 libs = ["lib"]
+evm_version="cancun"
 
+gas_reports = ["Adapter"]
 remappings = [
   "forge-std/=lib/forge-std/src/",
   "solidity-rlp/=lib/Solidity-RLP/",

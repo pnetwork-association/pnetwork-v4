@@ -1,10 +1,12 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.0;
+pragma solidity >=0.8.4 <0.9.0;
 
-import {IXERC20} from "../interfaces/IXERC20.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
+
+import {IXERC20} from "../interfaces/IXERC20.sol";
+import {IFeesManager} from "../interfaces/IFeesManager.sol";
 import {IXERC20Lockbox} from "../interfaces/IXERC20Lockbox.sol";
 
 contract XERC20Lockbox is IXERC20Lockbox {
@@ -14,18 +16,18 @@ contract XERC20Lockbox is IXERC20Lockbox {
     /**
      * @notice The XERC20 token of this contract
      */
-    IXERC20 public XERC20;
+    IXERC20 public immutable XERC20;
 
     /**
      * @notice The ERC20 token of this contract
      */
-    IERC20 public ERC20;
+    IERC20 public immutable ERC20;
 
     /**
      * @notice Whether the ERC20 token is the native gas token of this chain
      */
 
-    bool public override IS_NATIVE;
+    bool public immutable IS_NATIVE;
 
     /**
      * @notice Constructor
@@ -45,8 +47,8 @@ contract XERC20Lockbox is IXERC20Lockbox {
      * @notice Deposit native tokens into the lockbox
      */
 
-    function depositNative() public payable override {
-        require(IS_NATIVE, "IXERC20Lockbox_NotNative");
+    function depositNative() public payable {
+        if (!IS_NATIVE) revert IXERC20Lockbox_NotNative();
 
         _deposit(msg.sender, msg.value);
     }
@@ -57,8 +59,8 @@ contract XERC20Lockbox is IXERC20Lockbox {
      * @param _amount The amount of tokens to deposit
      */
 
-    function deposit(uint256 _amount) external override {
-        require(!IS_NATIVE, "IXERC20Lockbox_Native");
+    function deposit(uint256 _amount) external {
+        if (IS_NATIVE) revert IXERC20Lockbox_Native();
 
         _deposit(msg.sender, _amount);
     }
@@ -70,8 +72,8 @@ contract XERC20Lockbox is IXERC20Lockbox {
      * @param _amount The amount of tokens to deposit
      */
 
-    function depositTo(address _to, uint256 _amount) external override {
-        require(!IS_NATIVE, "IXERC20Lockbox_Native");
+    function depositTo(address _to, uint256 _amount) external {
+        if (IS_NATIVE) revert IXERC20Lockbox_Native();
 
         _deposit(_to, _amount);
     }
@@ -82,8 +84,8 @@ contract XERC20Lockbox is IXERC20Lockbox {
      * @param _to The user to send the XERC20 to
      */
 
-    function depositNativeTo(address _to) public payable override {
-        require(IS_NATIVE, "IXERC20Lockbox_NotNative");
+    function depositNativeTo(address _to) public payable {
+        if (!IS_NATIVE) revert IXERC20Lockbox_NotNative();
 
         _deposit(_to, msg.value);
     }
@@ -94,7 +96,7 @@ contract XERC20Lockbox is IXERC20Lockbox {
      * @param _amount The amount of tokens to withdraw
      */
 
-    function withdraw(uint256 _amount) external override {
+    function withdraw(uint256 _amount) external {
         _withdraw(msg.sender, _amount);
     }
 
@@ -105,12 +107,18 @@ contract XERC20Lockbox is IXERC20Lockbox {
      * @param _amount The amount of tokens to withdraw
      */
 
-    function withdrawTo(address _to, uint256 _amount) external override {
+    function withdrawTo(address _to, uint256 _amount) external {
         _withdraw(_to, _amount);
     }
 
     /**
      * @notice Withdraw tokens from the lockbox
+     * @dev Different from the original xERC20 Lockbox implementation:
+     *  - We recalculate the fees and compute the net amount
+     *  - We unlock only the net amount
+     *
+     * NOTE: the xerc20.burn() function will transfer the fees to the
+     * feesManager address
      *
      * @param _to The user to withdraw to
      * @param _amount The amount of tokens to withdraw
@@ -119,13 +127,24 @@ contract XERC20Lockbox is IXERC20Lockbox {
     function _withdraw(address _to, uint256 _amount) internal {
         emit Withdraw(_to, _amount);
 
+        // Fees are taken inside the burn function
         XERC20.burn(msg.sender, _amount);
 
+        // We need to recalculate the net amount here
+        // otherwise we would burn more than what is
+        // the msg.sender current balance
+        uint256 fees = IFeesManager(XERC20.getFeesManager()).calculateFee(
+            address(XERC20),
+            _amount
+        );
+
+        uint256 netAmount = _amount - fees;
+
         if (IS_NATIVE) {
-            (bool _success, ) = payable(_to).call{value: _amount}("");
-            require(_success, "IXERC20Lockbox_WithdrawFailed");
+            (bool _success, ) = payable(_to).call{value: netAmount}("");
+            if (!_success) revert IXERC20Lockbox_WithdrawFailed();
         } else {
-            ERC20.safeTransfer(_to, _amount);
+            ERC20.safeTransfer(_to, netAmount);
         }
     }
 

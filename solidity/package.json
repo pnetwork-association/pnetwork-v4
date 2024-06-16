@@ -9,7 +9,7 @@
   "scripts": {
     "test": "yarn test:forge",
     "test:forge": "forge test",
-    "lint": "solhint contracts/**/*.sol",
+    "lint": "solhint src/**/*.sol",
     "prettier": "prettier --write ./src ./test"
   },
   "author": "gitmp01",
