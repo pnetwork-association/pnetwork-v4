@@ -2,8 +2,8 @@
   "npm.packageManager": "yarn",
   "editor.formatOnSave": true,
   "editor.codeActionsOnSave": {
-    "source.organizeImports": true
-  },
+    "source.organizeImports": "explicit"
+},
   "[json]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode"
   },
