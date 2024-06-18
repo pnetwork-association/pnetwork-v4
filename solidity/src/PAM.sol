@@ -122,7 +122,7 @@ contract PAM is Ownable, IPAM {
             (IAdapter.Operation)
         );
 
-        if (operation.xerc20 != expected.xerc20) return false;
+        if (operation.erc20 != expected.erc20) return false;
         if (operation.sender != expected.sender) return false;
         if (
             sha256(abi.encode(operation.recipient)) !=

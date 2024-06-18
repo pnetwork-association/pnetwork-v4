@@ -3,7 +3,7 @@ pragma solidity ^0.8.0;
 
 interface IAdapter {
     struct Operation {
-        address xerc20;
+        bytes32 erc20;
         address sender;
         string recipient;
         bytes32 originChainId;

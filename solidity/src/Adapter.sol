@@ -122,7 +122,7 @@ contract Adapter is IAdapter, Ownable {
 
         emit Swap(
             Operation(
-                xerc20,
+                erc20Bytes,
                 msg.sender,
                 recipient,
                 bytes32(block.chainid),
@@ -138,7 +138,7 @@ contract Adapter is IAdapter, Ownable {
         IPAM.Metadata calldata metadata
     ) public {
         (, address xerc20) = IXERC20Registry(registry).getAssets(
-            operation.xerc20
+            operation.erc20
         );
 
         address pam = IXERC20(xerc20).getPAM(address(this));

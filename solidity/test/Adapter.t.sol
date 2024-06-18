@@ -163,7 +163,7 @@ contract AdapterTest is Test, Helper {
 
         emit IAdapter.Swap(
             IAdapter.Operation(
-                address(xerc20_A),
+                erc20Bytes_A,
                 user,
                 recipientStr,
                 sourceChainId,
@@ -219,7 +219,7 @@ contract AdapterTest is Test, Helper {
 
         emit IAdapter.Swap(
             IAdapter.Operation(
-                address(xerc20_A),
+                erc20Bytes_A,
                 user,
                 recipientStr,
                 sourceChainId,
@@ -253,7 +253,6 @@ contract AdapterTest is Test, Helper {
     function _performERC20Swap(
         uint256 sourceChainId,
         address erc20,
-        address xerc20,
         address from,
         address adapter,
         uint256 destinationChainId,
@@ -273,7 +272,7 @@ contract AdapterTest is Test, Helper {
 
         emit IAdapter.Swap(
             IAdapter.Operation(
-                address(xerc20),
+                erc20Bytes_A,
                 user,
                 recipientStr,
                 bytes32(sourceChainId),
@@ -302,7 +301,6 @@ contract AdapterTest is Test, Helper {
         _performERC20Swap(
             CHAIN_A,
             address(erc20_A),
-            address(xerc20_A),
             user,
             address(adapter_A),
             CHAIN_B,
