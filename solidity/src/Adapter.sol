@@ -180,6 +180,8 @@ contract Adapter is IAdapter, Ownable {
                 .excessivelySafeCall(gasleft() - gasReserve, 0, 0, data);
             if (!success) emit ReceiveUserDataFailed();
         }
+
+        emit Settled();
     }
 
     function hexStringToAddress(

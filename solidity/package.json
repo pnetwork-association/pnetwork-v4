@@ -12,6 +12,10 @@
     "lint": "solhint src/**/*.sol",
     "prettier": "prettier --write ./src ./test"
   },
+  "devDependencies": {
+    "commander": "^12.1.0",
+    "@pnetwork/event-attestator": "*"
+  },
   "author": "gitmp01",
   "license": "MIT"
 }

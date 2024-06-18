@@ -3,11 +3,29 @@ pragma solidity ^0.8.0;
 
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
+import {PAM} from "../src/PAM.sol";
 import {Test} from "forge-std/Test.sol";
+import {Adapter} from "../src/Adapter.sol";
 import {XERC20} from "../src/test/XERC20.sol";
+import {FeesManager} from "../src/FeesManager.sol";
 import {XERC20Registry} from "../src/XERC20Registry.sol";
 
+import {ERC20Test} from "../src/test/ERC20Test.sol";
+import {XERC20Lockbox} from "../src/test/XERC20Lockbox.sol";
+
 abstract contract Helper is Test {
+    bytes signerPublicKey =
+        vm.parseBytes(
+            "0x0480472f799469d9af8790307a022802785c2b1e2f9c0930bdf9bafe193245e7a37cf43c720edc0892a2a97050005207e412f2227b1d92a78b8ee366fe4fea5ac9"
+        );
+    bytes signerAttestation = vm.parseBytes("0x");
+    address factoryAddress = address(0);
+    uint256 erc20Supply = 1000000;
+    uint256 mintingLimit = 2000000;
+    uint256 burningLimit = 2000000;
+    bool native = true;
+    bool notNative = false;
+
     function _registerPair(
         uint256 chain,
         address owner,
@@ -34,5 +52,54 @@ abstract contract Helper is Test {
         vm.startPrank(from);
         ERC20(token).transfer(to, amount);
         vm.stopPrank();
+    }
+
+    function _setupChain(
+        uint256 chain,
+        address owner,
+        address erc20Native
+    )
+        internal
+        returns (
+            XERC20Registry registry,
+            Adapter adapter,
+            ERC20 erc20,
+            XERC20 xerc20,
+            XERC20Lockbox lockbox,
+            FeesManager feesManager,
+            PAM pam
+        )
+    {
+        uint256 prevChain = block.chainid;
+        vm.chainId(chain);
+        vm.startPrank(owner);
+
+        registry = new XERC20Registry();
+        adapter = new Adapter(address(registry));
+        xerc20 = new XERC20("pToken A", "pTKA", factoryAddress);
+
+        if (erc20Native == address(0)) {
+            erc20 = ERC20(new ERC20Test("Token A", "TKA", erc20Supply));
+            lockbox = new XERC20Lockbox(
+                address(xerc20),
+                address(erc20),
+                notNative
+            );
+            xerc20.setLockbox(address(lockbox));
+        } else {
+            erc20 = ERC20(erc20Native);
+        }
+
+        feesManager = new FeesManager();
+        feesManager.setFee(address(xerc20), 0);
+        pam = new PAM();
+        pam.setTeeSigner(signerPublicKey, signerAttestation);
+
+        xerc20.setPAM(address(adapter), address(pam));
+        xerc20.setFeesManager(address(feesManager));
+        xerc20.setLimits(address(adapter), mintingLimit, burningLimit);
+
+        vm.stopPrank();
+        vm.chainId(prevChain);
     }
 }

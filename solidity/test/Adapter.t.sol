@@ -4,8 +4,10 @@ pragma solidity ^0.8.25;
 import {Vm} from "forge-std/Vm.sol";
 import {Test} from "forge-std/Test.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IAccessControl} from "@openzeppelin/contracts/access/IAccessControl.sol";
 
+import {PAM} from "../src/PAM.sol";
 import {Helper} from "./Helper.sol";
 import {Adapter} from "../src/Adapter.sol";
 import {FeesManager} from "../src/FeesManager.sol";
@@ -35,6 +37,7 @@ contract AdapterTest is Test, Helper {
     XERC20Lockbox lockbox_A;
     FeesManager feesManager_A;
     XERC20Registry registry_A;
+    PAM pam_A;
 
     XERC20 xerc20_B;
     ERC20 erc20_B;
@@ -42,68 +45,18 @@ contract AdapterTest is Test, Helper {
     XERC20Lockbox lockbox_B;
     FeesManager feesManager_B;
     XERC20Registry registry_B;
+    PAM pam_B;
 
     /// @dev Variables
-    uint256 erc20Supply;
     uint256 userBalance;
     bytes32 erc20Bytes_A;
     bytes32 erc20Bytes_B;
-    uint256 mintingLimit;
-    uint256 burningLimit;
-    address factoryAddress;
-    bool native;
-    bool notNative;
 
     constructor() {
         owner = vm.addr(1);
         user = vm.addr(2);
         recipient = vm.addr(3);
-
-        native = true;
-        notNative = false;
         userBalance = 50000;
-        erc20Supply = 1000000;
-        mintingLimit = 2000000;
-        burningLimit = 2000000;
-        factoryAddress = address(0);
-    }
-
-    function _setupChain(
-        uint256 chain,
-        address erc20Native
-    )
-        internal
-        returns (
-            XERC20Registry registry,
-            Adapter adapter,
-            ERC20 erc20,
-            XERC20 xerc20,
-            XERC20Lockbox lockbox,
-            FeesManager feesManager
-        )
-    {
-        uint256 prevChain = block.chainid;
-        vm.chainId(chain);
-        vm.startPrank(owner);
-
-        registry = new XERC20Registry();
-        adapter = new Adapter(address(registry));
-
-        erc20 = erc20Native == address(0)
-            ? ERC20(new ERC20Test("Token A", "TKA", erc20Supply))
-            : ERC20(erc20Native);
-
-        xerc20 = new XERC20("pToken A", "pTKA", factoryAddress);
-        lockbox = new XERC20Lockbox(address(xerc20), address(erc20), notNative);
-        feesManager = new FeesManager();
-        feesManager.setFee(address(xerc20), 0);
-
-        xerc20.setLockbox(address(lockbox));
-        xerc20.setLimits(address(adapter), mintingLimit, burningLimit);
-        xerc20.setFeesManager(address(feesManager));
-
-        vm.stopPrank();
-        vm.chainId(prevChain);
     }
 
     function setUp() public {
@@ -113,8 +66,9 @@ contract AdapterTest is Test, Helper {
             erc20_A,
             xerc20_A,
             lockbox_A,
-            feesManager_A
-        ) = _setupChain(CHAIN_A, address(0));
+            feesManager_A,
+            pam_A
+        ) = _setupChain(CHAIN_A, owner, address(0));
 
         (
             registry_B,
@@ -122,8 +76,9 @@ contract AdapterTest is Test, Helper {
             erc20_B,
             xerc20_B,
             lockbox_B,
-            feesManager_B
-        ) = _setupChain(CHAIN_B, address(erc20_A));
+            feesManager_B,
+            pam_B
+        ) = _setupChain(CHAIN_B, owner, address(erc20_A));
 
         erc20Bytes_A = bytes32(abi.encode(address(erc20_A)));
         _registerPair(
@@ -309,13 +264,11 @@ contract AdapterTest is Test, Helper {
             data
         );
 
+        // Getting the log of the event
         Vm.Log[] memory entries = vm.getRecordedLogs();
-
-        // console.log(entries.length);
-        console.log(entries[10].emitter);
-        console.log(vm.toString(entries[10].topics[0]));
-        console.log(vm.toString(entries[10].data));
-
+        // console.log(entries[10].emitter); // address
+        // console.log(vm.toString(entries[10].topics[0])); // topic0
+        // console.log(vm.toString(entries[10].data)); // data
         IAdapter.Operation memory op = abi.decode(
             entries[10].data,
             (IAdapter.Operation)
@@ -323,6 +276,20 @@ contract AdapterTest is Test, Helper {
 
         vm.chainId(CHAIN_B);
 
-        adapter_B.settle(op, IPAM.Metadata("0x", "0x"));
+        // ------ OFF CHAIN START ------
+        bytes memory statement = vm.parseBytes(
+            "0x000000000000000000000000000000000000000000000000000000000000000000012542d0a8a8d91d000e52fcb026fbbd6360970074b1b5dcfe271565a2431ba844f901ba942946259e0334f33a064106302415ad3391bed384e1a0b255de8953b7f0014df3bb00e17f11f43945268f579979c7124353070c2db98db90180000000000000000000000000000000000000000000000000000000000000002000000000000000000000000051a240271ab8ab9f9a21c82d9a85396b704e164d0000000000000000000000002b5ad5c4795c026514f8317c7a215e218dccd6cf00000000000000000000000000000000000000000000000000000000000000e00000000000000000000000000000000000000000000000000000000000007a690000000000000000000000000000000000000000000000000000000000007a6a00000000000000000000000000000000000000000000000000000000000027100000000000000000000000000000000000000000000000000000000000000140000000000000000000000000000000000000000000000000000000000000002a307836383133456239333632333732454546363230306633623164624333663831393637316342413639000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+        );
+        bytes memory signature = vm.parseBytes(
+            "0x0c0cbd2a2ccc47c0edefdbc62db42c38d2fa0e14322168ad8da9cb40aa8fae75049d5ae7f6d23e684dd515460498e9b83fff5f393c14299ba1487fd6a468e8a71b"
+        );
+        // ------ OFF CHAIN END ---------
+
+        vm.expectEmit(address(xerc20_B));
+        emit IERC20.Transfer(address(0), recipient, amount);
+        vm.expectEmit(address(adapter_B));
+        emit IAdapter.Settled();
+
+        adapter_B.settle(op, IPAM.Metadata(statement, signature));
     }
 }

@@ -15,4 +15,6 @@ interface IAdapter {
     event ReceiveUserDataFailed();
 
     event Swap(Operation operation);
+
+    event Settled();
 }

@@ -9,7 +9,8 @@ import {IPAM} from "./interfaces/IPAM.sol";
 import {IAdapter} from "./interfaces/IAdapter.sol";
 
 contract PAM is Ownable, IPAM {
-    bytes32 public constant SWAP_EVENT_TOPIC = "";
+    bytes32 public constant SWAP_EVENT_TOPIC =
+        0xb255de8953b7f0014df3bb00e17f11f43945268f579979c7124353070c2db98d;
     uint256 public constant TEE_ADDRESS_CHANGE_GRACE_PERIOD = 172800; // 48 hours
 
     address public teeAddress;
@@ -79,7 +80,7 @@ contract PAM is Ownable, IPAM {
     function isAuthorized(
         IAdapter.Operation memory operation,
         Metadata calldata metadata
-    ) public returns (bool) {
+    ) external returns (bool) {
         _maybeUpdateTeeAddress();
 
         if (teeAddress == address(0)) revert InvalidTeeSigner();
