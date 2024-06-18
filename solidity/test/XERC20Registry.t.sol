@@ -61,9 +61,15 @@ contract XERC20RegistryTest is Test, Helper {
         registry.registerXERC20(erc20Bytes_A, address(xerc20_A));
     }
 
-
     function test_getAssets_GetTheCorrectPair() public {
-        _registerPair(OWNER, REGISTRAR, registry, erc20Bytes_A, address(xerc20_A));
+        _registerPair(
+            block.chainid,
+            OWNER,
+            REGISTRAR,
+            registry,
+            erc20Bytes_A,
+            address(xerc20_A)
+        );
 
         vm.startPrank(USER);
         (bytes32 a, address b) = registry.getAssets(address(erc20_A));

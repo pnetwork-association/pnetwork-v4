@@ -9,19 +9,28 @@ import {XERC20Registry} from "../src/XERC20Registry.sol";
 
 abstract contract Helper is Test {
     function _registerPair(
+        uint256 chain,
         address owner,
         address registrar,
         XERC20Registry registry,
         bytes32 erc20,
         address xerc20
     ) public {
+        uint256 prevChain = block.chainid;
+        vm.chainId(chain);
         vm.prank(owner);
         registry.grantRole(keccak256("REGISTRAR"), registrar);
         vm.prank(registrar);
         registry.registerXERC20(erc20, xerc20);
+        vm.chainId(prevChain);
     }
 
-    function _transferToken(address token, address from, address to, uint256 amount) internal {
+    function _transferToken(
+        address token,
+        address from,
+        address to,
+        uint256 amount
+    ) internal {
         vm.startPrank(from);
         ERC20(token).transfer(to, amount);
         vm.stopPrank();
