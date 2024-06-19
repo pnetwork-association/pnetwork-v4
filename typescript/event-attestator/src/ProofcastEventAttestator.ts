@@ -59,13 +59,13 @@ export class ProofcastEventAttestator {
   }
 
   getEventId(event: Event): Buffer {
-    return sha256Digest(event.blockHash)
+    return sha256Digest(event.address + event.data + event.topics[0])
   }
 
   getStatementBytes(event: Event): Buffer {
     const address = fromHex(event.address)
     const data = fromHex(event.data)
-    const topics: RlpList = event.topics.map((topic) => fromHex(topic))
+    const topics: RlpList = event.topics.map(topic => fromHex(topic))
     const eventRLP: RlpList = [address, topics, data]
     const eventBytes = RlpEncode(eventRLP)
 
