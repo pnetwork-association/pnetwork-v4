@@ -30,6 +30,8 @@ describe('Proofcast Event Attestator Tests', () => {
       privateKey,
     })
 
+    console.log('public key', ea.publicKey)
+    console.log('address', ea.address)
     console.log('statement', ea.getStatement(event))
     console.log('signature', ea.sign(event))
   })
