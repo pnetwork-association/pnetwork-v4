@@ -4,6 +4,8 @@ import { SigningKey, computeAddress } from 'ethers/lib/utils'
 import { RlpEncode, RlpList } from 'rlp-stream'
 
 import { Chains } from './Chains'
+import { Protocols } from './Protocols'
+import { Versions } from './Versions'
 
 const sha256Digest = (_value: crypto.BinaryLike) => {
   const sha256 = crypto.createHash('sha256')
@@ -15,6 +17,8 @@ type Context = {
   version: number
   protocolId: number
   chainId: number
+  blockHash: string | undefined
+  txHash: string | undefined
   privateKey: string | undefined
 }
 
@@ -34,17 +38,21 @@ export class ProofcastEventAttestator {
   public version: Buffer
   public protocolId: Buffer
   public chainId: Buffer
+  public blockHash: Buffer
+  public txHash: Buffer
   public address: string
   public publicKey: string
   public privateKey: string
   private signingKey: SigningKey
 
   constructor(
-    { version, protocolId, chainId, privateKey }: Context = {
-      version: 0x00,
-      protocolId: 0x00,
+    { version, protocolId, chainId, privateKey, blockHash, txHash }: Context = {
+      version: Versions.V1,
+      protocolId: Protocols.Evm,
       chainId: Chains.Goerli,
       privateKey: undefined,
+      blockHash: undefined,
+      txHash: undefined,
     },
   ) {
     this.version = Buffer.from([version])
@@ -56,10 +64,19 @@ export class ProofcastEventAttestator {
     this.signingKey = new SigningKey(Buffer.from(this.privateKey, 'hex'))
     this.publicKey = this.signingKey.publicKey
     this.address = computeAddress(this.publicKey)
+    this.blockHash = fromHex(blockHash)
+    this.txHash = fromHex(txHash)
   }
 
-  getEventId(event: Event): Buffer {
-    return sha256Digest(event.address + event.data + event.topics[0])
+  getEventId(): Buffer {
+    const sha256 = crypto.createHash('sha256')
+    sha256.update(this.version)
+    sha256.update(this.protocolId)
+    sha256.update(this.chainId)
+    sha256.update(this.blockHash)
+    sha256.update(this.txHash)
+
+    return sha256.digest()
   }
 
   getStatementBytes(event: Event): Buffer {
@@ -69,7 +86,7 @@ export class ProofcastEventAttestator {
     const eventRLP: RlpList = [address, topics, data]
     const eventBytes = RlpEncode(eventRLP)
 
-    const eventId = this.getEventId(event)
+    const eventId = this.getEventId()
     const length =
       this.version.length +
       this.protocolId.length +

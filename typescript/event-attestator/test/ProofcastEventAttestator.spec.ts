@@ -28,6 +28,8 @@ describe('Proofcast Event Attestator Tests', () => {
       protocolId: 0x01,
       chainId: Chains.Hardhat,
       privateKey,
+      blockHash: '0x00',
+      txHash: '0x00',
     })
 
     console.log('public key', ea.publicKey)

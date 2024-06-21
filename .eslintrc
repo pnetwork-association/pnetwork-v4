@@ -5,14 +5,19 @@
         "es2021": true
     },
     "root": true,
-    "plugins": [
-        "@typescript-eslint",
-        "jest"
-    ],
+    "plugins": [],
     "extends": [
-        "eslint:recommended",
-        "plugin:@typescript-eslint/recommended",
         "prettier"
+    ],
+    "overrides": [
+        {
+            "files": [
+                "**/src/*.js",
+                "**/src/*.ts",
+                "**/test/*.ts",
+                "**/test/*.js"
+            ]
+        }
     ],
     "rules": {
         "no-console": [
@@ -32,44 +37,6 @@
         ],
         "guard-for-in": [
             "error"
-        ],
-        "@typescript-eslint/ban-ts-comment": [
-            "off"
-        ],
-        "@typescript-eslint/explicit-module-boundary-types": [
-            "off"
-        ],
-        "@typescript-eslint/no-explicit-any": [
-            "off"
-        ],
-        "@typescript-eslint/no-non-null-assertion": [
-            "off"
-        ],
-        "@typescript-eslint/no-require-imports": [
-            "warn"
-        ],
-        "@typescript-eslint/no-unused-vars": [
-            "error",
-            {
-                "argsIgnorePattern": "^_",
-                "varsIgnorePattern": "^_",
-                "caughtErrorsIgnorePattern": "^_"
-            }
-        ],
-        "@typescript-eslint/ban-types": [
-            "error",
-            {
-                "types": {
-                    // Unban the {} type which is a useful shorthand for non-nullish value
-                    "{}": false
-                },
-                "extendDefaults": true
-            }
-        ],
-        "jest/no-disabled-tests": "warn",
-        "jest/no-focused-tests": "error",
-        "jest/no-identical-title": "error",
-        "jest/prefer-to-have-length": "warn",
-        "jest/valid-expect": "error"
+        ]
     }
 }
