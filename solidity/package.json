@@ -7,14 +7,16 @@
     "test": "test"
   },
   "scripts": {
-    "test": "yarn test:forge",
-    "test:forge": "forge test",
+    "build": "forge build",
+    "test": "forge test",
     "lint": "solhint src/**/*.sol",
-    "prettier": "prettier --write ./src ./test"
+    "prettier": "prettier --write ./src ./test",
+    "coverage": "forge coverage --report summary"
   },
   "devDependencies": {
+    "@pnetwork/event-attestator": "*",
     "commander": "^12.1.0",
-    "@pnetwork/event-attestator": "*"
+    "ramda": "^0.30.1"
   },
   "author": "gitmp01",
   "license": "MIT"

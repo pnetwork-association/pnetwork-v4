@@ -8,6 +8,8 @@ import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {IPAM} from "./interfaces/IPAM.sol";
 import {IAdapter} from "./interfaces/IAdapter.sol";
 
+import "forge-std/console.sol";
+
 contract PAM is Ownable, IPAM {
     bytes32 public constant SWAP_EVENT_TOPIC =
         0xb255de8953b7f0014df3bb00e17f11f43945268f579979c7124353070c2db98d;
@@ -125,6 +127,7 @@ contract PAM is Ownable, IPAM {
 
         if (operation.erc20 != expected.erc20) return false;
         if (operation.sender != expected.sender) return false;
+
         if (
             sha256(abi.encode(operation.recipient)) !=
             sha256(abi.encode(expected.recipient))

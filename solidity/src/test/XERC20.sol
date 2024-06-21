@@ -78,6 +78,8 @@ contract XERC20 is ERC20, Ownable, IXERC20, ERC20Permit {
      */
 
     function setFeesManager(address newAddress) public onlyFeesManager {
+        if (newAddress.code.length == 0) revert NotAContract(feesManager);
+
         feesManager = newAddress;
 
         emit FeesManagerChanged(newAddress);
@@ -378,8 +380,6 @@ contract XERC20 is ERC20, Ownable, IXERC20, ERC20Permit {
         address _user,
         uint256 _amount
     ) internal {
-        if (feesManager.code.length == 0) revert NotAContract(feesManager);
-
         uint256 fees = IFeesManager(feesManager).calculateFee(
             address(this),
             _amount

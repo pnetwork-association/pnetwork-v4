@@ -9,6 +9,8 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 import {IXERC20} from "./interfaces/IXERC20.sol";
 import {IFeesManager} from "./interfaces/IFeesManager.sol";
 
+import "forge-std/console.sol";
+
 contract FeesManager is IFeesManager, Ownable {
     using SafeERC20 for IERC20;
     uint16 public currentEpoch;
@@ -16,9 +18,11 @@ contract FeesManager is IFeesManager, Ownable {
     bytes32 public WITHDRAW_ROLE;
     bytes32 public UPGRADE_ROLE;
     bytes32 public SET_FEE_ROLE;
+    bytes32 SLOT_DESTINATION_CHAIN_ID = keccak256("SLOT_DESTINATION_CHAIN_ID");
 
     struct Fee {
         uint256 minFee;
+        uint16 basisPoints; // 4 decimals representation i.e. 2500 => 25 basis points => 0.25%
         bool defined;
     }
 
@@ -32,7 +36,7 @@ contract FeesManager is IFeesManager, Ownable {
 
     bool public initialized;
 
-    event FeeUpdated(address token, uint256 minFee);
+    event FeeUpdated(address token, uint256 minFee, uint256 basisPoints);
 
     error InvalidFromAddress();
     error InvalidEpoch();
@@ -92,45 +96,24 @@ contract FeesManager is IFeesManager, Ownable {
         address xerc20,
         uint256 amount
     ) public view returns (uint256) {
-        Fee memory info = feeInfoByAsset[xerc20];
-
-        if (!info.defined) revert UnsupportedToken(xerc20);
-
+        // We take the fees only when wrapping/unwrapping
+        // the token. Host2host pegouts won't take any
+        // fees, otherwise they would be taken twice when
+        // pegging-out
         bool isLocal = IXERC20(xerc20).isLocal();
 
-        uint256 destinationChainId;
+        if (isLocal) {
+            Fee memory info = feeInfoByAsset[xerc20];
+            if (!info.defined) revert UnsupportedToken(xerc20);
+            uint256 fee = (amount * info.basisPoints) / 1000000;
 
-        // NOTE: This is meant to be initialized on
-        // the adapter side, where it's the only
-        // place where the destination chain id
-        // is known. Reasons for this choice are:
-        //   1) Keep the fees withdrawal on the xERC20 side and
-        //      avoid breaking the interface (burn/withdraw would have needed
-        //      a destination chain id parameter for the purpose)
-        //   2) Be able to differentiate from pegin/pegout
-        //      fees (As defined in PIP10)
-        assembly {
-            destinationChainId := tload(0)
+            return
+                fee < feeInfoByAsset[xerc20].minFee
+                    ? feeInfoByAsset[xerc20].minFee
+                    : fee;
         }
 
-        // NOTE: We default to the current chain
-        // if the transient storage wasn't previously
-        // loaded (this may happen if other adapters are used)
-        if (destinationChainId == 0) destinationChainId = block.chainid;
-
-        // isLocal && destinationChainId == block.chainid
-        // => means we are pegging out (0.25% fee applied)
-        // isLocal && destinationChainId != block.chainid
-        // => means we are pegging in (0.10% fee applied)
-        uint256 basisPoints = (
-            isLocal && destinationChainId == block.chainid ? 2500 : 1000
-        );
-        uint256 fee = (amount * basisPoints) / 1000000;
-
-        return
-            fee < feeInfoByAsset[xerc20].minFee
-                ? feeInfoByAsset[xerc20].minFee
-                : fee;
+        return 0;
     }
 
     /// @inheritdoc IFeesManager
@@ -179,8 +162,12 @@ contract FeesManager is IFeesManager, Ownable {
         IERC20(xerc20).safeTransferFrom(from, address(this), amount);
     }
 
-    function setFee(address xerc20, uint256 minAmount) external onlyOwner {
-        feeInfoByAsset[xerc20] = Fee(minAmount, true);
-        emit FeeUpdated(xerc20, minAmount);
+    function setFee(
+        address xerc20,
+        uint256 minAmount,
+        uint16 basisPoints
+    ) external onlyOwner {
+        feeInfoByAsset[xerc20] = Fee(minAmount, basisPoints, true);
+        emit FeeUpdated(xerc20, minAmount, basisPoints);
     }
 }

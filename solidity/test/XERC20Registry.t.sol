@@ -67,7 +67,7 @@ contract XERC20RegistryTest is Test, Helper {
             OWNER,
             REGISTRAR,
             registry,
-            erc20Bytes_A,
+            address(erc20_A),
             address(xerc20_A)
         );
 

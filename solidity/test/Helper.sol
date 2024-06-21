@@ -1,17 +1,22 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
+import {Vm} from "forge-std/Vm.sol";
+import {Test} from "forge-std/Test.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 import {PAM} from "../src/PAM.sol";
-import {Test} from "forge-std/Test.sol";
 import {Adapter} from "../src/Adapter.sol";
 import {XERC20} from "../src/test/XERC20.sol";
 import {FeesManager} from "../src/FeesManager.sol";
 import {XERC20Registry} from "../src/XERC20Registry.sol";
 
+import {IPAM} from "../src/interfaces/IPAM.sol";
 import {ERC20Test} from "../src/test/ERC20Test.sol";
+import {IAdapter} from "../src/interfaces/IAdapter.sol";
 import {XERC20Lockbox} from "../src/test/XERC20Lockbox.sol";
+
+import "forge-std/console.sol";
 
 abstract contract Helper is Test {
     bytes signerPublicKey =
@@ -31,7 +36,7 @@ abstract contract Helper is Test {
         address owner,
         address registrar,
         XERC20Registry registry,
-        bytes32 erc20,
+        address erc20,
         address xerc20
     ) public {
         uint256 prevChain = block.chainid;
@@ -39,7 +44,7 @@ abstract contract Helper is Test {
         vm.prank(owner);
         registry.grantRole(keccak256("REGISTRAR"), registrar);
         vm.prank(registrar);
-        registry.registerXERC20(erc20, xerc20);
+        registry.registerXERC20(bytes32(abi.encode(erc20)), xerc20);
         vm.chainId(prevChain);
     }
 
@@ -51,6 +56,18 @@ abstract contract Helper is Test {
     ) internal {
         vm.startPrank(from);
         ERC20(token).transfer(to, amount);
+        vm.stopPrank();
+    }
+
+    function _sendXERC20To(
+        address owner,
+        address xerc20,
+        address to,
+        uint256 amount
+    ) internal {
+        vm.startPrank(owner);
+        XERC20(xerc20).setLimits(owner, mintingLimit, burningLimit);
+        XERC20(xerc20).mint(to, amount);
         vm.stopPrank();
     }
 
@@ -91,7 +108,7 @@ abstract contract Helper is Test {
         }
 
         feesManager = new FeesManager();
-        feesManager.setFee(address(xerc20), 0);
+        feesManager.setFee(address(xerc20), 0, 2000);
         pam = new PAM();
         pam.setTeeSigner(signerPublicKey, signerAttestation);
 
@@ -101,5 +118,44 @@ abstract contract Helper is Test {
 
         vm.stopPrank();
         vm.chainId(prevChain);
+    }
+
+    function _performERC20Swap(
+        uint256 sourceChainId,
+        address erc20,
+        address from,
+        address adapter,
+        uint256 destinationChainId,
+        address destinationAddress,
+        uint256 amount,
+        bytes memory data
+    ) internal {
+        vm.chainId(sourceChainId);
+        vm.startPrank(from);
+
+        ERC20(erc20).approve(address(adapter), amount);
+
+        Adapter(adapter).swap(
+            erc20,
+            amount,
+            vm.toString(destinationAddress),
+            bytes32(destinationChainId),
+            data
+        );
+
+        vm.stopPrank();
+    }
+
+    function _getOperationFromRecordedLogs()
+        internal
+        returns (IAdapter.Operation memory)
+    {
+        Vm.Log[] memory entries = vm.getRecordedLogs();
+        uint256 last = entries.length - 1;
+        console.log("////////////////////////////////");
+        console.log(entries[last].emitter); // address
+        console.log(vm.toString(entries[last].data)); // data
+        console.log(vm.toString(entries[last].topics[0])); // topic0
+        return abi.decode(entries[last].data, (IAdapter.Operation));
     }
 }

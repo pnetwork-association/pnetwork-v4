@@ -127,16 +127,25 @@ contract XERC20Lockbox is IXERC20Lockbox {
     function _withdraw(address _to, uint256 _amount) internal {
         emit Withdraw(_to, _amount);
 
-        // Fees are taken inside the burn function
-        XERC20.burn(msg.sender, _amount);
+        IERC20(address(XERC20)).safeTransferFrom(
+            msg.sender,
+            address(this),
+            _amount
+        );
 
         // We need to recalculate the net amount here
         // otherwise we would burn more than what is
         // the msg.sender current balance
-        uint256 fees = IFeesManager(XERC20.getFeesManager()).calculateFee(
+        address feesManager = XERC20.getFeesManager();
+        uint256 fees = IFeesManager(feesManager).calculateFee(
             address(XERC20),
             _amount
         );
+
+        IERC20(address(XERC20)).approve(feesManager, fees);
+
+        // Fees are taken inside the burn function
+        XERC20.burn(address(this), _amount);
 
         uint256 netAmount = _amount - fees;
 

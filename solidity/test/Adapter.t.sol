@@ -2,7 +2,7 @@
 pragma solidity ^0.8.25;
 
 import {Vm} from "forge-std/Vm.sol";
-import {Test} from "forge-std/Test.sol";
+import {Test, stdMath} from "forge-std/Test.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IAccessControl} from "@openzeppelin/contracts/access/IAccessControl.sol";
@@ -29,6 +29,8 @@ contract AdapterTest is Test, Helper {
     address user;
     address owner;
     address recipient;
+    bytes statement;
+    bytes signature;
 
     /// @dev Contracts
     XERC20 xerc20_A;
@@ -57,6 +59,13 @@ contract AdapterTest is Test, Helper {
         user = vm.addr(2);
         recipient = vm.addr(3);
         userBalance = 50000;
+        statement = vm.parseBytes(
+            "0x01010000000000000000000000000000000000000000000000000000000000000001a0243a92f567cdd3e2511404bb6a798388d4ceae3f2c0be6ba277f9e45fae396f901ba942946259e0334f33a064106302415ad3391bed384e1a0b255de8953b7f0014df3bb00e17f11f43945268f579979c7124353070c2db98db90180000000000000000000000000000000000000000000000000000000000000002000000000000000000000000051a240271ab8ab9f9a21c82d9a85396b704e164d0000000000000000000000002b5ad5c4795c026514f8317c7a215e218dccd6cf00000000000000000000000000000000000000000000000000000000000000e00000000000000000000000000000000000000000000000000000000000007a690000000000000000000000000000000000000000000000000000000000007a6a00000000000000000000000000000000000000000000000000000000000026fc0000000000000000000000000000000000000000000000000000000000000140000000000000000000000000000000000000000000000000000000000000002a307836383133456239333632333732454546363230306633623164624333663831393637316342413639000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+        );
+
+        signature = vm.parseBytes(
+            "0xac00fb15ea05ef9745c7712ed20a06e07fec930128c2723cbc42af36d9ca4b05313715d777d770a0daae9303ced6d86915137ca1adb35a2b796037c2fc42abd11b"
+        );
     }
 
     function setUp() public {
@@ -80,27 +89,28 @@ contract AdapterTest is Test, Helper {
             pam_B
         ) = _setupChain(CHAIN_B, owner, address(erc20_A));
 
-        erc20Bytes_A = bytes32(abi.encode(address(erc20_A)));
         _registerPair(
             CHAIN_A,
             owner,
             owner,
             registry_A,
-            erc20Bytes_A,
+            address(erc20_A),
             address(xerc20_A)
         );
 
-        erc20Bytes_B = bytes32(abi.encode(address(erc20_B)));
         _registerPair(
             CHAIN_B,
             owner,
             owner,
             registry_B,
-            erc20Bytes_B,
+            address(erc20_B),
             address(xerc20_B)
         );
 
         _transferToken(address(erc20_A), owner, user, userBalance);
+
+        erc20Bytes_A = bytes32(abi.encode(address(erc20_A)));
+        erc20Bytes_B = bytes32(abi.encode(address(erc20_B)));
     }
 
     function test_swap_EmitsSwapWithERC20() public {
@@ -113,8 +123,10 @@ contract AdapterTest is Test, Helper {
 
         erc20_A.approve(address(adapter_A), amount);
 
-        // TODO: use vm.recordLogs()
         vm.expectEmit(address(adapter_A));
+
+        uint256 fees = (amount * 20) / 10000;
+        uint256 netAmount = amount - fees;
 
         emit IAdapter.Swap(
             IAdapter.Operation(
@@ -123,7 +135,7 @@ contract AdapterTest is Test, Helper {
                 recipientStr,
                 sourceChainId,
                 destinationChainId,
-                amount,
+                netAmount,
                 data
             )
         );
@@ -144,15 +156,8 @@ contract AdapterTest is Test, Helper {
         assertEq(U, userBalance - amount);
         assertEq(L, amount);
         assertEq(A, 0);
-        assertEq(F, (amount * 25) / 10000);
+        assertEq(F, fees);
 
-        vm.stopPrank();
-    }
-
-    function _sendXERC20To(address to, uint256 amount) internal {
-        vm.startPrank(owner);
-        xerc20_A.setLimits(owner, mintingLimit, burningLimit);
-        xerc20_A.mint(to, amount);
         vm.stopPrank();
     }
 
@@ -163,14 +168,16 @@ contract AdapterTest is Test, Helper {
         bytes32 destinationChainId = bytes32(CHAIN_B);
         string memory recipientStr = vm.toString(recipient);
 
-        _sendXERC20To(user, userBalance);
+        _sendXERC20To(owner, address(xerc20_A), user, userBalance);
 
         vm.startPrank(user);
 
         xerc20_A.approve(address(adapter_A), amount);
 
-        // TODO: use vm.recordLogs()
         vm.expectEmit(address(adapter_A));
+
+        uint256 fees = (amount * 20) / 10000;
+        uint256 netAmount = amount - fees;
 
         emit IAdapter.Swap(
             IAdapter.Operation(
@@ -179,7 +186,7 @@ contract AdapterTest is Test, Helper {
                 recipientStr,
                 sourceChainId,
                 destinationChainId,
-                amount,
+                netAmount,
                 data
             )
         );
@@ -200,50 +207,7 @@ contract AdapterTest is Test, Helper {
         assertEq(U, userBalance - amount);
         assertEq(L, 0);
         assertEq(A, 0);
-        assertEq(F, (amount * 25) / 10000);
-
-        vm.stopPrank();
-    }
-
-    function _performERC20Swap(
-        uint256 sourceChainId,
-        address erc20,
-        address from,
-        address adapter,
-        uint256 destinationChainId,
-        address destinationAddress,
-        uint256 amount,
-        bytes memory data
-    ) internal {
-        vm.chainId(sourceChainId);
-        vm.startPrank(from);
-
-        string memory recipientStr = vm.toString(recipient);
-        string memory destination = vm.toString(destinationAddress);
-
-        ERC20(erc20).approve(address(adapter), amount);
-
-        vm.expectEmit(address(adapter_A));
-
-        emit IAdapter.Swap(
-            IAdapter.Operation(
-                erc20Bytes_A,
-                user,
-                recipientStr,
-                bytes32(sourceChainId),
-                bytes32(destinationChainId),
-                amount,
-                data
-            )
-        );
-
-        Adapter(adapter).swap(
-            erc20,
-            amount,
-            destination,
-            bytes32(destinationChainId),
-            data
-        );
+        assertEq(F, fees);
 
         vm.stopPrank();
     }
@@ -264,32 +228,101 @@ contract AdapterTest is Test, Helper {
             data
         );
 
-        // Getting the log of the event
-        Vm.Log[] memory entries = vm.getRecordedLogs();
-        // console.log(entries[10].emitter); // address
-        // console.log(vm.toString(entries[10].topics[0])); // topic0
-        // console.log(vm.toString(entries[10].data)); // data
-        IAdapter.Operation memory op = abi.decode(
-            entries[10].data,
-            (IAdapter.Operation)
-        );
+        IAdapter.Operation memory operation = _getOperationFromRecordedLogs();
 
         vm.chainId(CHAIN_B);
 
-        // ------ OFF CHAIN START ------
-        bytes memory statement = vm.parseBytes(
-            "0x000000000000000000000000000000000000000000000000000000000000000000012542d0a8a8d91d000e52fcb026fbbd6360970074b1b5dcfe271565a2431ba844f901ba942946259e0334f33a064106302415ad3391bed384e1a0b255de8953b7f0014df3bb00e17f11f43945268f579979c7124353070c2db98db90180000000000000000000000000000000000000000000000000000000000000002000000000000000000000000051a240271ab8ab9f9a21c82d9a85396b704e164d0000000000000000000000002b5ad5c4795c026514f8317c7a215e218dccd6cf00000000000000000000000000000000000000000000000000000000000000e00000000000000000000000000000000000000000000000000000000000007a690000000000000000000000000000000000000000000000000000000000007a6a00000000000000000000000000000000000000000000000000000000000027100000000000000000000000000000000000000000000000000000000000000140000000000000000000000000000000000000000000000000000000000000002a307836383133456239333632333732454546363230306633623164624333663831393637316342413639000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
-        );
-        bytes memory signature = vm.parseBytes(
-            "0x0c0cbd2a2ccc47c0edefdbc62db42c38d2fa0e14322168ad8da9cb40aa8fae75049d5ae7f6d23e684dd515460498e9b83fff5f393c14299ba1487fd6a468e8a71b"
-        );
-        // ------ OFF CHAIN END ---------
+        uint256 fees = (amount * 20) / 10000;
+        uint256 netAmount = amount - fees;
 
         vm.expectEmit(address(xerc20_B));
-        emit IERC20.Transfer(address(0), recipient, amount);
+        emit IERC20.Transfer(address(0), recipient, netAmount);
         vm.expectEmit(address(adapter_B));
         emit IAdapter.Settled();
 
-        adapter_B.settle(op, IPAM.Metadata(statement, signature));
+        adapter_B.settle(operation, IPAM.Metadata(statement, signature));
+
+        uint256 R = xerc20_B.balanceOf(recipient);
+        uint256 A = xerc20_B.balanceOf(address(adapter_B));
+
+        assertEq(R, netAmount);
+        assertEq(A, 0);
+    }
+
+    function test_swap_e2e_Pegout() public {
+        uint256 amount = 10000;
+        bytes memory data = "";
+
+        vm.recordLogs();
+        _performERC20Swap(
+            CHAIN_A,
+            address(erc20_A),
+            user,
+            address(adapter_A),
+            CHAIN_B,
+            recipient,
+            amount,
+            data
+        );
+
+        IAdapter.Operation memory operation = _getOperationFromRecordedLogs();
+
+        vm.chainId(CHAIN_B);
+
+        IAdapter(adapter_B).settle(
+            operation,
+            IPAM.Metadata(statement, signature)
+        );
+
+        // Pegout
+        uint256 pegoutAmount = 5000;
+        uint256 fees = (pegoutAmount * 20) / 10000;
+        uint256 netAmount = pegoutAmount - fees;
+        uint256 prevBalanceLockbox_A = erc20_A.balanceOf(address(lockbox_A));
+
+        vm.recordLogs();
+        _performERC20Swap(
+            CHAIN_B,
+            address(xerc20_B),
+            recipient,
+            address(adapter_B),
+            CHAIN_B,
+            recipient,
+            pegoutAmount,
+            data
+        );
+
+        IAdapter.Operation
+            memory pegoutOperation = _getOperationFromRecordedLogs();
+
+        vm.chainId(CHAIN_A);
+
+        bytes memory stm2 = vm.parseBytes(
+            "0x01010000000000000000000000000000000000000000000000000000000000000001a0243a92f567cdd3e2511404bb6a798388d4ceae3f2c0be6ba277f9e45fae396f901ba9463f58053c9499e1104a6f6c6d2581d6d83067eebe1a0b255de8953b7f0014df3bb00e17f11f43945268f579979c7124353070c2db98db90180000000000000000000000000000000000000000000000000000000000000002000000000000000000000000051a240271ab8ab9f9a21c82d9a85396b704e164d0000000000000000000000006813eb9362372eef6200f3b1dbc3f819671cba6900000000000000000000000000000000000000000000000000000000000000e00000000000000000000000000000000000000000000000000000000000007a6a0000000000000000000000000000000000000000000000000000000000007a6a00000000000000000000000000000000000000000000000000000000000013880000000000000000000000000000000000000000000000000000000000000140000000000000000000000000000000000000000000000000000000000000002a307836383133456239333632333732454546363230306633623164624333663831393637316342413639000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+        );
+        bytes memory sig2 = vm.parseBytes(
+            "0x092b17ae9cbad765d2cc90df2e26a1281fe49dfff13144a18f6421dae80e64631c3606846668c2851a63347ece8bd978037c8b22c3e4d078386cb688699d6c5b1b"
+        );
+
+        vm.expectEmit(address(xerc20_A));
+        emit IERC20.Transfer(address(lockbox_A), address(0), netAmount);
+        vm.expectEmit(address(erc20_A));
+        emit IERC20.Transfer(address(lockbox_A), recipient, netAmount);
+        vm.expectEmit(address(adapter_A));
+        emit IAdapter.Settled();
+        IAdapter(adapter_A).settle(pegoutOperation, IPAM.Metadata(stm2, sig2));
+
+        assertEq(xerc20_A.balanceOf(recipient), 0);
+        assertEq(xerc20_A.balanceOf(address(adapter_A)), 0);
+        assertEq(xerc20_A.balanceOf(address(lockbox_A)), 0);
+        assertEq(erc20_A.balanceOf(recipient), netAmount);
+
+        assertEq(
+            stdMath.delta(
+                erc20_A.balanceOf(address(lockbox_A)),
+                prevBalanceLockbox_A
+            ),
+            netAmount
+        );
     }
 }
