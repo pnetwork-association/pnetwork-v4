@@ -1,0 +1,4 @@
+forge-std@1.8.2
+openzeppelin-solidity@5.0.2
+openzeppelin-solidity@5.0.2
+solidity-rlp@2.0.8
