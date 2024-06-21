@@ -16,7 +16,6 @@ contract FeesManager is IFeesManager, Ownable {
     bytes32 public WITHDRAW_ROLE;
     bytes32 public UPGRADE_ROLE;
     bytes32 public SET_FEE_ROLE;
-    bytes32 SLOT_DESTINATION_CHAIN_ID = keccak256("SLOT_DESTINATION_CHAIN_ID");
 
     struct Fee {
         uint256 minFee;

@@ -10,7 +10,7 @@
   "scripts": {
     "build": "forge build",
     "test": "forge test",
-    "lint": "solhint src/**/*.sol",
+    "lint": "npx solhint src/**/*.sol",
     "prettier": "prettier --write ./src ./test",
     "coverage": "forge coverage --report summary"
   },
