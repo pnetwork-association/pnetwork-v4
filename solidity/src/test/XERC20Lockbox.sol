@@ -113,12 +113,6 @@ contract XERC20Lockbox is IXERC20Lockbox {
 
     /**
      * @notice Withdraw tokens from the lockbox
-     * @dev Different from the original xERC20 Lockbox implementation:
-     *  - We recalculate the fees and compute the net amount
-     *  - We unlock only the net amount
-     *
-     * NOTE: the xerc20.burn() function will transfer the fees to the
-     * feesManager address
      *
      * @param _to The user to withdraw to
      * @param _amount The amount of tokens to withdraw
@@ -127,15 +121,11 @@ contract XERC20Lockbox is IXERC20Lockbox {
     function _withdraw(address _to, uint256 _amount) internal {
         emit Withdraw(_to, _amount);
 
-        IERC20(address(XERC20)).safeTransferFrom(
-            msg.sender,
-            address(this),
-            _amount
-        );
+        IERC20(address(XERC20)).safeTransferFrom(msg.sender, address(this), _amount);
 
         // We need to recalculate the net amount here
-        // otherwise we would burn more than what is
-        // the msg.sender current balance
+        // otherwise we would burn more than our current
+        // balance
         address feesManager = XERC20.getFeesManager();
         uint256 fees = IFeesManager(feesManager).calculateFee(
             address(XERC20),
