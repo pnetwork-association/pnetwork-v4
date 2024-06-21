@@ -1,11 +1,11 @@
 import crypto from 'crypto'
 import { Event, Signature } from 'ethers'
-import { SigningKey, computeAddress } from 'ethers/lib/utils'
+import { SigningKey, computeAddress } from 'ethers/lib/utils.js'
 import { RlpEncode, RlpList } from 'rlp-stream'
 
-import { Chains } from './Chains'
-import { Protocols } from './Protocols'
-import { Versions } from './Versions'
+import { Chains } from './Chains.js'
+import { Protocols } from './Protocols.js'
+import { Versions } from './Versions.js'
 
 const sha256Digest = (_value: crypto.BinaryLike) => {
   const sha256 = crypto.createHash('sha256')

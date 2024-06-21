@@ -1,13 +1,13 @@
 #!/usr/bin/env node
-const fs = require('fs').promises
-const R = require('ramda')
-const { Command } = require('commander')
-const {
+import {
   Chains,
-  Versions,
-  Protocols,
   ProofcastEventAttestator,
-} = require('@pnetwork/event-attestator')
+  Protocols,
+  Versions,
+} from '@pnetwork/event-attestator'
+import { Command } from 'commander'
+import fs from 'fs/promises'
+import * as R from 'ramda'
 
 const DEFAULT_TX_HASH =
   '0x11365bbee18058f12c27236e891a66999c4325879865303f785854e9169c257a'
@@ -19,7 +19,7 @@ const addMainCommand = _program =>
     .name('attestator.js')
     .description('Proofcast event attestator simulator')
     .version('1.0.0')
-    .action(_ => {
+    .action(() => {
       _program.help()
     })
 

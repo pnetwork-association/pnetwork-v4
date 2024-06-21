@@ -2,7 +2,7 @@
     "compilerOptions": {
         "removeComments": true,
         "preserveConstEnums": true,
-        "module": "commonjs",
+        "module": "NodeNext",
         "target": "es6",
         "declaration": true,
         "esModuleInterop": true,
@@ -12,7 +12,7 @@
         ],
         "outDir": "dist",
         "resolveJsonModule": true,
-        "moduleResolution": "Node",
+        "moduleResolution": "Node16",
         "allowSyntheticDefaultImports": true,
         "alwaysStrict": true,
     },

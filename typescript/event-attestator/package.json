@@ -4,7 +4,7 @@
   "description": "A typescript implementation of the Proofcast's event attestator simulator",
   "author": "pNetwork Team",
   "license": "MIT",
-  "type": "commonjs",
+  "type": "module",
   "exports": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "directories": {
