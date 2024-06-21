@@ -1,16 +1,23 @@
 {
   "name": "@pnetwork/contracts",
   "version": "1.0.0",
+  "type": "module",
   "description": "pNetwork v4 contracts",
   "directories": {
     "lib": "lib",
     "test": "test"
   },
   "scripts": {
-    "test": "yarn test:forge",
-    "test:forge": "forge test",
-    "lint": "solhint contracts/**/*.sol",
-    "prettier": "prettier --write ./src ./test"
+    "build": "forge build",
+    "test": "forge test",
+    "lint": "npx solhint src/**/*.sol",
+    "prettier": "prettier --write ./src ./test",
+    "coverage": "forge coverage --report summary"
+  },
+  "devDependencies": {
+    "@pnetwork/event-attestator": "*",
+    "commander": "^12.1.0",
+    "ramda": "^0.30.1"
   },
   "author": "gitmp01",
   "license": "MIT"

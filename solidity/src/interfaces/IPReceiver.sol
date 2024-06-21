@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
 /**
@@ -11,8 +11,7 @@ interface IPReceiver {
     /*
      * @dev Function called when userData.length > 0 when minting the pToken
      *
-     * @param amount
      * @param userData
      */
-    function receiveUserData(uint256 amount, bytes calldata userData) external;
+    function receiveUserData(bytes calldata userData) external;
 }

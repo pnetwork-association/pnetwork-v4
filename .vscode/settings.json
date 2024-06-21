@@ -1,0 +1,41 @@
+{
+    "npm.packageManager": "yarn",
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+        "source.fixAll.eslint": true,
+        "source.organizeImports": "explicit"
+    },
+    "[json]": {
+        "editor.defaultFormatter": "esbenp.prettier-vscode"
+    },
+    "[markdown]": {
+        "editor.defaultFormatter": "esbenp.prettier-vscode"
+    },
+    "[solidity]": {
+        "editor.defaultFormatter": "esbenp.prettier-vscode"
+    },
+    "[typescript]": {
+        "editor.defaultFormatter": "esbenp.prettier-vscode"
+    },
+    "[javascript]": {
+        "editor.defaultFormatter": "esbenp.prettier-vscode"
+    },
+    "files.watcherExclude": {
+        "**/.git/**": true,
+        "./solidity/lib": true,
+        "**/node_modules/*/**": true
+    },
+    "files.exclude": {
+        "**/node_modules": true,
+        "**/*.js": {
+            "when": "$(basename).ts"
+        },
+        "**/*.map": {
+            "when": "$(basename).map"
+        },
+        "**/artifacts": true,
+        "**/cache": true,
+        "**/dist": true,
+        "**/types": true
+    }
+}

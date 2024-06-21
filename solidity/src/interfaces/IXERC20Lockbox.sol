@@ -1,8 +1,5 @@
-// SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.0;
-
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {IXERC20} from "./IXERC20.sol";
+// SPDX-License-Identifier: MIT
+pragma solidity >=0.8.4 <0.9.0;
 
 interface IXERC20Lockbox {
     /**
@@ -23,25 +20,23 @@ interface IXERC20Lockbox {
 
     event Withdraw(address _sender, uint256 _amount);
 
-    // /**
-    //  * @notice Reverts when a user tries to deposit native tokens on a non-native lockbox
-    //  */
+    /**
+     * @notice Reverts when a user tries to deposit native tokens on a non-native lockbox
+     */
 
-    // error IXERC20Lockbox_NotNative();
+    error IXERC20Lockbox_NotNative();
 
-    // /**
-    //  * @notice Reverts when a user tries to deposit non-native tokens on a native lockbox
-    //  */
+    /**
+     * @notice Reverts when a user tries to deposit non-native tokens on a native lockbox
+     */
 
-    // error IXERC20Lockbox_Native();
+    error IXERC20Lockbox_Native();
 
-    // /**
-    //  * @notice Reverts when a user tries to withdraw and the call fails
-    //  */
+    /**
+     * @notice Reverts when a user tries to withdraw and the call fails
+     */
 
-    // error IXERC20Lockbox_WithdrawFailed();
-
-    function IS_NATIVE() external view returns (bool);
+    error IXERC20Lockbox_WithdrawFailed();
 
     /**
      * @notice Deposit ERC20 tokens into the lockbox
@@ -50,13 +45,6 @@ interface IXERC20Lockbox {
      */
 
     function deposit(uint256 _amount) external;
-
-    /**
-     * @notice Deposit the native asset into the lockbox
-     *
-     */
-
-    function depositNative() external payable;
 
     /**
      * @notice Deposit ERC20 tokens into the lockbox, and send the XERC20 to a user
@@ -91,4 +79,6 @@ interface IXERC20Lockbox {
      */
 
     function withdrawTo(address _user, uint256 _amount) external;
+
+    function IS_NATIVE() external view returns (bool);
 }

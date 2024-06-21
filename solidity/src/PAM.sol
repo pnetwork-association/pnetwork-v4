@@ -1,30 +1,43 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 pragma solidity ^0.8.20;
 
+import {RLPReader} from "solidity-rlp/contracts/RLPReader.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
-import {RLPReader} from "solidity-rlp/contracts/RLPReader.sol";
 
-contract PAM is Ownable {
-    error InvalidEventRLP();
-    error InvalidEventContentLength(uint256);
-    error UnsupportedProtocolId(bytes1);
-    error UnsupportedChainId(uint256);
-    error UnexpectedEventTopic(bytes32);
-    error InvalidSender();
-    error InvalidMessageId(uint256, uint256);
-    error InvalidDestinationChainId(uint256);
+import {IPAM} from "./interfaces/IPAM.sol";
+import {IAdapter} from "./interfaces/IAdapter.sol";
 
-    event TeeSignerChanged(address);
-    event TeeSignerPendingChange(address, bytes, uint256);
-    event YahoInitialized(uint256, address);
-
+contract PAM is Ownable, IPAM {
+    bytes32 public constant SWAP_EVENT_TOPIC =
+        0xb255de8953b7f0014df3bb00e17f11f43945268f579979c7124353070c2db98d;
     uint256 public constant TEE_ADDRESS_CHANGE_GRACE_PERIOD = 172800; // 48 hours
 
     address public teeAddress;
     address public teeAddressNew;
     uint256 public teeAddressChangeGraceThreshold;
-    mapping(uint256 => address) public yahos;
+
+    mapping(bytes32 => bool) pastEvents;
+
+    error InvalidEventRLP();
+    error InvalidTeeSigner();
+    error InvalidSignature();
+    error InvalidEventContentLength(uint256 length);
+    error UnsupportedProtocolId(bytes1 protocolId);
+    error UnsupportedChainId(uint256 chainId);
+    error UnexpectedEventTopic(bytes32 topic);
+    error InvalidSender();
+    error InvalidMessageId(uint256 actual, uint256 expected);
+    error InvalidDestinationChainId(uint256 chainId);
+
+    event TeeSignerChanged(address newAddress);
+    event TeeSignerPendingChange(
+        address newAddress,
+        bytes attestation,
+        uint256 gracePeriod
+    );
+
+    constructor() Ownable(msg.sender) {}
 
     function setTeeSigner(
         bytes calldata pubKey,
@@ -53,10 +66,7 @@ contract PAM is Ownable {
         }
     }
 
-    function isAuthorized(
-        bytes calldata statement,
-        bytes memory signature
-    ) public returns (bool) {
+    function _maybeUpdateTeeAddress() internal {
         if (
             teeAddressNew != address(0) &&
             block.timestamp > teeAddressChangeGraceThreshold
@@ -65,8 +75,68 @@ contract PAM is Ownable {
             teeAddressNew = address(0);
             emit TeeSignerChanged(teeAddress);
         }
-        require(teeAddress != address(0), "Tee signer not set!");
-        return ECDSA.recover(sha256(statement), signature) == teeAddress;
+    }
+
+    function isAuthorized(
+        IAdapter.Operation memory operation,
+        Metadata calldata metadata
+    ) external returns (bool) {
+        _maybeUpdateTeeAddress();
+
+        if (teeAddress == address(0)) revert InvalidTeeSigner();
+
+        if (
+            ECDSA.recover(sha256(metadata.statement), metadata.signature) !=
+            teeAddress
+        ) return false;
+
+        //  Statement format:
+        //    | version   | protocol   |  originChainId     |   eventId     | eventBytes  |
+        //    | (1 byte)  | (1 byte)   |    (32 bytes)      |  (32 bytes)   |  varlen     |
+
+        uint16 offset = (2 + 32); // skip version, protocolId, originChainId
+
+        bytes32 eventId = bytes32(metadata.statement[offset:offset += 32]);
+
+        if (pastEvents[eventId]) return false;
+
+        bytes memory eventBytes = metadata.statement[offset:];
+
+        RLPReader.RLPItem memory eventRLP = RLPReader.toRlpItem(eventBytes);
+        if (!RLPReader.isList(eventRLP)) revert InvalidEventRLP();
+
+        RLPReader.RLPItem[] memory eventContent = RLPReader.toList(eventRLP);
+
+        // Event must contain address, logs and data
+        if (eventContent.length != 3)
+            revert InvalidEventContentLength(eventContent.length);
+
+        RLPReader.RLPItem[] memory logs = RLPReader.toList(eventContent[1]);
+
+        bytes32 topic = bytes32(RLPReader.toBytes(logs[0]));
+        if (topic != SWAP_EVENT_TOPIC) revert UnexpectedEventTopic(topic);
+
+        bytes memory dataBytes = RLPReader.toBytes(eventContent[2]);
+
+        IAdapter.Operation memory expected = abi.decode(
+            dataBytes,
+            (IAdapter.Operation)
+        );
+
+        if (operation.erc20 != expected.erc20) return false;
+        if (operation.sender != expected.sender) return false;
+
+        if (
+            sha256(abi.encode(operation.recipient)) !=
+            sha256(abi.encode(expected.recipient))
+        ) return false;
+        if (operation.originChainId != expected.originChainId) return false;
+        if (operation.destinationChainId != expected.destinationChainId)
+            return false;
+        if (operation.amount != expected.amount) return false;
+        if (sha256(operation.data) != sha256(expected.data)) return false;
+
+        return true;
     }
 
     function _getAddressFromPublicKey(

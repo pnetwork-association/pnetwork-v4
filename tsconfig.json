@@ -1,0 +1,14 @@
+{
+    "exclude": [
+        "**/test/**",
+        "**/dist/**"
+    ],
+    "references": [
+        {
+            "path": "./solidity",
+        },
+        {
+            "path": "./typescript"
+        }
+    ]
+}

@@ -1,0 +1,23 @@
+{
+    "compilerOptions": {
+        "allowJs": true,
+        "removeComments": true,
+        "preserveConstEnums": true,
+        "module": "NodeNext",
+        "target": "es6",
+        "declaration": true,
+        "esModuleInterop": true,
+        "sourceMap": false,
+        "lib": [
+            "es6"
+        ],
+        "outDir": "dist",
+        "resolveJsonModule": true,
+        "moduleResolution": "Node16",
+        "allowSyntheticDefaultImports": true,
+        "alwaysStrict": true,
+    },
+    "include": [
+        "./src"
+    ]
+}
