@@ -9,8 +9,6 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 import {IXERC20} from "./interfaces/IXERC20.sol";
 import {IFeesManager} from "./interfaces/IFeesManager.sol";
 
-import "forge-std/console.sol";
-
 contract FeesManager is IFeesManager, Ownable {
     using SafeERC20 for IERC20;
     uint16 public currentEpoch;

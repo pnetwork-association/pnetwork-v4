@@ -15,8 +15,6 @@ import {IXERC20Registry} from "./interfaces/IXERC20Registry.sol";
 import {IXERC20Lockbox} from "./interfaces/IXERC20Lockbox.sol";
 import {ExcessivelySafeCall} from "./libraries/ExcessivelySafeCall.sol";
 
-import "forge-std/console.sol";
-
 contract Adapter is IAdapter, Ownable {
     using ExcessivelySafeCall for address;
 
@@ -50,7 +48,8 @@ contract Adapter is IAdapter, Ownable {
      * @param token ERC20 or xERC20 to move across chains
      * @param amount token quantity to move across chains
      * @param recipient whom will receive the token
-     * @param destinationChainId chain id where the wrapped version is destined to (it may be a sha256 hash of the relevant ID of the chain (i.e. sha256 of the chain id for EOS))
+     * @param destinationChainId chain id where the wrapped version is destined to
+     * (it may be a sha256 hash of the relevant ID of the chain (i.e. sha256 of the chain id for EOS))
      * @param data metadata
      */
     function swap(
@@ -122,7 +121,8 @@ contract Adapter is IAdapter, Ownable {
      * @param token ERC20 or xERC20 to move across chains
      * @param amount token quantity to move across chains
      * @param recipient whom will receive the token
-     * @param destinationChainId chain id where the wrapped version is destined to (it may be a sha256 hash of the relevant ID of the chain (i.e. sha256 of the chain id for EOS))
+     * @param destinationChainId chain id where the wrapped version is destined to
+     * (it may be a sha256 hash of the relevant ID of the chain (i.e. sha256 of the chain id for EOS))
      */
     function swap(
         address token,
@@ -152,15 +152,6 @@ contract Adapter is IAdapter, Ownable {
                 IXERC20(xerc20).mint(address(this), operation.amount);
 
                 IERC20(xerc20).approve(lockbox, operation.amount);
-                console.log("adapter xerc20 address", address(xerc20));
-                console.log(
-                    "adater allowance",
-                    IERC20(xerc20).allowance(address(this), lockbox)
-                );
-                console.log(
-                    "adater balance",
-                    IERC20(xerc20).balanceOf(address(this))
-                );
                 IXERC20Lockbox(lockbox).withdrawTo(
                     hexStringToAddress(operation.recipient),
                     operation.amount
@@ -178,8 +169,9 @@ contract Adapter is IAdapter, Ownable {
             // We do not want this mint transaction reverting if their receiveUserData function reverts,
             // and thus we swallow any such errors, emitting a `ReceiveUserDataFailed` event instead.
             // This way, a user also has the option include userData even when minting to an externally owned account.
-            // Here excessivelySafeCall executes a low-level call which does not revert the caller transaction if the callee reverts,
-            // with the increased protection for returnbombing, i.e. the returndata copy is limited to 256 bytes.
+            // Here excessivelySafeCall executes a low-level call which does not revert the caller transaction if
+            // the callee reverts, with the increased protection for returnbombing, i.e. the returndata copy is
+            // limited to 256 bytes.
             bytes memory data = abi.encodeWithSelector(
                 IPReceiver.receiveUserData.selector,
                 operation.data
