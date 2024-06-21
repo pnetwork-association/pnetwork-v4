@@ -1,5 +1,6 @@
 {
     "compilerOptions": {
+        "allowJs": true,
         "removeComments": true,
         "preserveConstEnums": true,
         "module": "NodeNext",
