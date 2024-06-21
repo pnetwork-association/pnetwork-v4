@@ -165,4 +165,10 @@ interface IXERC20 {
      * @notice Returns the fees manager address
      */
     function getFeesManager() external view returns (address);
+
+    /**
+     * @notice Set the fees manager address
+     * @param newAddress new fees manager address
+     */
+    function setFeesManager(address newAddress) external;
 }

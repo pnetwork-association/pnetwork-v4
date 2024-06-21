@@ -40,10 +40,11 @@ contract FeesManager is IFeesManager, Ownable {
     error NothingToClaim();
     error TooEarly();
     error AlreadyClaimed();
+    error AlreadyInitialized();
     error UnsupportedToken(address xerc20);
 
     modifier onlyOnce() {
-        require(initialized == false, "Already initialized");
+        if (initialized) revert AlreadyInitialized();
         _;
         initialized = true;
     }
@@ -60,6 +61,13 @@ contract FeesManager is IFeesManager, Ownable {
             stakedAmountByEpoch[currentEpoch][nodes[i]] = amounts[i];
             totalStakedAmountByEpoch[currentEpoch] += amounts[i];
         }
+    }
+
+    function setFeesManagerForXERC20(
+        address xerc20,
+        address newFeesManager
+    ) external onlyOwner {
+        IXERC20(xerc20).setFeesManager(newFeesManager);
     }
 
     /// @inheritdoc IFeesManager

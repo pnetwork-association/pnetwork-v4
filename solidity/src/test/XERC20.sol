@@ -36,7 +36,6 @@ contract XERC20 is ERC20, Ownable, IXERC20, ERC20Permit {
 
     /**
      * @notice Maps each bridge's adapter to a PAM
-     * is handled
      */
     mapping(address => address) adapterToPAM;
 
@@ -45,11 +44,6 @@ contract XERC20 is ERC20, Ownable, IXERC20, ERC20Permit {
     error NotAContract(address addr);
 
     event FeesManagerChanged(address newAddress);
-
-    modifier onlyFeesManager() {
-        if (msg.sender != feesManager) revert OnlyFeesManager();
-        _;
-    }
 
     /**
      * @notice Constructs the initial config of the XERC20
@@ -62,22 +56,14 @@ contract XERC20 is ERC20, Ownable, IXERC20, ERC20Permit {
         string memory _name,
         string memory _symbol,
         address /*_factory*/
-    ) ERC20(_name, _symbol) ERC20Permit(_name) Ownable(msg.sender) {
-        // _transferOwnership(_factory);
-        // FACTORY = _factory;
+    ) ERC20(_name, _symbol) ERC20Permit(_name) Ownable(msg.sender) {}
 
-        // Set to msg.sender in order to be changed
-        // later
-        feesManager = msg.sender;
-    }
+    /// @inheritdoc IXERC20
+    function setFeesManager(address newAddress) public {
+        if (feesManager == address(0)) {
+            feesManager = newAddress;
+        } else if (msg.sender != feesManager) revert OnlyFeesManager();
 
-    /**
-     * @notice Set the new fees manager address
-     *
-     * @param newAddress  new address of the fees manager
-     */
-
-    function setFeesManager(address newAddress) public onlyFeesManager {
         if (newAddress.code.length == 0) revert NotAContract(feesManager);
 
         feesManager = newAddress;
