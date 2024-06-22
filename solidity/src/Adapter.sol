@@ -18,23 +18,25 @@ import {ExcessivelySafeCall} from "./libraries/ExcessivelySafeCall.sol";
 contract Adapter is IAdapter, Ownable {
     using ExcessivelySafeCall for address;
 
-    address public registry;
     bytes32 public constant SWAP_EVENT_TOPIC =
         0x218247aabc759e65b5bb92ccc074f9d62cd187259f2a0984c3c9cf91f67ff7cf;
+    uint256 nonce;
+    address public registry;
     mapping(bytes32 => bool) public pastEvents;
 
-    error UnsufficientAmount(uint256 amount, uint256 fees);
-    error AlreadyProcessed(bytes32 operationId);
-    error InvalidEventRLP();
-    error InvalidEventContentLength(uint256);
-    error UnsupportedProtocolId(bytes1);
-    error UnsupportedChainId(uint256);
-    error UnexpectedEventTopic(bytes32);
-    error InvalidSender();
-    error InvalidMessageId(uint256, uint256);
-    error InvalidDestinationChainId(uint256);
-    error RLPInputTooLong();
     error Unauthorized();
+    error InvalidSender();
+    error InvalidEventRLP();
+    error RLPInputTooLong();
+    error InvalidTokenAddress(address token);
+    error UnsupportedChainId(uint256 chainId);
+    error UnexpectedEventTopic(bytes32 topic);
+    error AlreadyProcessed(bytes32 operationId);
+    error UnsupportedProtocolId(bytes1 protocolId);
+    error InvalidEventContentLength(uint256 length);
+    error UnsufficientAmount(uint256 amount, uint256 fees);
+    error InvalidMessageId(uint256 actual, uint256 expected);
+    error InvalidDestinationChainId(uint256 destinationChainId);
 
     constructor(address registry_) Ownable(msg.sender) {
         registry = registry_;
@@ -49,16 +51,23 @@ contract Adapter is IAdapter, Ownable {
      * @param amount token quantity to move across chains
      * @param recipient whom will receive the token
      * @param destinationChainId chain id where the wrapped version is destined to
-     * (it may be a sha256 hash of the relevant ID of the chain (i.e. sha256 of the chain id for EOS))
+     *
+     * @dev If the destination chain id doesn't fit in 32 bytes or if there are collisions
+     *      the options are one of the two:
+     *        1) custom chain id (hardcoded on the PAM in the destination)
+     *        2) sha256(chain id)
+     *
      * @param data metadata
      */
     function swap(
         address token,
         uint256 amount,
+        uint256 destinationChainId,
         string memory recipient,
-        bytes32 destinationChainId,
         bytes memory data
     ) public payable {
+        if (token == address(0)) revert InvalidTokenAddress(token);
+
         require(amount > 0 || token == address(0), "AmountLessThanZero");
         (bytes32 erc20Bytes, address xerc20) = IXERC20Registry(registry)
             .getAssets(token);
@@ -101,15 +110,14 @@ contract Adapter is IAdapter, Ownable {
         IXERC20(xerc20).burn(address(this), amount);
 
         emit Swap(
-            Operation(
-                erc20Bytes,
-                msg.sender,
-                recipient,
-                bytes32(block.chainid),
-                destinationChainId,
-                amount - fees,
-                data
-            )
+            nonce,
+            erc20Bytes,
+            block.chainid, // We'll convert them to bytes32 off chain
+            destinationChainId, // We'll convert them to bytes32 off chain
+            amount - fees,
+            msg.sender,
+            recipient,
+            data
         );
     }
 
@@ -127,10 +135,10 @@ contract Adapter is IAdapter, Ownable {
     function swap(
         address token,
         uint256 amount,
-        string calldata recipient,
-        bytes32 destinationChainId
+        uint256 destinationChainId,
+        string calldata recipient
     ) external payable {
-        swap(token, amount, recipient, destinationChainId, "");
+        swap(token, amount, destinationChainId, recipient, "");
     }
 
     function settle(

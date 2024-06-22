@@ -138,8 +138,8 @@ abstract contract Helper is Test {
         Adapter(adapter).swap(
             erc20,
             amount,
+            destinationChainId,
             vm.toString(destinationAddress),
-            bytes32(destinationChainId),
             data
         );
 

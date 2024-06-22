@@ -116,8 +116,6 @@ contract AdapterTest is Test, Helper {
     function test_swap_EmitsSwapWithERC20() public {
         uint256 amount = 10000;
         bytes memory data = "";
-        bytes32 sourceChainId = bytes32(CHAIN_A);
-        bytes32 destinationChainId = bytes32(CHAIN_B);
         string memory recipientStr = vm.toString(recipient);
         vm.startPrank(user);
 
@@ -126,27 +124,20 @@ contract AdapterTest is Test, Helper {
         vm.expectEmit(address(adapter_A));
 
         uint256 fees = (amount * 20) / 10000;
-        uint256 netAmount = amount - fees;
+        uint256 nonce = 0;
 
         emit IAdapter.Swap(
-            IAdapter.Operation(
-                erc20Bytes_A,
-                user,
-                recipientStr,
-                sourceChainId,
-                destinationChainId,
-                netAmount,
-                data
-            )
-        );
-
-        adapter_A.swap(
-            address(erc20_A),
-            amount,
+            nonce,
+            erc20Bytes_A,
+            block.chainid,
+            CHAIN_B,
+            amount - fees,
+            user,
             recipientStr,
-            destinationChainId,
             data
         );
+
+        adapter_A.swap(address(erc20_A), amount, CHAIN_B, recipientStr, data);
 
         uint256 U = erc20_A.balanceOf(user);
         uint256 L = erc20_A.balanceOf(address(lockbox_A));
@@ -164,8 +155,6 @@ contract AdapterTest is Test, Helper {
     function test_swap_EmitsSwapWithXERC20() public {
         uint256 amount = 10000;
         bytes memory data = "";
-        bytes32 sourceChainId = bytes32(CHAIN_A);
-        bytes32 destinationChainId = bytes32(CHAIN_B);
         string memory recipientStr = vm.toString(recipient);
 
         _sendXERC20To(owner, address(xerc20_A), user, userBalance);
@@ -176,28 +165,21 @@ contract AdapterTest is Test, Helper {
 
         vm.expectEmit(address(adapter_A));
 
+        uint256 nonce = 0;
         uint256 fees = (amount * 20) / 10000;
-        uint256 netAmount = amount - fees;
 
         emit IAdapter.Swap(
-            IAdapter.Operation(
-                erc20Bytes_A,
-                user,
-                recipientStr,
-                sourceChainId,
-                destinationChainId,
-                netAmount,
-                data
-            )
-        );
-
-        adapter_A.swap(
-            address(xerc20_A),
-            amount,
+            nonce,
+            erc20Bytes_A,
+            block.chainid,
+            CHAIN_B,
+            amount - fees,
+            user,
             recipientStr,
-            destinationChainId,
             data
         );
+
+        adapter_A.swap(address(xerc20_A), amount, CHAIN_B, recipientStr, data);
 
         uint256 U = xerc20_A.balanceOf(user);
         uint256 L = xerc20_A.balanceOf(address(lockbox_A));
