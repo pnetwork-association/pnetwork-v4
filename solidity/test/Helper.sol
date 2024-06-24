@@ -146,13 +146,65 @@ abstract contract Helper is Test {
         vm.stopPrank();
     }
 
-    function _getOperationFromRecordedLogs() internal {
+    function _hexStringToAddress(
+        string memory addr
+    ) internal pure returns (address) {
+        bytes memory tmp = bytes(addr);
+        uint160 iaddr = 0;
+        uint160 b1;
+        uint160 b2;
+        for (uint256 i = 2; i < 2 + 2 * 20; i += 2) {
+            iaddr *= 256;
+            b1 = uint160(uint8(tmp[i]));
+            b2 = uint160(uint8(tmp[i + 1]));
+            if ((b1 >= 97) && (b1 <= 102)) {
+                b1 -= 87;
+            } else if ((b1 >= 65) && (b1 <= 70)) {
+                b1 -= 55;
+            } else if ((b1 >= 48) && (b1 <= 57)) {
+                b1 -= 48;
+            }
+            if ((b2 >= 97) && (b2 <= 102)) {
+                b2 -= 87;
+            } else if ((b2 >= 65) && (b2 <= 70)) {
+                b2 -= 55;
+            } else if ((b2 >= 48) && (b2 <= 57)) {
+                b2 -= 48;
+            }
+            iaddr += (b1 * 16 + b2);
+        }
+        return address(iaddr);
+    }
+
+    function _getOperationFromRecordedLogs(
+        bytes32 originChainId,
+        bytes32 blockHash,
+        bytes32 txHash
+    ) internal returns (IAdapter.Operation memory operation) {
         Vm.Log[] memory entries = vm.getRecordedLogs();
         uint256 last = entries.length - 1;
-        console.log("////////////////////////////////");
-        console.log(entries[last].emitter); // address
-        console.log(vm.toString(entries[last].data)); // data
-        console.log(vm.toString(entries[last].topics[0])); // topic0
-        console.log(vm.toString(entries[last].topics[1])); // topic1
+        // console.log("////////////////////////////////");
+        // console.log(entries[last].emitter); // address
+        // console.log(vm.toString(entries[last].data)); // data
+        // console.log(vm.toString(entries[last].topics[0])); // topic0
+        // console.log(vm.toString(entries[last].topics[1])); // topic1
+
+        IAdapter.EventContent memory content = abi.decode(
+            entries[last].data,
+            (IAdapter.EventContent)
+        );
+
+        operation = IAdapter.Operation(
+            blockHash,
+            txHash,
+            uint256(entries[last].topics[1]),
+            content.erc20,
+            originChainId,
+            content.destinationChainId,
+            content.amount,
+            content.sender,
+            _hexStringToAddress(content.recipient),
+            content.data
+        );
     }
 }

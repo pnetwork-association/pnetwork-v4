@@ -21,7 +21,8 @@ contract Adapter is IAdapter, Ownable {
     bytes32 public constant SWAP_EVENT_TOPIC =
         0x26d9f1fabb4e0554841202b52d725e2426dda2be4cafcb362eb73f9fb813d609;
 
-    uint256 nonce;
+    uint256 _nonce;
+
     address public registry;
     mapping(bytes32 => bool) public pastEvents;
 
@@ -41,6 +42,60 @@ contract Adapter is IAdapter, Ownable {
 
     constructor(address registry_) Ownable(msg.sender) {
         registry = registry_;
+    }
+
+    function settle(
+        Operation memory operation,
+        IPAM.Metadata calldata metadata
+    ) external {
+        (, address xerc20) = IXERC20Registry(registry).getAssets(
+            operation.erc20
+        );
+
+        address pam = IXERC20(xerc20).getPAM(address(this));
+
+        if (!IPAM(pam).isAuthorized(operation, metadata)) revert Unauthorized();
+
+        address lockbox = IXERC20(xerc20).getLockbox();
+
+        if (operation.amount > 0) {
+            if (IXERC20(xerc20).isLocal()) {
+                IXERC20(xerc20).mint(address(this), operation.amount);
+
+                IERC20(xerc20).approve(lockbox, operation.amount);
+                IXERC20Lockbox(lockbox).withdrawTo(
+                    operation.recipient,
+                    operation.amount
+                );
+            } else {
+                IXERC20(xerc20).mint(operation.recipient, operation.amount);
+            }
+        }
+
+        if (operation.data.length > 0) {
+            // pNetwork aims to deliver cross chain messages successfully regardless of what the user may do with them.
+            // We do not want this mint transaction reverting if their receiveUserData function reverts,
+            // and thus we swallow any such errors, emitting a `ReceiveUserDataFailed` event instead.
+            // This way, a user also has the option include userData even when minting to an externally owned account.
+            // Here excessivelySafeCall executes a low-level call which does not revert the caller transaction if
+            // the callee reverts, with the increased protection for returnbombing, i.e. the returndata copy is
+            // limited to 256 bytes.
+            bytes memory data = abi.encodeWithSelector(
+                IPReceiver.receiveUserData.selector,
+                operation.data
+            );
+            uint256 gasReserve = 1000; // enough gas to ensure we eventually emit, and return
+
+            (bool success, ) = operation.recipient.excessivelySafeCall(
+                gasleft() - gasReserve,
+                0,
+                0,
+                data
+            );
+            if (!success) emit ReceiveUserDataFailed();
+        }
+
+        emit Settled();
     }
 
     /**
@@ -111,9 +166,9 @@ contract Adapter is IAdapter, Ownable {
         IXERC20(xerc20).burn(address(this), amount);
 
         emit Swap(
-            nonce,
+            _nonce,
             EventContent(
-                nonce,
+                _nonce,
                 erc20Bytes,
                 bytes32(destinationChainId), // We'll convert them to bytes32 off chain
                 amount - fees,
@@ -124,7 +179,7 @@ contract Adapter is IAdapter, Ownable {
         );
 
         unchecked {
-            ++nonce;
+            ++_nonce;
         }
     }
 
@@ -144,61 +199,7 @@ contract Adapter is IAdapter, Ownable {
         uint256 amount,
         uint256 destinationChainId,
         string calldata recipient
-    ) external payable {
+    ) public payable {
         swap(token, amount, destinationChainId, recipient, "");
-    }
-
-    function settle(
-        Operation memory operation,
-        IPAM.Metadata calldata metadata
-    ) external {
-        (, address xerc20) = IXERC20Registry(registry).getAssets(
-            operation.erc20
-        );
-
-        address pam = IXERC20(xerc20).getPAM(address(this));
-
-        if (!IPAM(pam).isAuthorized(operation, metadata)) revert Unauthorized();
-
-        address lockbox = IXERC20(xerc20).getLockbox();
-
-        if (operation.amount > 0) {
-            if (IXERC20(xerc20).isLocal()) {
-                IXERC20(xerc20).mint(address(this), operation.amount);
-
-                IERC20(xerc20).approve(lockbox, operation.amount);
-                IXERC20Lockbox(lockbox).withdrawTo(
-                    operation.recipient,
-                    operation.amount
-                );
-            } else {
-                IXERC20(xerc20).mint(operation.recipient, operation.amount);
-            }
-        }
-
-        if (operation.data.length > 0) {
-            // pNetwork aims to deliver cross chain messages successfully regardless of what the user may do with them.
-            // We do not want this mint transaction reverting if their receiveUserData function reverts,
-            // and thus we swallow any such errors, emitting a `ReceiveUserDataFailed` event instead.
-            // This way, a user also has the option include userData even when minting to an externally owned account.
-            // Here excessivelySafeCall executes a low-level call which does not revert the caller transaction if
-            // the callee reverts, with the increased protection for returnbombing, i.e. the returndata copy is
-            // limited to 256 bytes.
-            bytes memory data = abi.encodeWithSelector(
-                IPReceiver.receiveUserData.selector,
-                operation.data
-            );
-            uint256 gasReserve = 1000; // enough gas to ensure we eventually emit, and return
-
-            (bool success, ) = operation.recipient.excessivelySafeCall(
-                gasleft() - gasReserve,
-                0,
-                0,
-                data
-            );
-            if (!success) emit ReceiveUserDataFailed();
-        }
-
-        emit Settled();
     }
 }

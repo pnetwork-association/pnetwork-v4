@@ -218,7 +218,6 @@ contract AdapterTest is Test, Helper {
     }
 
     function test_settle_e2e_withERC20() public {
-        uint256 nonce = 0;
         uint256 amount = 10000;
         bytes memory data = "";
 
@@ -234,29 +233,29 @@ contract AdapterTest is Test, Helper {
             data
         );
 
-        _getOperationFromRecordedLogs();
-
-        uint256 fees = (amount * 20) / 10000;
-        uint256 netAmount = amount - fees;
-        console.log("user", user);
-        console.log("recipient", recipient);
-        IAdapter.Operation memory operation = IAdapter.Operation(
-            DEFAULT_BLOCK_HASH,
-            DEFAULT_TX_HASH,
-            nonce,
-            erc20Bytes_A,
+        IAdapter.Operation memory operation = _getOperationFromRecordedLogs(
             bytes32(CHAIN_A),
-            bytes32(CHAIN_B),
-            netAmount,
-            bytes32(abi.encodePacked(user)),
-            recipient,
-            data
+            DEFAULT_BLOCK_HASH,
+            DEFAULT_TX_HASH
         );
+        // IAdapter.Operation memory operation = IAdapter.Operation(
+        //     DEFAULT_BLOCK_HASH,
+        //     DEFAULT_TX_HASH,
+        //     nonce,
+        //     erc20Bytes_A,
+        //     bytes32(CHAIN_A),
+        //     bytes32(CHAIN_B),
+        //     netAmount,
+        //     bytes32(abi.encodePacked(user)),
+        //     recipient,
+        //     data
+        // );
 
         vm.chainId(CHAIN_B);
 
         vm.expectEmit(address(xerc20_B));
-        emit IERC20.Transfer(address(0), recipient, netAmount);
+        uint256 fees = (amount * 20) / 10000;
+        emit IERC20.Transfer(address(0), recipient, amount - fees);
         vm.expectEmit(address(adapter_B));
         emit IAdapter.Settled();
 
@@ -265,76 +264,90 @@ contract AdapterTest is Test, Helper {
         uint256 R = xerc20_B.balanceOf(recipient);
         uint256 A = xerc20_B.balanceOf(address(adapter_B));
 
-        assertEq(R, netAmount);
+        assertEq(R, amount - fees);
         assertEq(A, 0);
     }
 
-    // function test_swap_e2e_Pegout() public {
-    //     uint256 amount = 10000;
-    //     bytes memory data = "";
+    function test_swap_e2e_Pegout() public {
+        uint256 amount = 10000;
+        bytes memory data = "";
 
-    //     vm.recordLogs();
-    //     _performERC20Swap(
-    //         CHAIN_A,
-    //         address(erc20_A),
-    //         user,
-    //         address(adapter_A),
-    //         CHAIN_B,
-    //         recipient,
-    //         amount,
-    //         data
-    //     );
+        vm.recordLogs();
+        _performERC20Swap(
+            CHAIN_A,
+            address(erc20_A),
+            user,
+            address(adapter_A),
+            CHAIN_B,
+            recipient,
+            amount,
+            data
+        );
 
-    //     _getOperationFromRecordedLogs();
+        IAdapter.Operation memory operation = _getOperationFromRecordedLogs(
+            bytes32(CHAIN_A),
+            DEFAULT_BLOCK_HASH,
+            DEFAULT_TX_HASH
+        );
 
-    //     vm.chainId(CHAIN_B);
+        vm.chainId(CHAIN_B);
 
-    //     IAdapter(adapter_B).settle(operation, metadata);
+        IAdapter(adapter_B).settle(operation, metadata);
 
-    //     // Pegout
-    //     uint256 pegoutAmount = 5000;
-    //     uint256 fees = (pegoutAmount * 20) / 10000;
-    //     uint256 netAmount = pegoutAmount - fees;
-    //     uint256 prevBalanceLockbox_A = erc20_A.balanceOf(address(lockbox_A));
+        // Pegout
+        uint256 pegoutAmount = 5000;
+        uint256 fees = (pegoutAmount * 20) / 10000;
+        uint256 netAmount = pegoutAmount - fees;
+        uint256 prevBalanceLockbox_A = erc20_A.balanceOf(address(lockbox_A));
 
-    //     vm.recordLogs();
-    //     _performERC20Swap(
-    //         CHAIN_B,
-    //         address(xerc20_B),
-    //         recipient,
-    //         address(adapter_B),
-    //         CHAIN_B,
-    //         recipient,
-    //         pegoutAmount,
-    //         data
-    //     );
+        vm.recordLogs();
+        _performERC20Swap(
+            CHAIN_B,
+            address(xerc20_B),
+            recipient,
+            address(adapter_B),
+            CHAIN_B,
+            recipient,
+            pegoutAmount,
+            data
+        );
 
-    //     IAdapter.Operation
-    //         memory pegoutOperation = _getOperationFromRecordedLogs();
+        operation = _getOperationFromRecordedLogs(
+            bytes32(CHAIN_B),
+            DEFAULT_BLOCK_HASH,
+            DEFAULT_TX_HASH
+        );
 
-    //     vm.chainId(CHAIN_A);
+        vm.chainId(CHAIN_A);
 
-    //     bytes memory metadata2 = vm.parseBytes("");
+        IPAM.Metadata memory pegoutMetadata = IPAM.Metadata(
+            vm.parseBytes(
+                "0x01010000000000000000000000000000000000000000000000000000000000007a6aa880cb2ab67ec9140db0f6de238b34d4108f6fab99315772ee987ef9002e0e6311365bbee18058f12c27236e891a66999c4325879865303f785854e9169c257a00000000000000000000000063f58053c9499e1104a6f6c6d2581d6d83067eeb6bc6e811416578512af8ca6ae0b73eee97a72c2b01aab7e87d6569e5dff8c6760000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000000000000000000000000000051a240271ab8ab9f9a21c82d9a85396b704e164d0000000000000000000000000000000000000000000000000000000000007a6a00000000000000000000000000000000000000000000000000000000000013886813eb9362372eef6200f3b1dbc3f819671cba6900000000000000000000000000000000000000000000000000000000000000000000000000000000000000e00000000000000000000000000000000000000000000000000000000000000140000000000000000000000000000000000000000000000000000000000000002a307836383133456239333632333732454546363230306633623164624333663831393637316342413639000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+            ),
+            vm.parseBytes(
+                "0xd3c157b5977b9dfe699568ba5b6dcc1d36f3f4782da6337a5e0832dae097801519e57c6e6ba84206607999af14a3edc515e76d9644373eb6d1f279b30b7f38a01c"
+            )
+        );
 
-    //     vm.expectEmit(address(xerc20_A));
-    //     emit IERC20.Transfer(address(lockbox_A), address(0), netAmount);
-    //     vm.expectEmit(address(erc20_A));
-    //     emit IERC20.Transfer(address(lockbox_A), recipient, netAmount);
-    //     vm.expectEmit(address(adapter_A));
-    //     emit IAdapter.Settled();
-    //     IAdapter(adapter_A).settle(pegoutOperation, metadata);
+        vm.expectEmit(address(xerc20_A));
+        emit IERC20.Transfer(address(lockbox_A), address(0), netAmount);
+        vm.expectEmit(address(erc20_A));
+        emit IERC20.Transfer(address(lockbox_A), recipient, netAmount);
+        vm.expectEmit(address(adapter_A));
+        emit IAdapter.Settled();
+        IAdapter(adapter_A).settle(operation, pegoutMetadata);
 
-    //     assertEq(xerc20_A.balanceOf(recipient), 0);
-    //     assertEq(xerc20_A.balanceOf(address(adapter_A)), 0);
-    //     assertEq(xerc20_A.balanceOf(address(lockbox_A)), 0);
-    //     assertEq(erc20_A.balanceOf(recipient), netAmount);
+        assertEq(xerc20_A.balanceOf(recipient), 0);
+        assertEq(xerc20_A.balanceOf(address(adapter_A)), 0);
+        assertEq(xerc20_A.balanceOf(address(lockbox_A)), 0);
+        assertEq(erc20_A.balanceOf(recipient), netAmount);
 
-    //     assertEq(
-    //         stdMath.delta(
-    //             erc20_A.balanceOf(address(lockbox_A)),
-    //             prevBalanceLockbox_A
-    //         ),
-    //         netAmount
-    //     );
-    // }
+        assertEq(
+            stdMath.delta(
+                erc20_A.balanceOf(address(lockbox_A)),
+                prevBalanceLockbox_A
+            ),
+            netAmount
+        );
+    }
 }

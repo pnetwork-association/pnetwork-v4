@@ -8,8 +8,6 @@ import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {IPAM} from "./interfaces/IPAM.sol";
 import {IAdapter} from "./interfaces/IAdapter.sol";
 
-import "forge-std/console.sol";
-
 contract PAM is Ownable, IPAM {
     bytes32 public constant SWAP_EVENT_TOPIC =
         0x26d9f1fabb4e0554841202b52d725e2426dda2be4cafcb362eb73f9fb813d609;
@@ -149,6 +147,9 @@ contract PAM is Ownable, IPAM {
 
         uint16 offset = 2; // skip protocol, version
         bytes32 originChainId = bytes32(metadata.preimage[offset:offset += 32]);
+
+        if (originChainId != operation.originChainId) return false;
+
         bytes32 expectedEmitter = emitters[originChainId];
 
         if (expectedEmitter == bytes32(0)) return false;
@@ -156,6 +157,10 @@ contract PAM is Ownable, IPAM {
         bytes memory context = metadata.preimage[0:offset];
         bytes32 blockId = bytes32(metadata.preimage[offset:offset += 32]);
         bytes32 txId = bytes32(metadata.preimage[offset:offset += 32]);
+
+        if (blockId != operation.blockId && txId != operation.txId)
+            return false;
+
         bytes calldata eventBytes = metadata.preimage[offset:];
 
         bytes32 eventId = sha256(
@@ -165,24 +170,21 @@ contract PAM is Ownable, IPAM {
         if (ECDSA.recover(eventId, metadata.signature) != teeAddress)
             return false;
 
-        if (pastEvents[eventId]) return false;
-
         offset = 32;
         bytes32 emitter = bytes32(eventBytes[0:offset]);
+
         if (emitter != expectedEmitter) return false;
 
         offset += 32; // skip event signature
+
         IAdapter.EventContent memory eventContent = abi.decode(
             eventBytes[offset:], // data
             (IAdapter.EventContent)
         );
 
-        if (
-            blockId != operation.blockId &&
-            txId != operation.txId &&
-            originChainId != operation.originChainId &&
-            !_doesContentMatchOperation(eventContent, operation)
-        ) return false;
+        if (!_doesContentMatchOperation(eventContent, operation)) return false;
+
+        if (pastEvents[eventId]) return false;
 
         pastEvents[eventId] = true;
 

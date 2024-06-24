@@ -17,12 +17,6 @@ contract FeesManager is IFeesManager, Ownable {
     bytes32 public UPGRADE_ROLE;
     bytes32 public SET_FEE_ROLE;
 
-    struct Fee {
-        uint256 minFee;
-        uint16 basisPoints; // 4 decimals representation i.e. 2500 => 25 basis points => 0.25%
-        bool defined;
-    }
-
     mapping(uint16 => mapping(address => uint256))
         public depositedAmountByEpoch;
     mapping(uint16 => mapping(address => mapping(address => uint256)))
