@@ -1,17 +1,19 @@
 import crypto from 'crypto'
 import { Event, Signature } from 'ethers'
-import { SigningKey, computeAddress } from 'ethers/lib/utils.js'
-import { RlpEncode, RlpList } from 'rlp-stream'
+import {
+  SigningKey,
+  computeAddress,
+  defaultAbiCoder,
+  getAddress,
+  hexConcat,
+  hexZeroPad,
+  hexlify,
+  sha256,
+} from 'ethers/lib/utils.js'
 
 import { Chains } from './Chains.js'
 import { Protocols } from './Protocols.js'
 import { Versions } from './Versions.js'
-
-const sha256Digest = (_value: crypto.BinaryLike) => {
-  const sha256 = crypto.createHash('sha256')
-  sha256.update(_value)
-  return sha256.digest()
-}
 
 type Context = {
   version: number
@@ -26,20 +28,12 @@ const fromHex = (_str: string): Buffer => {
   return Buffer.from(_str.replace('0x', ''), 'hex')
 }
 
-const formatSignature = (_signature: Signature): string => {
-  const r = fromHex(_signature.r)
-  const s = fromHex(_signature.s)
-  const v = Buffer.from([_signature.v])
-  const signature = Buffer.concat([r, s, v], r.length + s.length + v.length)
-  return '0x' + signature.toString('hex')
-}
-
 export class ProofcastEventAttestator {
-  public version: Buffer
-  public protocolId: Buffer
-  public chainId: Buffer
-  public blockHash: Buffer
-  public txHash: Buffer
+  public version: string
+  public protocolId: string
+  public chainId: string
+  public blockHash: string
+  public txHash: string
   public address: string
   public publicKey: string
   public privateKey: string
@@ -55,75 +49,107 @@ export class ProofcastEventAttestator {
       txHash: undefined,
     },
   ) {
-    this.version = Buffer.from([version])
-    this.chainId = Buffer.from(chainId.toString(16).padStart(64, '0'), 'hex')
-    this.protocolId = Buffer.from([protocolId])
+    /// Context
+    this.version = hexlify(version)
+    this.protocolId = hexlify(protocolId)
+    this.chainId = hexZeroPad(hexlify(chainId), 32)
+    /// Context
+    this.blockHash = blockHash
+    this.txHash = txHash
+
     this.privateKey = privateKey
       ? privateKey
       : crypto.randomBytes(32).toString('hex')
+
     this.signingKey = new SigningKey(Buffer.from(this.privateKey, 'hex'))
     this.publicKey = this.signingKey.publicKey
     this.address = computeAddress(this.publicKey)
-    this.blockHash = fromHex(blockHash)
-    this.txHash = fromHex(txHash)
   }
 
-  getEventId(): Buffer {
-    const sha256 = crypto.createHash('sha256')
-    sha256.update(this.version)
-    sha256.update(this.protocolId)
-    sha256.update(this.chainId)
-    sha256.update(this.blockHash)
-    sha256.update(this.txHash)
-
-    return sha256.digest()
+  private formatSignature = (_signature: Signature): string => {
+    const r = fromHex(_signature.r)
+    const s = fromHex(_signature.s)
+    const v = Buffer.from([_signature.v])
+    const signature = Buffer.concat([r, s, v], r.length + s.length + v.length)
+    return '0x' + signature.toString('hex')
   }
 
-  getStatementBytes(event: Event): Buffer {
-    const address = fromHex(event.address)
-    const data = fromHex(event.data)
-    const topics: RlpList = event.topics.map(topic => fromHex(topic))
-    const eventRLP: RlpList = [address, topics, data]
-    const eventBytes = RlpEncode(eventRLP)
-
-    const eventId = this.getEventId()
-    const length =
-      this.version.length +
-      this.protocolId.length +
-      this.chainId.length +
-      eventId.length +
-      eventBytes.length
-
-    return Buffer.concat(
-      [this.version, this.protocolId, this.chainId, eventId, eventBytes],
-      length,
+  getEventBytes(event: Event): string {
+    // EVM event support only: for other chains may be
+    // required to change logic based on version and protocolID
+    const eventSignature = event.topics[0]
+    const eventNonce = event.topics[1]
+    let [
+      erc20,
+      originChainId,
+      destinationChainId,
+      amount,
+      sender,
+      recipient,
+      data,
+    ] = defaultAbiCoder.decode(
+      [
+        'bytes32',
+        'uint256',
+        'uint256',
+        'uint256',
+        'address',
+        'string',
+        'bytes',
+      ],
+      event.data,
     )
+
+    originChainId = hexZeroPad(hexlify(originChainId), 32)
+    destinationChainId = hexZeroPad(hexlify(destinationChainId), 32)
+    amount = hexZeroPad(hexlify(amount), 32)
+    recipient = getAddress(recipient)
+
+    const context = this.getEventContext()
+
+    return hexConcat([
+      context,
+      this.blockHash,
+      this.txHash,
+      eventSignature,
+      eventNonce,
+      erc20,
+      originChainId,
+      destinationChainId,
+      amount,
+      sender,
+      recipient,
+      data,
+    ])
   }
 
-  getStatement(event: Event): string {
-    return '0x' + this.getStatementBytes(event).toString('hex')
+  getEventContext(): string {
+    return hexConcat([this.version, this.protocolId, this.chainId])
   }
 
-  getCommitmentBytes(event: Event): Buffer {
-    const statement = this.getStatementBytes(event)
-    return sha256Digest(statement)
+  getEventId(event: Event): string {
+    return sha256(this.getEventBytes(event))
   }
 
-  getCommitment(event: Event): string {
-    return '0x' + this.getCommitmentBytes(event).toString('hex')
-  }
-
-  signBytes(bytes: Buffer): string {
-    const digest = sha256Digest(bytes)
+  signBytes(bytes: string): string {
+    const digest = sha256(bytes)
     const signature = this.signingKey.signDigest(digest)
 
-    return formatSignature(signature)
+    return this.formatSignature(signature)
   }
 
   sign(event: Event): string {
-    const commitment = this.getCommitmentBytes(event)
+    const commitment = this.getEventId(event)
     const signature = this.signingKey.signDigest(commitment)
 
-    return formatSignature(signature)
+    return this.formatSignature(signature)
+  }
+
+  getMetadata(event: Event): string {
+    return hexConcat([
+      this.getEventContext(),
+      this.getEventId(event),
+      this.sign(event),
+    ])
   }
 }
