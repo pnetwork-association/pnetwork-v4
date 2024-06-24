@@ -36,17 +36,17 @@ contract XERC20Registry is IXERC20Registry, AccessControl {
     error NotRegistered(address token);
     error NotRegistrarRole(address sender);
 
+    modifier onlyRegistrar() {
+        if (!hasRole(REGISTRAR_ROLE, _msgSender()))
+            revert NotRegistrarRole(_msgSender());
+        _;
+    }
+
     /**
      * @notice Initializer function
      */
     constructor() {
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
-    }
-
-    modifier onlyRegistrar() {
-        if (!hasRole(REGISTRAR_ROLE, _msgSender()))
-            revert NotRegistrarRole(_msgSender());
-        _;
     }
 
     /**

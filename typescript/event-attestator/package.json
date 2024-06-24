@@ -16,8 +16,8 @@
   "scripts": {
     "build": "tsc",
     "test": "jest",
-    "lint": "eslint .",
-    "lint:fix": "eslint --fix ."
+    "lint": "npx eslint .",
+    "lint:fix": "npx eslint --fix ."
   },
   "devDependencies": {
     "@types/jest": "^29.5.12",

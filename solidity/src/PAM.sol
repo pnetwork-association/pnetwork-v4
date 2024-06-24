@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: LGPL-3.0-only
 pragma solidity ^0.8.20;
 
-import {RLPReader} from "solidity-rlp/contracts/RLPReader.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 
@@ -9,27 +8,30 @@ import {IPAM} from "./interfaces/IPAM.sol";
 import {IAdapter} from "./interfaces/IAdapter.sol";
 
 contract PAM is Ownable, IPAM {
-    bytes32 public constant SWAP_EVENT_TOPIC =
-        0xb255de8953b7f0014df3bb00e17f11f43945268f579979c7124353070c2db98d;
     uint256 public constant TEE_ADDRESS_CHANGE_GRACE_PERIOD = 172800; // 48 hours
 
     address public teeAddress;
     address public teeAddressNew;
     uint256 public teeAddressChangeGraceThreshold;
-
+    mapping(bytes32 => bytes32) emitters;
     mapping(bytes32 => bool) pastEvents;
 
     error InvalidEventRLP();
     error InvalidTeeSigner();
     error InvalidSignature();
+    error GracePeriodNotElapsed();
+    error InvalidNewTeeSigner();
+    error AlreadyProcessed(bytes32 eventId);
     error InvalidEventContentLength(uint256 length);
     error UnsupportedProtocolId(bytes1 protocolId);
-    error UnsupportedChainId(uint256 chainId);
+    error UnsupportedChainId(bytes32 chainId);
     error UnexpectedEventTopic(bytes32 topic);
     error InvalidSender();
-    error InvalidMessageId(uint256 actual, uint256 expected);
+    error InvalidEventId(bytes32 actual, bytes32 expected);
     error InvalidDestinationChainId(uint256 chainId);
 
+    event EmitterSet(bytes32 chainid, bytes32 emitter);
+    event EmitterUnset(bytes32 chainId);
     event TeeSignerChanged(address newAddress);
     event TeeSignerPendingChange(
         address newAddress,
@@ -66,75 +68,122 @@ contract PAM is Ownable, IPAM {
         }
     }
 
-    function _maybeUpdateTeeAddress() internal {
-        if (
-            teeAddressNew != address(0) &&
-            block.timestamp > teeAddressChangeGraceThreshold
-        ) {
-            teeAddress = teeAddressNew;
-            teeAddressNew = address(0);
-            emit TeeSignerChanged(teeAddress);
+    function setEmitter(bytes32 chainid, bytes32 emitter) public onlyOwner {
+        emitters[chainid] = emitter;
+
+        emit EmitterSet(chainid, emitter);
+    }
+
+    function unsetEmitter(bytes32 chainid) public onlyOwner {
+        delete emitters[chainid];
+
+        emit EmitterUnset(chainid);
+    }
+
+    function applyNewTeeSigner() external {
+        if (block.timestamp < teeAddressChangeGraceThreshold)
+            revert GracePeriodNotElapsed();
+        if (teeAddressNew == address(0)) revert InvalidNewTeeSigner();
+
+        teeAddress = teeAddressNew;
+        teeAddressNew = address(0);
+
+        emit TeeSignerChanged(teeAddress);
+    }
+
+    function _hexStringToAddress(
+        string memory addr
+    ) internal pure returns (address) {
+        bytes memory tmp = bytes(addr);
+        uint160 iaddr = 0;
+        uint160 b1;
+        uint160 b2;
+        for (uint256 i = 2; i < 2 + 2 * 20; i += 2) {
+            iaddr *= 256;
+            b1 = uint160(uint8(tmp[i]));
+            b2 = uint160(uint8(tmp[i + 1]));
+            if ((b1 >= 97) && (b1 <= 102)) {
+                b1 -= 87;
+            } else if ((b1 >= 65) && (b1 <= 70)) {
+                b1 -= 55;
+            } else if ((b1 >= 48) && (b1 <= 57)) {
+                b1 -= 48;
+            }
+            if ((b2 >= 97) && (b2 <= 102)) {
+                b2 -= 87;
+            } else if ((b2 >= 65) && (b2 <= 70)) {
+                b2 -= 55;
+            } else if ((b2 >= 48) && (b2 <= 57)) {
+                b2 -= 48;
+            }
+            iaddr += (b1 * 16 + b2);
         }
+        return address(iaddr);
+    }
+
+    function _doesContentMatchOperation(
+        IAdapter.EventContent memory content,
+        IAdapter.Operation memory operation
+    ) internal pure returns (bool) {
+        return (content.erc20 == operation.erc20 &&
+            content.destinationChainId == operation.destinationChainId &&
+            content.amount == operation.amount &&
+            content.sender == operation.sender &&
+            _hexStringToAddress(content.recipient) == operation.recipient &&
+            sha256(content.data) == sha256(content.data));
     }
 
     function isAuthorized(
         IAdapter.Operation memory operation,
         Metadata calldata metadata
     ) external returns (bool) {
-        _maybeUpdateTeeAddress();
+        //  Metadata format:
+        //    | version   | protocol   |  originChainId     |   eventId     |  eventBytes  |
+        //    | (1 byte)  | (1 byte)   |    (32 bytes)      |  (32 bytes)   |    varlen    |
+        if (teeAddress == address(0)) return false;
 
-        if (teeAddress == address(0)) revert InvalidTeeSigner();
+        uint16 offset = 2; // skip protocol, version
+        bytes32 originChainId = bytes32(metadata.preimage[offset:offset += 32]);
 
-        if (
-            ECDSA.recover(sha256(metadata.statement), metadata.signature) !=
-            teeAddress
-        ) return false;
+        if (originChainId != operation.originChainId) return false;
 
-        //  Statement format:
-        //    | version   | protocol   |  originChainId     |   eventId     | eventBytes  |
-        //    | (1 byte)  | (1 byte)   |    (32 bytes)      |  (32 bytes)   |  varlen     |
+        bytes32 expectedEmitter = emitters[originChainId];
 
-        uint16 offset = (2 + 32); // skip version, protocolId, originChainId
+        if (expectedEmitter == bytes32(0)) return false;
 
-        bytes32 eventId = bytes32(metadata.statement[offset:offset += 32]);
+        bytes memory context = metadata.preimage[0:offset];
+        bytes32 blockId = bytes32(metadata.preimage[offset:offset += 32]);
+        bytes32 txId = bytes32(metadata.preimage[offset:offset += 32]);
+
+        if (blockId != operation.blockId && txId != operation.txId)
+            return false;
+
+        bytes calldata eventBytes = metadata.preimage[offset:];
+
+        bytes32 eventId = sha256(
+            bytes.concat(context, blockId, txId, eventBytes)
+        );
+
+        if (ECDSA.recover(eventId, metadata.signature) != teeAddress)
+            return false;
+
+        offset = 32;
+        bytes32 emitter = bytes32(eventBytes[0:offset]);
+
+        if (emitter != expectedEmitter) return false;
+
+        offset += 32; // skip event signature
+
+        IAdapter.EventContent memory eventContent = abi.decode(
+            eventBytes[offset:], // data
+            (IAdapter.EventContent)
+        );
+
+        if (!_doesContentMatchOperation(eventContent, operation)) return false;
 
         if (pastEvents[eventId]) return false;
 
-        bytes memory eventBytes = metadata.statement[offset:];
-
-        RLPReader.RLPItem memory eventRLP = RLPReader.toRlpItem(eventBytes);
-        if (!RLPReader.isList(eventRLP)) revert InvalidEventRLP();
-
-        RLPReader.RLPItem[] memory eventContent = RLPReader.toList(eventRLP);
-
-        // Event must contain address, logs and data
-        if (eventContent.length != 3)
-            revert InvalidEventContentLength(eventContent.length);
-
-        RLPReader.RLPItem[] memory logs = RLPReader.toList(eventContent[1]);
-
-        bytes32 topic = bytes32(RLPReader.toBytes(logs[0]));
-        if (topic != SWAP_EVENT_TOPIC) revert UnexpectedEventTopic(topic);
-
-        bytes memory dataBytes = RLPReader.toBytes(eventContent[2]);
-
-        IAdapter.Operation memory expected = abi.decode(
-            dataBytes,
-            (IAdapter.Operation)
-        );
-
-        if (operation.erc20 != expected.erc20) return false;
-        if (operation.sender != expected.sender) return false;
-
-        if (
-            sha256(abi.encode(operation.recipient)) !=
-            sha256(abi.encode(expected.recipient))
-        ) return false;
-        if (operation.originChainId != expected.originChainId) return false;
-        if (operation.destinationChainId != expected.destinationChainId)
-            return false;
-        if (operation.amount != expected.amount) return false;
-        if (sha256(operation.data) != sha256(expected.data)) return false;
+        pastEvents[eventId] = true;
 
         return true;
     }

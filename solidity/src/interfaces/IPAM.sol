@@ -5,7 +5,7 @@ import {IAdapter} from "./IAdapter.sol";
 
 interface IPAM {
     struct Metadata {
-        bytes statement;
+        bytes preimage;
         bytes signature;
     }
 

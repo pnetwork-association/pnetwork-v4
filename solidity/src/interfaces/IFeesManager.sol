@@ -9,6 +9,12 @@ pragma solidity ^0.8.17;
  * @notice
  */
 interface IFeesManager {
+    struct Fee {
+        uint256 minFee;
+        uint16 basisPoints; // 4 decimals representation i.e. 2500 => 25 basis points => 0.25%
+        bool defined;
+    }
+
     /**
      * @dev Emitted when the max total supply changes
      *
