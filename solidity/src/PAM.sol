@@ -9,8 +9,6 @@ import {IPAM} from "./interfaces/IPAM.sol";
 import {IAdapter} from "./interfaces/IAdapter.sol";
 
 contract PAM is Ownable, IPAM {
-    bytes32 public constant SWAP_EVENT_TOPIC =
-        0x26d9f1fabb4e0554841202b52d725e2426dda2be4cafcb362eb73f9fb813d609;
     uint256 public constant TEE_ADDRESS_CHANGE_GRACE_PERIOD = 172800; // 48 hours
 
     address public teeAddress;
