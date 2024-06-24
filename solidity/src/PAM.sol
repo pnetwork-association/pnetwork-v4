@@ -18,6 +18,7 @@ contract PAM is Ownable, IPAM {
     address public teeAddress;
     address public teeAddressNew;
     uint256 public teeAddressChangeGraceThreshold;
+    mapping(bytes32 => bytes32) emitters;
     mapping(bytes32 => bool) pastEvents;
 
     error InvalidEventRLP();
@@ -28,12 +29,14 @@ contract PAM is Ownable, IPAM {
     error AlreadyProcessed(bytes32 eventId);
     error InvalidEventContentLength(uint256 length);
     error UnsupportedProtocolId(bytes1 protocolId);
-    error UnsupportedChainId(uint256 chainId);
+    error UnsupportedChainId(bytes32 chainId);
     error UnexpectedEventTopic(bytes32 topic);
     error InvalidSender();
     error InvalidEventId(bytes32 actual, bytes32 expected);
     error InvalidDestinationChainId(uint256 chainId);
 
+    event EmitterSet(bytes32 chainid, bytes32 emitter);
+    event EmitterUnset(bytes32 chainId);
     event TeeSignerChanged(address newAddress);
     event TeeSignerPendingChange(
         address newAddress,
@@ -70,6 +73,18 @@ contract PAM is Ownable, IPAM {
         }
     }
 
+    function setEmitter(bytes32 chainid, bytes32 emitter) public onlyOwner {
+        emitters[chainid] = emitter;
+
+        emit EmitterSet(chainid, emitter);
+    }
+
+    function unsetEmitter(bytes32 chainid) public onlyOwner {
+        delete emitters[chainid];
+
+        emit EmitterUnset(chainid);
+    }
+
     function applyNewTeeSigner() external {
         if (block.timestamp < teeAddressChangeGraceThreshold)
             revert GracePeriodNotElapsed();
@@ -81,56 +96,95 @@ contract PAM is Ownable, IPAM {
         emit TeeSignerChanged(teeAddress);
     }
 
-    function _getCommitment(
-        bytes memory context,
+    function _hexStringToAddress(
+        string memory addr
+    ) internal pure returns (address) {
+        bytes memory tmp = bytes(addr);
+        uint160 iaddr = 0;
+        uint160 b1;
+        uint160 b2;
+        for (uint256 i = 2; i < 2 + 2 * 20; i += 2) {
+            iaddr *= 256;
+            b1 = uint160(uint8(tmp[i]));
+            b2 = uint160(uint8(tmp[i + 1]));
+            if ((b1 >= 97) && (b1 <= 102)) {
+                b1 -= 87;
+            } else if ((b1 >= 65) && (b1 <= 70)) {
+                b1 -= 55;
+            } else if ((b1 >= 48) && (b1 <= 57)) {
+                b1 -= 48;
+            }
+            if ((b2 >= 97) && (b2 <= 102)) {
+                b2 -= 87;
+            } else if ((b2 >= 65) && (b2 <= 70)) {
+                b2 -= 55;
+            } else if ((b2 >= 48) && (b2 <= 57)) {
+                b2 -= 48;
+            }
+            iaddr += (b1 * 16 + b2);
+        }
+        return address(iaddr);
+    }
+
+    function _doesContentMatchOperation(
+        IAdapter.EventContent memory content,
         IAdapter.Operation memory operation
-    ) internal view returns (bytes32) {
-        console.logBytes20(bytes20(operation.sender));
-        console.logBytes32(bytes32(operation.amount));
-        return
-            sha256(
-                bytes.concat(
-                    context,
-                    operation.blockId,
-                    operation.txId,
-                    operation.eventRef,
-                    bytes32(operation.nonce),
-                    operation.erc20,
-                    operation.originChainId,
-                    operation.destinationChainId,
-                    bytes32(operation.amount),
-                    bytes20(operation.sender),
-                    bytes20(operation.recipient),
-                    operation.data
-                )
-            );
+    ) internal pure returns (bool) {
+        return (content.erc20 == operation.erc20 &&
+            content.destinationChainId == operation.destinationChainId &&
+            content.amount == operation.amount &&
+            content.sender == operation.sender &&
+            _hexStringToAddress(content.recipient) == operation.recipient &&
+            sha256(content.data) == sha256(content.data));
     }
 
     function isAuthorized(
         IAdapter.Operation memory operation,
-        bytes calldata metadata
-    ) external view returns (bool) {
+        Metadata calldata metadata
+    ) external returns (bool) {
         //  Metadata format:
-        //    | version   | protocol   |  originChainId     |   eventId     |  signature  |
-        //    | (1 byte)  | (1 byte)   |    (32 bytes)      |  (32 bytes)   |    varlen   |
-
+        //    | version   | protocol   |  originChainId     |   eventId     |  eventBytes  |
+        //    | (1 byte)  | (1 byte)   |    (32 bytes)      |  (32 bytes)   |    varlen    |
         if (teeAddress == address(0)) return false;
 
-        uint16 offset = (2 + 32);
-        bytes memory context = metadata[0:offset]; // version, protocolId, originChainId
-        bytes32 eventId = bytes32(metadata[offset:offset += 32]);
-        bytes memory signature = metadata[offset:];
+        uint16 offset = 2; // skip protocol, version
+        bytes32 originChainId = bytes32(metadata.preimage[offset:offset += 32]);
+        bytes32 expectedEmitter = emitters[originChainId];
 
-        console.log("signature");
-        console.logBytes(signature);
-        if (ECDSA.recover(eventId, signature) != teeAddress)
-            revert InvalidSignature();
+        if (expectedEmitter == bytes32(0)) return false;
 
-        bytes32 commitment = _getCommitment(context, operation);
+        bytes memory context = metadata.preimage[0:offset];
+        bytes32 blockId = bytes32(metadata.preimage[offset:offset += 32]);
+        bytes32 txId = bytes32(metadata.preimage[offset:offset += 32]);
+        bytes calldata eventBytes = metadata.preimage[offset:];
+
+        bytes32 eventId = sha256(
+            bytes.concat(context, blockId, txId, eventBytes)
+        );
+
+        if (ECDSA.recover(eventId, metadata.signature) != teeAddress)
+            return false;
 
         if (pastEvents[eventId]) return false;
 
-        if (commitment != eventId) return false;
+        offset = 32;
+        bytes32 emitter = bytes32(eventBytes[0:offset]);
+        if (emitter != expectedEmitter) return false;
+
+        offset += 32; // skip event signature
+        IAdapter.EventContent memory eventContent = abi.decode(
+            eventBytes[offset:], // data
+            (IAdapter.EventContent)
+        );
+
+        if (
+            blockId != operation.blockId &&
+            txId != operation.txId &&
+            originChainId != operation.originChainId &&
+            !_doesContentMatchOperation(eventContent, operation)
+        ) return false;
+
+        pastEvents[eventId] = true;
 
         return true;
     }

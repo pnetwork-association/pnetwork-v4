@@ -146,10 +146,7 @@ abstract contract Helper is Test {
         vm.stopPrank();
     }
 
-    function _getOperationFromRecordedLogs()
-        internal
-        returns (IAdapter.Operation memory)
-    {
+    function _getOperationFromRecordedLogs() internal {
         Vm.Log[] memory entries = vm.getRecordedLogs();
         uint256 last = entries.length - 1;
         console.log("////////////////////////////////");

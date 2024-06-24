@@ -112,14 +112,20 @@ contract Adapter is IAdapter, Ownable {
 
         emit Swap(
             nonce,
-            erc20Bytes,
-            block.chainid, // We'll convert them to bytes32 off chain
-            destinationChainId, // We'll convert them to bytes32 off chain
-            amount - fees,
-            msg.sender,
-            recipient,
-            data
+            EventContent(
+                nonce,
+                erc20Bytes,
+                bytes32(destinationChainId), // We'll convert them to bytes32 off chain
+                amount - fees,
+                bytes32(abi.encodePacked(msg.sender)),
+                recipient,
+                data
+            )
         );
+
+        unchecked {
+            ++nonce;
+        }
     }
 
     /**
@@ -144,7 +150,7 @@ contract Adapter is IAdapter, Ownable {
 
     function settle(
         Operation memory operation,
-        bytes calldata metadata
+        IPAM.Metadata calldata metadata
     ) external {
         (, address xerc20) = IXERC20Registry(registry).getAssets(
             operation.erc20
@@ -195,34 +201,4 @@ contract Adapter is IAdapter, Ownable {
 
         emit Settled();
     }
-
-    // function hexStringToAddress(
-    //     string memory addr
-    // ) internal pure returns (address) {
-    //     bytes memory tmp = bytes(addr);
-    //     uint160 iaddr = 0;
-    //     uint160 b1;
-    //     uint160 b2;
-    //     for (uint256 i = 2; i < 2 + 2 * 20; i += 2) {
-    //         iaddr *= 256;
-    //         b1 = uint160(uint8(tmp[i]));
-    //         b2 = uint160(uint8(tmp[i + 1]));
-    //         if ((b1 >= 97) && (b1 <= 102)) {
-    //             b1 -= 87;
-    //         } else if ((b1 >= 65) && (b1 <= 70)) {
-    //             b1 -= 55;
-    //         } else if ((b1 >= 48) && (b1 <= 57)) {
-    //             b1 -= 48;
-    //         }
-    //         if ((b2 >= 97) && (b2 <= 102)) {
-    //             b2 -= 87;
-    //         } else if ((b2 >= 65) && (b2 <= 70)) {
-    //             b2 -= 55;
-    //         } else if ((b2 >= 48) && (b2 <= 57)) {
-    //             b2 -= 48;
-    //         }
-    //         iaddr += (b1 * 16 + b2);
-    //     }
-    //     return address(iaddr);
-    // }
 }

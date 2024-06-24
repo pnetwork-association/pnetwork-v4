@@ -7,27 +7,27 @@ interface IAdapter {
     struct Operation {
         bytes32 blockId;
         bytes32 txId;
-        bytes32 eventRef;
         uint256 nonce;
         bytes32 erc20;
         bytes32 originChainId;
         bytes32 destinationChainId;
         uint256 amount;
-        address sender;
+        bytes32 sender;
         address recipient;
         bytes data;
     }
 
-    event Swap(
-        uint256 indexed nonce,
-        bytes32 erc20,
-        uint256 originChainId,
-        uint256 destinationChainId,
-        uint256 amount,
-        address sender,
-        string recipient,
-        bytes data
-    );
+    struct EventContent {
+        uint256 nonce;
+        bytes32 erc20;
+        bytes32 destinationChainId;
+        uint256 amount;
+        bytes32 sender;
+        string recipient;
+        bytes data;
+    }
+
+    event Swap(uint256 indexed nonce, EventContent eventContent);
 
     event ReceiveUserDataFailed();
 
@@ -35,7 +35,7 @@ interface IAdapter {
 
     function settle(
         Operation memory operation,
-        bytes calldata metadata
+        IPAM.Metadata calldata metadata
     ) external;
 
     function swap(
