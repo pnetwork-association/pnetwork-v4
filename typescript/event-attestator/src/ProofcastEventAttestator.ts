@@ -3,8 +3,6 @@ import { Event, Signature } from 'ethers'
 import {
   SigningKey,
   computeAddress,
-  defaultAbiCoder,
-  getAddress,
   hexConcat,
   hexZeroPad,
   hexlify,
@@ -53,6 +51,7 @@ export class ProofcastEventAttestator {
     this.version = hexlify(version)
     this.protocolId = hexlify(protocolId)
     this.chainId = hexZeroPad(hexlify(chainId), 32)
+    console.log(chainId)
     /// Context
     this.blockHash = blockHash
     this.txHash = txHash
@@ -77,49 +76,11 @@ export class ProofcastEventAttestator {
   getEventBytes(event: Event): string {
     // EVM event support only: for other chains may be
     // required to change logic based on version and protocolID
-    const eventSignature = event.topics[0]
-    const eventNonce = event.topics[1]
-    let [
-      erc20,
-      originChainId,
-      destinationChainId,
-      amount,
-      sender,
-      recipient,
-      data,
-    ] = defaultAbiCoder.decode(
-      [
-        'bytes32',
-        'uint256',
-        'uint256',
-        'uint256',
-        'address',
-        'string',
-        'bytes',
-      ],
-      event.data,
-    )
-
-    originChainId = hexZeroPad(hexlify(originChainId), 32)
-    destinationChainId = hexZeroPad(hexlify(destinationChainId), 32)
-    amount = hexZeroPad(hexlify(amount), 32)
-    recipient = getAddress(recipient)
-
-    const context = this.getEventContext()
 
     return hexConcat([
-      context,
-      this.blockHash,
-      this.txHash,
-      eventSignature,
-      eventNonce,
-      erc20,
-      originChainId,
-      destinationChainId,
-      amount,
-      sender,
-      recipient,
-      data,
+      hexZeroPad(event.address, 32),
+      sha256(hexConcat(event.topics)),
+      event.data,
     ])
   }
 
@@ -127,8 +88,17 @@ export class ProofcastEventAttestator {
     return hexConcat([this.version, this.protocolId, this.chainId])
   }
 
+  getEventPreImage(event: Event): string {
+    return hexConcat([
+      this.getEventContext(),
+      this.blockHash,
+      this.txHash,
+      this.getEventBytes(event),
+    ])
+  }
+
   getEventId(event: Event): string {
-    return sha256(this.getEventBytes(event))
+    return sha256(this.getEventPreImage(event))
   }
 
   signBytes(bytes: string): string {
