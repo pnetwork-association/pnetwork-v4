@@ -22,10 +22,6 @@ type Context = {
   privateKey: string | undefined
 }
 
-const fromHex = (_str: string): Buffer => {
-  return Buffer.from(_str.replace('0x', ''), 'hex')
-}
-
 export class ProofcastEventAttestator {
   public version: string
   public protocolId: string
@@ -51,7 +47,6 @@ export class ProofcastEventAttestator {
     this.version = hexlify(version)
     this.protocolId = hexlify(protocolId)
     this.chainId = hexZeroPad(hexlify(chainId), 32)
-    console.log(chainId)
     /// Context
     this.blockHash = blockHash
     this.txHash = txHash
@@ -66,11 +61,7 @@ export class ProofcastEventAttestator {
   }
 
   private formatSignature = (_signature: Signature): string => {
-    const r = fromHex(_signature.r)
-    const s = fromHex(_signature.s)
-    const v = Buffer.from([_signature.v])
-    const signature = Buffer.concat([r, s, v], r.length + s.length + v.length)
-    return '0x' + signature.toString('hex')
+    return hexConcat([_signature.r, _signature.s, hexlify(_signature.v)])
   }
 
   getEventBytes(event: Event): string {
