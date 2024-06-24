@@ -39,21 +39,18 @@ const getAttestator = R.curry(({ blockHash, txHash }, privateKey) =>
   ),
 )
 
-const getStatementString = (_event, _options = {}) =>
+const getMetadata = (_event, _options = {}) =>
   getPrivateKey()
     .then(getAttestator(_options))
-    .then(_ea => console.info(_ea.getStatement(_event)))
+    .then(_ea => console.info('\ncontext:', _ea.getEventContext()) || _ea)
+    .then(_ea => console.info('eventId:', _ea.getEventId(_event)) || _ea)
+    .then(_ea => console.info('eventBytes:', _ea.getEventBytes(_event)) || _ea)
+    .then(_ea => console.info('signature:', _ea.sign(_event)) || _ea)
+    .then(_ea => console.info('metadata', _ea.getMetadata(_event)))
 
-const signBytes = (_bytes, _options) =>
-  getPrivateKey()
-    .then(getAttestator(_options))
-    .then(_ea =>
-      console.info(_ea.signBytes(Buffer.from(_bytes.replace('0x', ''), 'hex'))),
-    )
-
-const addGetStatementCommand = _program =>
+const addGetMetadataCommand = _program =>
   _program
-    .command('statement <address> <data> topics...')
+    .command('metadata <address> <data> topics...')
     .option(
       '-b --block-hash <hash>',
       'the block including the event',
@@ -64,33 +61,15 @@ const addGetStatementCommand = _program =>
       'the transaction including the event',
       DEFAULT_TX_HASH,
     )
-    .description('Get the hex encoded string of the statement to be signed')
+    .description('Print the metadata to submit on chain and the related info')
     .action((address, data, topics, options) =>
-      getStatementString({ address, topics, data }, options),
+      getMetadata({ address, topics, data }, options),
     ) && _program
-
-const addSignCommand = _program =>
-  _program
-    .command('sign <statement>')
-    .option(
-      '-b --block-hash <hash>',
-      'the block including the event',
-      DEFAULT_BLOCK_HASH,
-    )
-    .option(
-      '-t --tx-hash <hash>',
-      'the transaction including the event',
-      DEFAULT_TX_HASH,
-    )
-    .description('Sign')
-    .action((_statement, _options) => signBytes(_statement, _options)) &&
-  _program
 
 const main = () =>
   Promise.resolve(new Command())
     .then(addMainCommand)
-    .then(addGetStatementCommand)
-    .then(addSignCommand)
+    .then(addGetMetadataCommand)
     .then(_program => _program.parseAsync(process.argv))
     .catch(_err => console.error(_err.msg))
 

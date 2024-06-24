@@ -7,13 +7,14 @@ interface IAdapter {
     struct Operation {
         bytes32 blockId;
         bytes32 txId;
+        bytes32 eventRef;
         uint256 nonce;
         bytes32 erc20;
         bytes32 originChainId;
         bytes32 destinationChainId;
         uint256 amount;
         address sender;
-        string recipient;
+        address recipient;
         bytes data;
     }
 
@@ -34,7 +35,7 @@ interface IAdapter {
 
     function settle(
         Operation memory operation,
-        IPAM.Metadata calldata metadata
+        bytes calldata metadata
     ) external;
 
     function swap(

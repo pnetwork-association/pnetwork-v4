@@ -8,26 +8,30 @@ import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {IPAM} from "./interfaces/IPAM.sol";
 import {IAdapter} from "./interfaces/IAdapter.sol";
 
+import "forge-std/console.sol";
+
 contract PAM is Ownable, IPAM {
     bytes32 public constant SWAP_EVENT_TOPIC =
-        0xb255de8953b7f0014df3bb00e17f11f43945268f579979c7124353070c2db98d;
+        0x26d9f1fabb4e0554841202b52d725e2426dda2be4cafcb362eb73f9fb813d609;
     uint256 public constant TEE_ADDRESS_CHANGE_GRACE_PERIOD = 172800; // 48 hours
 
     address public teeAddress;
     address public teeAddressNew;
     uint256 public teeAddressChangeGraceThreshold;
-
     mapping(bytes32 => bool) pastEvents;
 
     error InvalidEventRLP();
     error InvalidTeeSigner();
     error InvalidSignature();
+    error GracePeriodNotElapsed();
+    error InvalidNewTeeSigner();
+    error AlreadyProcessed(bytes32 eventId);
     error InvalidEventContentLength(uint256 length);
     error UnsupportedProtocolId(bytes1 protocolId);
     error UnsupportedChainId(uint256 chainId);
     error UnexpectedEventTopic(bytes32 topic);
     error InvalidSender();
-    error InvalidMessageId(uint256 actual, uint256 expected);
+    error InvalidEventId(bytes32 actual, bytes32 expected);
     error InvalidDestinationChainId(uint256 chainId);
 
     event TeeSignerChanged(address newAddress);
@@ -66,75 +70,67 @@ contract PAM is Ownable, IPAM {
         }
     }
 
-    function _maybeUpdateTeeAddress() internal {
-        if (
-            teeAddressNew != address(0) &&
-            block.timestamp > teeAddressChangeGraceThreshold
-        ) {
-            teeAddress = teeAddressNew;
-            teeAddressNew = address(0);
-            emit TeeSignerChanged(teeAddress);
-        }
+    function applyNewTeeSigner() external {
+        if (block.timestamp < teeAddressChangeGraceThreshold)
+            revert GracePeriodNotElapsed();
+        if (teeAddressNew == address(0)) revert InvalidNewTeeSigner();
+
+        teeAddress = teeAddressNew;
+        teeAddressNew = address(0);
+
+        emit TeeSignerChanged(teeAddress);
+    }
+
+    function _getCommitment(
+        bytes memory context,
+        IAdapter.Operation memory operation
+    ) internal view returns (bytes32) {
+        console.logBytes20(bytes20(operation.sender));
+        console.logBytes32(bytes32(operation.amount));
+        return
+            sha256(
+                bytes.concat(
+                    context,
+                    operation.blockId,
+                    operation.txId,
+                    operation.eventRef,
+                    bytes32(operation.nonce),
+                    operation.erc20,
+                    operation.originChainId,
+                    operation.destinationChainId,
+                    bytes32(operation.amount),
+                    bytes20(operation.sender),
+                    bytes20(operation.recipient),
+                    operation.data
+                )
+            );
     }
 
     function isAuthorized(
         IAdapter.Operation memory operation,
-        Metadata calldata metadata
-    ) external returns (bool) {
-        _maybeUpdateTeeAddress();
+        bytes calldata metadata
+    ) external view returns (bool) {
+        //  Metadata format:
+        //    | version   | protocol   |  originChainId     |   eventId     |  signature  |
+        //    | (1 byte)  | (1 byte)   |    (32 bytes)      |  (32 bytes)   |    varlen   |
 
-        if (teeAddress == address(0)) revert InvalidTeeSigner();
+        if (teeAddress == address(0)) return false;
 
-        if (
-            ECDSA.recover(sha256(metadata.statement), metadata.signature) !=
-            teeAddress
-        ) return false;
+        uint16 offset = (2 + 32);
+        bytes memory context = metadata[0:offset]; // version, protocolId, originChainId
+        bytes32 eventId = bytes32(metadata[offset:offset += 32]);
+        bytes memory signature = metadata[offset:];
 
-        //  Statement format:
-        //    | version   | protocol   |  originChainId     |   eventId     | eventBytes  |
-        //    | (1 byte)  | (1 byte)   |    (32 bytes)      |  (32 bytes)   |  varlen     |
+        console.log("signature");
+        console.logBytes(signature);
+        if (ECDSA.recover(eventId, signature) != teeAddress)
+            revert InvalidSignature();
 
-        uint16 offset = (2 + 32); // skip version, protocolId, originChainId
-
-        bytes32 eventId = bytes32(metadata.statement[offset:offset += 32]);
+        bytes32 commitment = _getCommitment(context, operation);
 
         if (pastEvents[eventId]) return false;
 
-        bytes memory eventBytes = metadata.statement[offset:];
-
-        RLPReader.RLPItem memory eventRLP = RLPReader.toRlpItem(eventBytes);
-        if (!RLPReader.isList(eventRLP)) revert InvalidEventRLP();
-
-        RLPReader.RLPItem[] memory eventContent = RLPReader.toList(eventRLP);
-
-        // Event must contain address, logs and data
-        if (eventContent.length != 3)
-            revert InvalidEventContentLength(eventContent.length);
-
-        RLPReader.RLPItem[] memory logs = RLPReader.toList(eventContent[1]);
-
-        bytes32 topic = bytes32(RLPReader.toBytes(logs[0]));
-        if (topic != SWAP_EVENT_TOPIC) revert UnexpectedEventTopic(topic);
-
-        bytes memory dataBytes = RLPReader.toBytes(eventContent[2]);
-
-        IAdapter.Operation memory expected = abi.decode(
-            dataBytes,
-            (IAdapter.Operation)
-        );
-
-        if (operation.erc20 != expected.erc20) return false;
-        if (operation.sender != expected.sender) return false;
-
-        if (
-            sha256(abi.encode(operation.recipient)) !=
-            sha256(abi.encode(expected.recipient))
-        ) return false;
-        if (operation.originChainId != expected.originChainId) return false;
-        if (operation.destinationChainId != expected.destinationChainId)
-            return false;
-        if (operation.amount != expected.amount) return false;
-        if (sha256(operation.data) != sha256(expected.data)) return false;
+        if (commitment != eventId) return false;
 
         return true;
     }

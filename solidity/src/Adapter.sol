@@ -19,7 +19,8 @@ contract Adapter is IAdapter, Ownable {
     using ExcessivelySafeCall for address;
 
     bytes32 public constant SWAP_EVENT_TOPIC =
-        0x218247aabc759e65b5bb92ccc074f9d62cd187259f2a0984c3c9cf91f67ff7cf;
+        0x26d9f1fabb4e0554841202b52d725e2426dda2be4cafcb362eb73f9fb813d609;
+
     uint256 nonce;
     address public registry;
     mapping(bytes32 => bool) public pastEvents;
@@ -143,7 +144,7 @@ contract Adapter is IAdapter, Ownable {
 
     function settle(
         Operation memory operation,
-        IPAM.Metadata calldata metadata
+        bytes calldata metadata
     ) external {
         (, address xerc20) = IXERC20Registry(registry).getAssets(
             operation.erc20
@@ -161,14 +162,11 @@ contract Adapter is IAdapter, Ownable {
 
                 IERC20(xerc20).approve(lockbox, operation.amount);
                 IXERC20Lockbox(lockbox).withdrawTo(
-                    hexStringToAddress(operation.recipient),
+                    operation.recipient,
                     operation.amount
                 );
             } else {
-                IXERC20(xerc20).mint(
-                    hexStringToAddress(operation.recipient),
-                    operation.amount
-                );
+                IXERC20(xerc20).mint(operation.recipient, operation.amount);
             }
         }
 
@@ -186,41 +184,45 @@ contract Adapter is IAdapter, Ownable {
             );
             uint256 gasReserve = 1000; // enough gas to ensure we eventually emit, and return
 
-            (bool success, ) = hexStringToAddress(operation.recipient)
-                .excessivelySafeCall(gasleft() - gasReserve, 0, 0, data);
+            (bool success, ) = operation.recipient.excessivelySafeCall(
+                gasleft() - gasReserve,
+                0,
+                0,
+                data
+            );
             if (!success) emit ReceiveUserDataFailed();
         }
 
         emit Settled();
     }
 
-    function hexStringToAddress(
-        string memory addr
-    ) internal pure returns (address) {
-        bytes memory tmp = bytes(addr);
-        uint160 iaddr = 0;
-        uint160 b1;
-        uint160 b2;
-        for (uint256 i = 2; i < 2 + 2 * 20; i += 2) {
-            iaddr *= 256;
-            b1 = uint160(uint8(tmp[i]));
-            b2 = uint160(uint8(tmp[i + 1]));
-            if ((b1 >= 97) && (b1 <= 102)) {
-                b1 -= 87;
-            } else if ((b1 >= 65) && (b1 <= 70)) {
-                b1 -= 55;
-            } else if ((b1 >= 48) && (b1 <= 57)) {
-                b1 -= 48;
-            }
-            if ((b2 >= 97) && (b2 <= 102)) {
-                b2 -= 87;
-            } else if ((b2 >= 65) && (b2 <= 70)) {
-                b2 -= 55;
-            } else if ((b2 >= 48) && (b2 <= 57)) {
-                b2 -= 48;
-            }
-            iaddr += (b1 * 16 + b2);
-        }
-        return address(iaddr);
-    }
+    // function hexStringToAddress(
+    //     string memory addr
+    // ) internal pure returns (address) {
+    //     bytes memory tmp = bytes(addr);
+    //     uint160 iaddr = 0;
+    //     uint160 b1;
+    //     uint160 b2;
+    //     for (uint256 i = 2; i < 2 + 2 * 20; i += 2) {
+    //         iaddr *= 256;
+    //         b1 = uint160(uint8(tmp[i]));
+    //         b2 = uint160(uint8(tmp[i + 1]));
+    //         if ((b1 >= 97) && (b1 <= 102)) {
+    //             b1 -= 87;
+    //         } else if ((b1 >= 65) && (b1 <= 70)) {
+    //             b1 -= 55;
+    //         } else if ((b1 >= 48) && (b1 <= 57)) {
+    //             b1 -= 48;
+    //         }
+    //         if ((b2 >= 97) && (b2 <= 102)) {
+    //             b2 -= 87;
+    //         } else if ((b2 >= 65) && (b2 <= 70)) {
+    //             b2 -= 55;
+    //         } else if ((b2 >= 48) && (b2 <= 57)) {
+    //             b2 -= 48;
+    //         }
+    //         iaddr += (b1 * 16 + b2);
+    //     }
+    //     return address(iaddr);
+    // }
 }

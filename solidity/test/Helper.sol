@@ -156,6 +156,6 @@ abstract contract Helper is Test {
         console.log(entries[last].emitter); // address
         console.log(vm.toString(entries[last].data)); // data
         console.log(vm.toString(entries[last].topics[0])); // topic0
-        return abi.decode(entries[last].data, (IAdapter.Operation));
+        console.log(vm.toString(entries[last].topics[1])); // topic1
     }
 }
