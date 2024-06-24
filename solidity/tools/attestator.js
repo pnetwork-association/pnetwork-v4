@@ -26,12 +26,12 @@ const addMainCommand = _program =>
 const getPrivateKey = (privateKeyFile = './attestator.key') =>
   fs.readFile(privateKeyFile).then(_content => _content.toString())
 
-const getAttestator = R.curry(({ blockHash, txHash }, privateKey) =>
+const getAttestator = R.curry(({ blockHash, txHash, chainId }, privateKey) =>
   Promise.resolve(
     new ProofcastEventAttestator({
       version: Versions.V1,
       protocolId: Protocols.Evm,
-      chainId: Chains.Mainnet,
+      chainId,
       privateKey,
       blockHash,
       txHash,
@@ -43,10 +43,9 @@ const getMetadata = (_event, _options = {}) =>
   getPrivateKey()
     .then(getAttestator(_options))
     .then(_ea => console.info('\ncontext:', _ea.getEventContext()) || _ea)
-    .then(_ea => console.info('eventId:', _ea.getEventId(_event)) || _ea)
-    .then(_ea => console.info('eventBytes:', _ea.getEventBytes(_event)) || _ea)
+    .then(_ea => console.info('preimage:', _ea.getEventPreImage(_event)) || _ea)
+    .then(_ea => console.info('eventid:', _ea.getEventId(_event)) || _ea)
     .then(_ea => console.info('signature:', _ea.sign(_event)) || _ea)
-    .then(_ea => console.info('metadata', _ea.getMetadata(_event)))
 
 const addGetMetadataCommand = _program =>
   _program
@@ -60,6 +59,12 @@ const addGetMetadataCommand = _program =>
       '-t --tx-hash <hash>',
       'the transaction including the event',
       DEFAULT_TX_HASH,
+    )
+    .option(
+      '-c --chain-id <number>',
+      'the origin chain id of the event',
+      Number,
+      Chains.Mainnet,
     )
     .description('Print the metadata to submit on chain and the related info')
     .action((address, data, topics, options) =>
