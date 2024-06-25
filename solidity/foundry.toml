@@ -7,6 +7,7 @@ evm_version="cancun"
 gas_reports = ["Adapter"]
 remappings = [
   "forge-std/=lib/forge-std/src/",
+  "@openzeppelin/contracts-upgradeable=lib/openzeppelin-contracts-upgradeable/contracts"
 ]
 
 # See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options
