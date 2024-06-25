@@ -15,9 +15,9 @@ import {XERC20Registry} from "../../contracts/XERC20Registry.sol";
 import {IPAM} from "../../contracts/interfaces/IPAM.sol";
 import {IAdapter} from "../../contracts/interfaces/IAdapter.sol";
 
-import {XERC20} from "../../contracts/test/XERC20.sol";
+import {XERC20} from "../../contracts/xerc20/XERC20.sol";
 import {ERC20Test} from "../../contracts/test/ERC20Test.sol";
-import {XERC20Lockbox} from "../../contracts/test/XERC20Lockbox.sol";
+import {XERC20Lockbox} from "../../contracts/xerc20/XERC20Lockbox.sol";
 
 import "forge-std/console.sol";
 

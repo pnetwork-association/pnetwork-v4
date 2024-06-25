@@ -5,7 +5,7 @@ import "forge-std/Test.sol";
 import {IAccessControl} from "@openzeppelin/contracts/access/IAccessControl.sol";
 
 import {Helper} from "./Helper.sol";
-import {XERC20} from "../../contracts/test/XERC20.sol";
+import {XERC20} from "../../contracts/xerc20/XERC20.sol";
 import {ERC20Test} from "../../contracts/test/ERC20Test.sol";
 import {XERC20Registry} from "../../contracts/XERC20Registry.sol";
 

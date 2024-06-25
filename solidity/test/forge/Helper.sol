@@ -7,14 +7,14 @@ import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 import {PAM} from "../../contracts/PAM.sol";
 import {Adapter} from "../../contracts/Adapter.sol";
-import {XERC20} from "../../contracts/test/XERC20.sol";
+import {XERC20} from "../../contracts/xerc20/XERC20.sol";
 import {FeesManager} from "../../contracts/FeesManager.sol";
 import {XERC20Registry} from "../../contracts/XERC20Registry.sol";
 
 import {IPAM} from "../../contracts/interfaces/IPAM.sol";
 import {ERC20Test} from "../../contracts/test/ERC20Test.sol";
 import {IAdapter} from "../../contracts/interfaces/IAdapter.sol";
-import {XERC20Lockbox} from "../../contracts/test/XERC20Lockbox.sol";
+import {XERC20Lockbox} from "../../contracts/xerc20/XERC20Lockbox.sol";
 
 import "forge-std/console.sol";
 
