@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity >=0.8.4 <0.9.0;
 
-import {IXERC20} from "../interfaces/IXERC20.sol";
-import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import {ERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol";
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {IXERC20} from '../interfaces/IXERC20.sol';
+import {ERC20} from '@openzeppelin/contracts/token/ERC20/ERC20.sol';
+import {ERC20Permit} from '@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol';
+import {Ownable} from '@openzeppelin/contracts/access/Ownable.sol';
 import {IFeesManager} from "../interfaces/IFeesManager.sol";
 
 contract XERC20 is ERC20, Ownable, IXERC20, ERC20Permit {
@@ -45,11 +45,7 @@ contract XERC20 is ERC20, Ownable, IXERC20, ERC20Permit {
      * @param _factory The factory which deployed this contract
      */
 
-    constructor(
-        string memory _name,
-        string memory _symbol,
-        address _factory
-    ) ERC20(_name, _symbol) ERC20Permit(_name) Ownable(msg.sender) {}
+    constructor(string memory _name, string memory _symbol, address _factory) ERC20(_name, _symbol) ERC20Permit(_name) Ownable(msg.sender) {}
 
     /// @inheritdoc IXERC20
     function setFeesManager(address newAddress) public {
@@ -71,10 +67,7 @@ contract XERC20 is ERC20, Ownable, IXERC20, ERC20Permit {
      * @param adapterAddress  the adapter address
      * @param pamAddress  the new PAM address
      */
-    function setPAM(
-        address adapterAddress,
-        address pamAddress
-    ) public onlyOwner {
+    function setPAM(address adapterAddress, address pamAddress) public onlyOwner {
         adapterToPAM[adapterAddress] = pamAddress;
     }
 
@@ -144,11 +137,7 @@ contract XERC20 is ERC20, Ownable, IXERC20, ERC20Permit {
      * @param _burningLimit The updated burning limit we are setting to the bridge
      * @param _bridge The address of the bridge we are setting the limits too
      */
-    function setLimits(
-        address _bridge,
-        uint256 _mintingLimit,
-        uint256 _burningLimit
-    ) external onlyOwner {
+    function setLimits(address _bridge, uint256 _mintingLimit, uint256 _burningLimit) external onlyOwner {
         _changeMinterLimit(_bridge, _mintingLimit);
         _changeBurnerLimit(_bridge, _burningLimit);
         emit BridgeLimitsSet(_mintingLimit, _burningLimit, _bridge);
@@ -161,9 +150,7 @@ contract XERC20 is ERC20, Ownable, IXERC20, ERC20Permit {
      * @return _limit The limit the bridge has
      */
 
-    function mintingMaxLimitOf(
-        address _bridge
-    ) public view returns (uint256 _limit) {
+    function mintingMaxLimitOf(address _bridge) public view returns (uint256 _limit) {
         _limit = bridges[_bridge].minterParams.maxLimit;
     }
 
@@ -174,9 +161,7 @@ contract XERC20 is ERC20, Ownable, IXERC20, ERC20Permit {
      * @return _limit The limit the bridge has
      */
 
-    function burningMaxLimitOf(
-        address _bridge
-    ) public view returns (uint256 _limit) {
+    function burningMaxLimitOf(address _bridge) public view returns (uint256 _limit) {
         _limit = bridges[_bridge].burnerParams.maxLimit;
     }
 
@@ -187,9 +172,7 @@ contract XERC20 is ERC20, Ownable, IXERC20, ERC20Permit {
      * @return _limit The limit the bridge has
      */
 
-    function mintingCurrentLimitOf(
-        address _bridge
-    ) public view returns (uint256 _limit) {
+    function mintingCurrentLimitOf(address _bridge) public view returns (uint256 _limit) {
         _limit = _getCurrentLimit(
             bridges[_bridge].minterParams.currentLimit,
             bridges[_bridge].minterParams.maxLimit,
@@ -205,9 +188,7 @@ contract XERC20 is ERC20, Ownable, IXERC20, ERC20Permit {
      * @return _limit The limit the bridge has
      */
 
-    function burningCurrentLimitOf(
-        address _bridge
-    ) public view returns (uint256 _limit) {
+    function burningCurrentLimitOf(address _bridge) public view returns (uint256 _limit) {
         _limit = _getCurrentLimit(
             bridges[_bridge].burnerParams.currentLimit,
             bridges[_bridge].burnerParams.maxLimit,
@@ -252,11 +233,7 @@ contract XERC20 is ERC20, Ownable, IXERC20, ERC20Permit {
         uint256 _currentLimit = mintingCurrentLimitOf(_bridge);
         bridges[_bridge].minterParams.maxLimit = _limit;
 
-        bridges[_bridge].minterParams.currentLimit = _calculateNewCurrentLimit(
-            _limit,
-            _oldLimit,
-            _currentLimit
-        );
+        bridges[_bridge].minterParams.currentLimit = _calculateNewCurrentLimit(_limit, _oldLimit, _currentLimit);
 
         bridges[_bridge].minterParams.ratePerSecond = _limit / _DURATION;
         bridges[_bridge].minterParams.timestamp = block.timestamp;
@@ -274,11 +251,7 @@ contract XERC20 is ERC20, Ownable, IXERC20, ERC20Permit {
         uint256 _currentLimit = burningCurrentLimitOf(_bridge);
         bridges[_bridge].burnerParams.maxLimit = _limit;
 
-        bridges[_bridge].burnerParams.currentLimit = _calculateNewCurrentLimit(
-            _limit,
-            _oldLimit,
-            _currentLimit
-        );
+        bridges[_bridge].burnerParams.currentLimit = _calculateNewCurrentLimit(_limit, _oldLimit, _currentLimit);
 
         bridges[_bridge].burnerParams.ratePerSecond = _limit / _DURATION;
         bridges[_bridge].burnerParams.timestamp = block.timestamp;
@@ -302,9 +275,7 @@ contract XERC20 is ERC20, Ownable, IXERC20, ERC20Permit {
 
         if (_oldLimit > _limit) {
             _difference = _oldLimit - _limit;
-            _newCurrentLimit = _currentLimit > _difference
-                ? _currentLimit - _difference
-                : 0;
+            _newCurrentLimit = _currentLimit > _difference ? _currentLimit - _difference : 0;
         } else {
             _difference = _limit - _oldLimit;
             _newCurrentLimit = _currentLimit + _difference;
@@ -335,9 +306,7 @@ contract XERC20 is ERC20, Ownable, IXERC20, ERC20Permit {
         } else if (_timestamp + _DURATION > block.timestamp) {
             uint256 _timePassed = block.timestamp - _timestamp;
             uint256 _calculatedLimit = _limit + (_timePassed * _ratePerSecond);
-            _limit = _calculatedLimit > _maxLimit
-                ? _maxLimit
-                : _calculatedLimit;
+            _limit = _calculatedLimit > _maxLimit ? _maxLimit : _calculatedLimit;
         }
     }
 
@@ -349,15 +318,8 @@ contract XERC20 is ERC20, Ownable, IXERC20, ERC20Permit {
      * @param _amount The amount to burn
      */
 
-    function _burnWithCaller(
-        address _caller,
-        address _user,
-        uint256 _amount
-    ) internal {
-        uint256 fees = IFeesManager(feesManager).calculateFee(
-            address(this),
-            _amount
-        );
+    function _burnWithCaller(address _caller, address _user, uint256 _amount) internal {
+        uint256 fees = IFeesManager(feesManager).calculateFee(address(this), _amount);
 
         if (fees > _amount) revert UnsufficientAmount();
 
@@ -369,11 +331,7 @@ contract XERC20 is ERC20, Ownable, IXERC20, ERC20Permit {
             _useBurnerLimits(_caller, netAmount);
         }
 
-        IFeesManager(feesManager).depositFeeFrom(
-            msg.sender,
-            address(this),
-            fees
-        );
+        IFeesManager(feesManager).depositFeeFrom(msg.sender, address(this), fees);
 
         _burn(_user, netAmount);
     }
@@ -386,11 +344,7 @@ contract XERC20 is ERC20, Ownable, IXERC20, ERC20Permit {
      * @param _amount The amount to mint
      */
 
-    function _mintWithCaller(
-        address _caller,
-        address _user,
-        uint256 _amount
-    ) internal {
+    function _mintWithCaller(address _caller, address _user, uint256 _amount) internal {
         if (_caller != lockbox) {
             uint256 _currentLimit = mintingCurrentLimitOf(_caller);
             if (_currentLimit < _amount) revert IXERC20_NotHighEnoughLimits();
