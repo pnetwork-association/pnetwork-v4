@@ -5,16 +5,16 @@ import {Vm} from "forge-std/Vm.sol";
 import {Test} from "forge-std/Test.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
-import {PAM} from "../src/PAM.sol";
-import {Adapter} from "../src/Adapter.sol";
-import {XERC20} from "../src/test/XERC20.sol";
-import {FeesManager} from "../src/FeesManager.sol";
-import {XERC20Registry} from "../src/XERC20Registry.sol";
+import {PAM} from "../../src/PAM.sol";
+import {Adapter} from "../../src/Adapter.sol";
+import {XERC20} from "../../src/xerc20/XERC20.sol";
+import {FeesManager} from "../../src/FeesManager.sol";
+import {XERC20Registry} from "../../src/XERC20Registry.sol";
 
-import {IPAM} from "../src/interfaces/IPAM.sol";
-import {ERC20Test} from "../src/test/ERC20Test.sol";
-import {IAdapter} from "../src/interfaces/IAdapter.sol";
-import {XERC20Lockbox} from "../src/test/XERC20Lockbox.sol";
+import {IPAM} from "../../src/interfaces/IPAM.sol";
+import {ERC20Test} from "../../src/test/ERC20Test.sol";
+import {IAdapter} from "../../src/interfaces/IAdapter.sol";
+import {XERC20Lockbox} from "../../src/xerc20/XERC20Lockbox.sol";
 
 import "forge-std/console.sol";
 

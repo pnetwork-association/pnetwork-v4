@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity ^0.8.17;
+pragma solidity ^0.6.2;
 
 /**
  * @title IFeesManager
  * @author pNetwork
  *
  */
-interface IFeesManager {
+interface IFeesManager_solc_0_6 {
     struct Fee {
         uint256 minFee;
         uint16 basisPoints; // 4 decimals representation i.e. 2500 => 25 basis points => 0.25%
