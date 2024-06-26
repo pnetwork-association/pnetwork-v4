@@ -9,7 +9,8 @@
   },
   "scripts": {
     "build": "forge build",
-    "test": "forge test",
+    "test": "yarn test:forge && yarn test:hh",
+    "test:forge": "forge test",
     "test:hh": "hardhat test",
     "lint": "npx solhint src/**/*.sol",
     "prettier": "prettier --write ./src ./test",
