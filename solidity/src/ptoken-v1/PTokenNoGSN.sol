@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.6.2;
 
 import "./ERC777WithAdminOperatorUpgradeable.sol";
@@ -32,9 +33,7 @@ contract PTokenNoGSN is
         string memory tokenSymbol,
         address defaultAdmin,
         bytes4 originChainId
-    )
-        public initializer
-    {
+    ) public initializer {
         address[] memory defaultOperators;
         __AccessControl_init();
         __ERC777_init(tokenName, tokenSymbol, defaultOperators);
@@ -43,23 +42,20 @@ contract PTokenNoGSN is
         ORIGIN_CHAIN_ID = originChainId;
     }
 
-    modifier onlyMinter {
+    modifier onlyMinter() {
         require(hasRole(MINTER_ROLE, _msgSender()), "Caller is not a minter");
         _;
     }
 
-    modifier onlyAdmin {
-        require(hasRole(DEFAULT_ADMIN_ROLE, _msgSender()), "Caller is not an admin");
+    modifier onlyAdmin() {
+        require(
+            hasRole(DEFAULT_ADMIN_ROLE, _msgSender()),
+            "Caller is not an admin"
+        );
         _;
     }
 
-    function mint(
-        address recipient,
-        uint256 value
-    )
-        external
-        returns (bool)
-    {
+    function mint(address recipient, uint256 value) external returns (bool) {
         mint(recipient, value, "", "");
         return true;
     }
@@ -69,13 +65,9 @@ contract PTokenNoGSN is
         uint256 value,
         bytes memory userData,
         bytes memory operatorData
-    )
-        public
-        onlyMinter
-        returns (bool)
-    {
+    ) public onlyMinter returns (bool) {
         require(
-            recipient != address(this) ,
+            recipient != address(this),
             "Recipient cannot be the token contract address!"
         );
         _mint(recipient, value, userData, operatorData);
@@ -86,10 +78,7 @@ contract PTokenNoGSN is
         uint256 amount,
         string calldata underlyingAssetRecipient,
         bytes4 destinationChainId
-    )
-        external
-        returns (bool)
-    {
+    ) external returns (bool) {
         redeem(amount, "", underlyingAssetRecipient, destinationChainId);
         return true;
     }
@@ -99,9 +88,7 @@ contract PTokenNoGSN is
         bytes memory userData,
         string memory underlyingAssetRecipient,
         bytes4 destinationChainId
-    )
-        public
-    {
+    ) public {
         _burn(_msgSender(), amount, userData, "");
         emit Redeem(
             _msgSender(),
@@ -120,15 +107,20 @@ contract PTokenNoGSN is
         bytes calldata operatorData,
         string calldata underlyingAssetRecipient,
         bytes4 destinationChainId
-    )
-        external
-    {
+    ) external {
         require(
             isOperatorFor(_msgSender(), account),
             "ERC777: caller is not an operator for holder"
         );
         _burn(account, amount, userData, operatorData);
-        emit Redeem(account, amount, underlyingAssetRecipient, userData, ORIGIN_CHAIN_ID, destinationChainId);
+        emit Redeem(
+            account,
+            amount,
+            underlyingAssetRecipient,
+            userData,
+            ORIGIN_CHAIN_ID,
+            destinationChainId
+        );
     }
 
     function grantMinterRole(address _account) external {
@@ -145,11 +137,7 @@ contract PTokenNoGSN is
 
     function changeOriginChainId(
         bytes4 _newOriginChainId
-    )
-        public
-        onlyAdmin
-        returns (bool success)
-    {
+    ) public onlyAdmin returns (bool success) {
         ORIGIN_CHAIN_ID = _newOriginChainId;
         return true;
     }
