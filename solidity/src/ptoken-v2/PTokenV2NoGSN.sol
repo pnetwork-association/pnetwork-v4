@@ -3,22 +3,33 @@ pragma solidity ^0.6.2;
 
 import {IXERC20_solc_0_6 as IXERC20} from "./IXERC20-solc-0.6.sol";
 import {IFeesManager_solc_0_6 as IFeesManager} from "./IFeesManager-solc-0.6.sol";
-import "../ptoken-v1/ERC777GSN.sol";
 import "../ptoken-v1/ERC777WithAdminOperatorUpgradeable.sol";
-import "../ptoken-v1/ERC777Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 
-contract PTokenV2 is
+/**
+ * @dev Note: Unfortunately we can't just refactor the original pToken to inherit most of this
+ * logic, then have just the GSN version add the GSN specific logic because of the breaking
+ * changes it would make to the storage layout, breaking the upgradeability. So alas, we have
+ * this near clone to maintain instead.
+ */
+contract PTokenV2NoGSN is
     Initializable,
     AccessControlUpgradeable,
-    ERC777GSNUpgradeable,
     ERC777WithAdminOperatorUpgradeable,
     IXERC20
 {
     // V1
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
     bytes4 public ORIGIN_CHAIN_ID;
+
+    // A new initializer is required to call __Ownable_init().
+    // Unfortunately, reinitialize is not available as the base Initializable contract
+    // comes from an old openzeppelin release.
+    // Thus, redefine the two fields and a new initializer2 modifier.
+    address private _owner;
+    bool private _initialized;
+    bool private _initializing;
 
     // V2
     uint256 private constant _DURATION = 1 days;
@@ -27,6 +38,10 @@ contract PTokenV2 is
     address public feesManager;
     mapping(address => address) public adapterToPAM;
 
+    event OwnershipTransferred(
+        address indexed previousOwner,
+        address indexed newOwner
+    );
     event FeesManagerChanged(address newAddress);
 
     function initialize(
@@ -36,13 +51,37 @@ contract PTokenV2 is
         bytes4 originChainId
     ) public initializer {
         address[] memory defaultOperators;
-        __Ownable_init();
         __AccessControl_init();
         __ERC777_init(tokenName, tokenSymbol, defaultOperators);
-        __ERC777GSNUpgradeable_init(defaultAdmin, defaultAdmin);
         __ERC777WithAdminOperatorUpgradeable_init(defaultAdmin);
         _setupRole(DEFAULT_ADMIN_ROLE, defaultAdmin);
         ORIGIN_CHAIN_ID = originChainId;
+    }
+
+    function initializeV2() public initializer2 {
+        __Ownable_init();
+    }
+
+    /**
+     * @dev Modifier to protect an initializer function from being invoked twice.
+     */
+    modifier initializer2() {
+        require(
+            _initializing || !_initialized,
+            "Initializable: contract is already initialized"
+        );
+
+        bool isTopLevelCall = !_initializing;
+        if (isTopLevelCall) {
+            _initializing = true;
+            _initialized = true;
+        }
+
+        _;
+
+        if (isTopLevelCall) {
+            _initializing = false;
+        }
     }
 
     modifier onlyAdmin() {
@@ -410,28 +449,65 @@ contract PTokenV2 is
         return hasRole(MINTER_ROLE, _account);
     }
 
-    function _msgSender()
-        internal
-        view
-        override(ContextUpgradeable, ERC777GSNUpgradeable)
-        returns (address payable)
-    {
-        return GSNRecipientUpgradeable._msgSender();
-    }
-
-    function _msgData()
-        internal
-        view
-        override(ContextUpgradeable, ERC777GSNUpgradeable)
-        returns (bytes memory)
-    {
-        return GSNRecipientUpgradeable._msgData();
-    }
-
     function changeOriginChainId(
         bytes4 _newOriginChainId
     ) public onlyAdmin returns (bool success) {
         ORIGIN_CHAIN_ID = _newOriginChainId;
         return true;
+    }
+
+    // Add OwnableUpgradeable implementation here just to not break layout.
+
+    /**
+     * @dev Initializes the contract setting the deployer as the initial owner.
+     */
+    function __Ownable_init() internal initializer2 {
+        __Ownable_init_unchained();
+    }
+
+    function __Ownable_init_unchained() internal initializer2 {
+        address msgSender = _msgSender();
+        _owner = msgSender;
+        emit OwnershipTransferred(address(0), msgSender);
+    }
+
+    /**
+     * @dev Returns the address of the current owner.
+     */
+    function owner() public view virtual returns (address) {
+        return _owner;
+    }
+
+    /**
+     * @dev Throws if called by any account other than the owner.
+     */
+    modifier onlyOwner() {
+        require(owner() == _msgSender(), "Ownable: caller is not the owner");
+        _;
+    }
+
+    /**
+     * @dev Leaves the contract without owner. It will not be possible to call
+     * `onlyOwner` functions anymore. Can only be called by the current owner.
+     *
+     * NOTE: Renouncing ownership will leave the contract without an owner,
+     * thereby removing any functionality that is only available to the owner.
+     */
+    function renounceOwnership() public virtual onlyOwner {
+        emit OwnershipTransferred(_owner, address(0));
+        _owner = address(0);
+    }
+
+    /**
+     * @dev Transfers ownership of the contract to a new account (`newOwner`).
+     * Can only be called by the current owner.
+     */
+    function transferOwnership(address newOwner) public virtual onlyOwner {
+        require(
+            newOwner != address(0),
+            "Ownable: new owner is the zero address"
+        );
+        emit OwnershipTransferred(_owner, newOwner);
+        _owner = newOwner;
     }
 }
