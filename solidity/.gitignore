@@ -1,5 +1,6 @@
 # Compiler files
-cache_hardhat
+artifacts/
+cache_hardhat/
 cache/
 out/
 
