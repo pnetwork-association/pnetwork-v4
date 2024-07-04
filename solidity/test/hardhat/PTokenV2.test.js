@@ -1,10 +1,15 @@
-import helpers from '@nomicfoundation/hardhat-network-helpers'
+import helpers, { loadFixture } from '@nomicfoundation/hardhat-network-helpers'
 import { expect } from 'chai'
+import { ZeroAddress } from 'ethers/constants'
 import hre from 'hardhat'
 
-import erc1820bytes from './bytecodes/ERC1820.cjs'
+import ERC1820BYTES from './bytecodes/ERC1820.cjs'
 import { deployProxy } from './utils/deploy-proxy.cjs'
+import { upgradeProxy } from './utils/upgrade-proxy.cjs'
 import { validateUpgrade } from './utils/validate-upgrade.cjs'
+
+const ERC1820 = '0x1820a4B7618BdE71Dce8cdc73aAB6C95905faD24'
+const deployERC1820 = () => helpers.setCode(ERC1820, ERC1820BYTES)
 
 ;['', 'NoGSN'].map(_useGSN => {
   describe(`PTokenV2${_useGSN}`, () => {
@@ -15,8 +20,7 @@ import { validateUpgrade } from './utils/validate-upgrade.cjs'
 
       it('Should not detect any storage violation', async () => {
         // Set the registry
-        const erc1820 = '0x1820a4B7618BdE71Dce8cdc73aAB6C95905faD24'
-        await helpers.setCode(erc1820, erc1820bytes)
+        await deployERC1820()
 
         const [_, admin] = await hre.ethers.getSigners()
         const pToken = await deployProxy(hre, `PToken${_useGSN}`, [
@@ -31,8 +35,7 @@ import { validateUpgrade } from './utils/validate-upgrade.cjs'
 
       it('Should not be possible to upgrade from GSN to non-GSN and viceversa', async () => {
         // Set the registry
-        const erc1820 = '0x1820a4B7618BdE71Dce8cdc73aAB6C95905faD24'
-        await helpers.setCode(erc1820, erc1820bytes)
+        await deployERC1820()
 
         const [_, admin] = await hre.ethers.getSigners()
         const pToken = await deployProxy(hre, `PToken${_useGSN}`, [
@@ -50,6 +53,105 @@ import { validateUpgrade } from './utils/validate-upgrade.cjs'
         } catch (e) {
           expect(e.message).to.include('New storage layout is incompatible')
         }
+      })
+    })
+
+    describe('Tests units', () => {
+      const setup = async () => {
+        const [owner, minter, recipient, user, evil] =
+          await hre.ethers.getSigners()
+        const name = 'pToken A'
+        const symbol = 'pTKN A'
+        const originChainId = '0x10000000'
+
+        await deployERC1820()
+
+        const pToken = await deployProxy(hre, `PToken${_useGSN}`, [
+          name,
+          symbol,
+          owner.address,
+          originChainId,
+        ])
+
+        return { owner, minter, recipient, user, evil, pToken }
+      }
+
+      const getUpgradeOpts = _owner =>
+        _useGSN === ''
+          ? {}
+          : { call: { fn: 'initializeV2(address)', args: [_owner.address] } }
+
+      it('Should mint some pTokens', async () => {
+        const { owner, minter, recipient, pToken } = await loadFixture(setup)
+
+        const value = 100
+        await expect(pToken.connect(owner).grantMinterRole(minter)).to.emit(
+          pToken,
+          'RoleGranted',
+        )
+        await expect(pToken.connect(minter).mint(recipient, value))
+          .to.emit(pToken, 'Transfer')
+          .withArgs(ZeroAddress, recipient.address, value)
+
+        expect(await pToken.balanceOf(recipient)).to.be.equal(value)
+      })
+
+      it('Should upgrade the ptoken correctly', async () => {
+        const { owner, minter, recipient, pToken } = await loadFixture(setup)
+        const value = 100
+        await pToken.connect(owner).grantMinterRole(minter)
+        await pToken.connect(minter).mint(recipient, value)
+
+        const opts = getUpgradeOpts(owner)
+
+        const pTokenV2 = await upgradeProxy(
+          hre,
+          pToken,
+          `PTokenV2${_useGSN}`,
+          opts,
+        )
+
+        expect(await pTokenV2.balanceOf(recipient)).to.be.equal(100)
+      })
+
+      describe('After pToken contract upgrade', () => {
+        let owner, admin, minter, recipient, user, evil, pToken, pTokenV2
+        before(async () => {
+          const env = await loadFixture(setup)
+          owner = env.owner
+          admin = env.admin
+          minter = env.minter
+          recipient = env.recipient
+          user = env.user
+          evil = env.evil
+          pToken = env.pToken
+
+          const opts = getUpgradeOpts(owner)
+
+          pTokenV2 = await upgradeProxy(hre, pToken, `PTokenV2${_useGSN}`, opts)
+
+          expect(await pTokenV2.owner()).to.be.equal(owner.address)
+        })
+
+        it('Only the owner can set limits', async () => {
+          const bridge = (await hre.ethers.getSigners())[10]
+          const mintingLimit = 200
+          const burningLimit = 300
+
+          await expect(
+            pTokenV2
+              .connect(evil)
+              .setLimits(bridge, mintingLimit, burningLimit),
+          ).to.be.revertedWith('Ownable: caller is not the owner')
+
+          await expect(
+            pTokenV2
+              .connect(owner)
+              .setLimits(bridge, mintingLimit, burningLimit),
+          )
+            .to.emit(pTokenV2, 'BridgeLimitsSet')
+            .withArgs(mintingLimit, burningLimit, bridge.address)
+        })
       })
     })
   })

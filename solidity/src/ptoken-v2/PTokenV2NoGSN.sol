@@ -58,8 +58,8 @@ contract PTokenV2NoGSN is
         ORIGIN_CHAIN_ID = originChainId;
     }
 
-    function initializeV2() public initializer2 {
-        __Ownable_init();
+    function initializeV2(address owner) public initializer2 {
+        _owner = owner;
     }
 
     /**
@@ -454,21 +454,6 @@ contract PTokenV2NoGSN is
     ) public onlyAdmin returns (bool success) {
         ORIGIN_CHAIN_ID = _newOriginChainId;
         return true;
-    }
-
-    // Add OwnableUpgradeable implementation here just to not break layout.
-
-    /**
-     * @dev Initializes the contract setting the deployer as the initial owner.
-     */
-    function __Ownable_init() internal initializer2 {
-        __Ownable_init_unchained();
-    }
-
-    function __Ownable_init_unchained() internal initializer2 {
-        address msgSender = _msgSender();
-        _owner = msgSender;
-        emit OwnershipTransferred(address(0), msgSender);
     }
 
     /**
