@@ -124,6 +124,7 @@ const deployERC1820 = () => helpers.setCode(ERC1820, ERC1820BYTES)
           evil,
           PAM,
           bridge,
+          lockbox,
           pToken,
           pTokenV2,
           feesManagerTest
@@ -229,6 +230,25 @@ const deployERC1820 = () => helpers.setCode(ERC1820, ERC1820BYTES)
           await expect(pTokenV2.connect(owner).setPAM(bridge, PAM))
             .to.emit(pTokenV2, 'PAMChanged')
             .withArgs(PAM)
+        })
+
+        it('Only owner can set the lockbox', async () => {
+          const isNative = false
+          const erc20 = ZeroAddress
+          const xerc20 = pTokenV2
+          lockbox = await deploy(hre, 'XERC20Lockbox', [
+            xerc20,
+            erc20,
+            isNative,
+          ])
+
+          await expect(
+            pTokenV2.connect(evil).setLockbox(lockbox),
+          ).to.be.revertedWith('Ownable: caller is not the owner')
+
+          await expect(pTokenV2.connect(owner).setLockbox(lockbox))
+            .to.emit(pTokenV2, 'LockboxSet')
+            .withArgs(lockbox)
         })
       })
     })
