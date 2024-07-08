@@ -93,11 +93,11 @@ contract PTokenV2NoGSN is
     }
 
     function setFeesManager(address newAddress) public override {
-        if (feesManager == address(0)) {
-            feesManager = newAddress;
-        } else if (msg.sender != feesManager) revert("OnlyFeesManager");
-
-        // if (newAddress.code.length == 0) revert("NotAContract");
+        if (feesManager == address(0) && msg.sender != owner())
+            // First time
+            revert("OnlyOwner");
+        if (feesManager != address(0) && msg.sender != feesManager)
+            revert("OnlyFeesManager");
 
         feesManager = newAddress;
 

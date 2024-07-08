@@ -143,12 +143,30 @@ const deployERC1820 = () => helpers.setCode(ERC1820, ERC1820BYTES)
           pTokenV2 = await upgradeProxy(hre, pToken, `PTokenV2${_useGSN}`, opts)
 
           expect(await pTokenV2.owner()).to.be.equal(owner.address)
+        })
 
+        it('Only the owner can set the fee manager the first time', async () => {
           feesManagerTest = await deploy(hre, 'FeesManagerTest')
 
-          await expect(pTokenV2.setFeesManager(feesManagerTest.target))
+          await expect(
+            pTokenV2.connect(evil).setFeesManager(feesManagerTest),
+          ).to.be.revertedWith('OnlyOwner')
+
+          await expect(pTokenV2.connect(owner).setFeesManager(feesManagerTest))
             .to.emit(pTokenV2, 'FeesManagerChanged')
-            .withArgs(feesManagerTest.target)
+            .withArgs(feesManagerTest)
+        })
+
+        it('Only the fees manager can set the fee manager after the first time', async () => {
+          await expect(
+            pTokenV2.connect(owner).setFeesManager(feesManagerTest),
+          ).to.be.revertedWith('OnlyFeesManager')
+
+          await expect(
+            feesManagerTest.setFeesManagerForXERC20(pTokenV2, feesManagerTest),
+          )
+            .to.emit(pTokenV2, 'FeesManagerChanged')
+            .withArgs(feesManagerTest)
         })
 
         it('Only the owner can set limits', async () => {
