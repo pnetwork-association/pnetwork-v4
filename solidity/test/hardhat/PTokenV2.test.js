@@ -5,6 +5,7 @@ import hre from 'hardhat'
 
 import ERC1820BYTES from './bytecodes/ERC1820.cjs'
 import { deployProxy } from './utils/deploy-proxy.cjs'
+import { deploy } from './utils/deploy.cjs'
 import { upgradeProxy } from './utils/upgrade-proxy.cjs'
 import { validateUpgrade } from './utils/validate-upgrade.cjs'
 
@@ -58,7 +59,7 @@ const deployERC1820 = () => helpers.setCode(ERC1820, ERC1820BYTES)
 
     describe('Tests units', () => {
       const setup = async () => {
-        const [owner, minter, recipient, user, evil] =
+        const [owner, minter, recipient, user, evil, bridge] =
           await hre.ethers.getSigners()
         const name = 'pToken A'
         const symbol = 'pTKN A'
@@ -73,7 +74,7 @@ const deployERC1820 = () => helpers.setCode(ERC1820, ERC1820BYTES)
           originChainId,
         ])
 
-        return { owner, minter, recipient, user, evil, pToken }
+        return { owner, minter, recipient, user, evil, bridge, pToken }
       }
 
       const getUpgradeOpts = _owner =>
@@ -114,8 +115,18 @@ const deployERC1820 = () => helpers.setCode(ERC1820, ERC1820BYTES)
         expect(await pTokenV2.balanceOf(recipient)).to.be.equal(100)
       })
 
-      describe('After pToken contract upgrade', () => {
-        let owner, admin, minter, recipient, user, evil, pToken, pTokenV2
+      describe('Cumulative tests after pToken contract upgrade', () => {
+        let owner,
+          admin,
+          minter,
+          recipient,
+          user,
+          evil,
+          bridge,
+          pToken,
+          pTokenV2,
+          feesManagerTest
+
         before(async () => {
           const env = await loadFixture(setup)
           owner = env.owner
@@ -124,6 +135,7 @@ const deployERC1820 = () => helpers.setCode(ERC1820, ERC1820BYTES)
           recipient = env.recipient
           user = env.user
           evil = env.evil
+          bridge = env.bridge
           pToken = env.pToken
 
           const opts = getUpgradeOpts(owner)
@@ -131,10 +143,15 @@ const deployERC1820 = () => helpers.setCode(ERC1820, ERC1820BYTES)
           pTokenV2 = await upgradeProxy(hre, pToken, `PTokenV2${_useGSN}`, opts)
 
           expect(await pTokenV2.owner()).to.be.equal(owner.address)
+
+          feesManagerTest = await deploy(hre, 'FeesManagerTest')
+
+          await expect(pTokenV2.setFeesManager(feesManagerTest.target))
+            .to.emit(pTokenV2, 'FeesManagerChanged')
+            .withArgs(feesManagerTest.target)
         })
 
         it('Only the owner can set limits', async () => {
-          const bridge = (await hre.ethers.getSigners())[10]
           const mintingLimit = 200
           const burningLimit = 300
 
@@ -151,6 +168,36 @@ const deployERC1820 = () => helpers.setCode(ERC1820, ERC1820BYTES)
           )
             .to.emit(pTokenV2, 'BridgeLimitsSet')
             .withArgs(mintingLimit, burningLimit, bridge.address)
+
+          expect(await pTokenV2.mintingMaxLimitOf(bridge.address)).to.be.eq(
+            mintingLimit,
+          )
+          expect(await pTokenV2.burningMaxLimitOf(bridge.address)).to.be.eq(
+            burningLimit,
+          )
+        })
+
+        it('Only the allowed bridge can mint and burn', async () => {
+          const value = 100
+          await expect(
+            pTokenV2.connect(evil).mint(recipient, value),
+          ).to.be.revertedWith('IXERC20_NotHighEnoughLimits')
+
+          // Sent to evil in order to make the next assertion
+          await expect(pTokenV2.connect(bridge).mint(evil, value))
+            .to.emit(pTokenV2, 'Transfer')
+            .withArgs(ZeroAddress, evil.address, value)
+
+          await expect(
+            pTokenV2.connect(evil)['burn(address,uint256)'](evil, value),
+          ).to.be.revertedWith('IXERC20_NotHighEnoughLimits')
+
+          await pTokenV2.connect(evil).approve(bridge, value)
+          await expect(
+            pTokenV2.connect(bridge)['burn(address,uint256)'](evil, value),
+          )
+            .to.emit(pTokenV2, 'Transfer')
+            .withArgs(evil, ZeroAddress, value)
         })
       })
     })

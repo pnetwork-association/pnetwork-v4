@@ -6,8 +6,6 @@ import "./ERC777WithAdminOperatorUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 
-import "hardhat/console.sol";
-
 contract PToken is
     Initializable,
     AccessControlUpgradeable,
