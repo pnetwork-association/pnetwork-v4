@@ -27,6 +27,7 @@ contract PTokenV2 is
     address public feesManager;
     mapping(address => address) public adapterToPAM;
 
+    event PAMChanged(address newAddress);
     event FeesManagerChanged(address newAddress);
 
     function initialize(
@@ -79,6 +80,7 @@ contract PTokenV2 is
         address pamAddress
     ) public onlyOwner {
         adapterToPAM[adapterAddress] = pamAddress;
+        emit PAMChanged(pamAddress);
     }
 
     function isLocal() public view override returns (bool) {

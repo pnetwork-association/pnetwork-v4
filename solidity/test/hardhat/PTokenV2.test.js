@@ -122,6 +122,7 @@ const deployERC1820 = () => helpers.setCode(ERC1820, ERC1820BYTES)
           recipient,
           user,
           evil,
+          PAM,
           bridge,
           pToken,
           pTokenV2,
@@ -216,6 +217,18 @@ const deployERC1820 = () => helpers.setCode(ERC1820, ERC1820BYTES)
           )
             .to.emit(pTokenV2, 'Transfer')
             .withArgs(evil, ZeroAddress, value)
+        })
+
+        it('Only the owner can set the PAM address', async () => {
+          PAM = await deploy(hre, 'PAM')
+
+          await expect(
+            pTokenV2.connect(evil).setPAM(bridge, PAM),
+          ).to.be.revertedWith('Ownable: caller is not the owner')
+
+          await expect(pTokenV2.connect(owner).setPAM(bridge, PAM))
+            .to.emit(pTokenV2, 'PAMChanged')
+            .withArgs(PAM)
         })
       })
     })

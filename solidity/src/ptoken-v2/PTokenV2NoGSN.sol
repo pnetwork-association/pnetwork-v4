@@ -42,6 +42,7 @@ contract PTokenV2NoGSN is
         address indexed previousOwner,
         address indexed newOwner
     );
+    event PAMChanged(address newAddress);
     event FeesManagerChanged(address newAddress);
 
     function initialize(
@@ -116,6 +117,7 @@ contract PTokenV2NoGSN is
         address pamAddress
     ) public onlyOwner {
         adapterToPAM[adapterAddress] = pamAddress;
+        PAMChanged(pamAddress);
     }
 
     function isLocal() public view override returns (bool) {
