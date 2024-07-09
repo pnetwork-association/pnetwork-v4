@@ -26,9 +26,10 @@ contract Adapter is IAdapter, Ownable {
     address public registry;
     mapping(bytes32 => bool) public pastEvents;
 
+    error InvalidSwap();
     error Unauthorized();
+    error InvalidAmount();
     error InvalidSender();
-    error InvalidEventRLP();
     error RLPInputTooLong();
     error InvalidTokenAddress(address token);
     error UnsupportedChainId(uint256 chainId);
@@ -98,63 +99,14 @@ contract Adapter is IAdapter, Ownable {
         emit Settled();
     }
 
-    /**
-     * @notice Wraps a token to another chain
-     *
-     * @dev Be sure the pair is registered in the local XERC20 registry
-     *
-     * @param token ERC20 or xERC20 to move across chains
-     * @param amount token quantity to move across chains
-     * @param recipient whom will receive the token
-     * @param destinationChainId chain id where the wrapped version is destined to
-     *
-     * @dev If the destination chain id doesn't fit in 32 bytes or if there are collisions
-     *      the options are one of the two:
-     *        1) custom chain id (hardcoded on the PAM in the destination)
-     *        2) sha256(chain id)
-     *
-     * @param data metadata
-     */
-    function swap(
-        address token,
+    function _finalizeSwap(
+        bytes32 erc20Bytes,
+        address xerc20,
         uint256 amount,
         uint256 destinationChainId,
         string memory recipient,
         bytes memory data
-    ) public payable {
-        if (token == address(0)) revert InvalidTokenAddress(token);
-
-        require(amount > 0 || token == address(0), "AmountLessThanZero");
-        (bytes32 erc20Bytes, address xerc20) = IXERC20Registry(registry)
-            .getAssets(token);
-
-        address lockbox = IXERC20(xerc20).getLockbox();
-        address erc20 = address(uint160(uint256(erc20Bytes)));
-
-        if (lockbox != address(0) && IXERC20Lockbox(lockbox).IS_NATIVE()) {
-            // User wants to wrap Ether: we deposit it to the lockbox and get the
-            // relative xERC20
-            IXERC20Lockbox(lockbox).depositNativeTo{value: amount}(
-                address(this)
-            );
-        } else {
-            // We transfer the token (xERC20 or ERC20) to
-            // this contract
-            SafeERC20.safeTransferFrom(
-                IERC20(token),
-                msg.sender,
-                address(this),
-                amount
-            );
-
-            if (lockbox != address(0) && token == erc20) {
-                // We are on the home chain: then we wrap the ERC20
-                // to the relative xERC20
-                IERC20(token).approve(lockbox, amount);
-                IXERC20Lockbox(lockbox).deposit(amount);
-            }
-        }
-
+    ) internal {
         // At this point we control the xERC20 funds, some we'll go
         // to the fees manager within the burn() fn, so we approve
         // the correct quantity here
@@ -183,23 +135,102 @@ contract Adapter is IAdapter, Ownable {
         }
     }
 
-    /**
-     * @notice Wraps a token to another chain
-     *
-     * @dev Be sure the pair is registered in the local XERC20 registry
-     *
-     * @param token ERC20 or xERC20 to move across chains
-     * @param amount token quantity to move across chains
-     * @param recipient whom will receive the token
-     * @param destinationChainId chain id where the wrapped version is destined to
-     * (it may be a sha256 hash of the relevant ID of the chain (i.e. sha256 of the chain id for EOS))
-     */
+    function swap(
+        address token,
+        uint256 amount,
+        uint256 destinationChainId,
+        string memory recipient,
+        bytes memory data
+    ) public {
+        if (token == address(0)) revert InvalidTokenAddress(token);
+        if (amount <= 0) revert InvalidAmount();
+
+        (bytes32 erc20Bytes, address xerc20) = IXERC20Registry(registry)
+            .getAssets(token);
+
+        address lockbox = IXERC20(xerc20).getLockbox();
+        address erc20 = address(uint160(uint256(erc20Bytes)));
+
+        // We don't accept native swap here
+        if (lockbox != address(0) && IXERC20Lockbox(lockbox).IS_NATIVE())
+            revert InvalidSwap();
+
+        // We transfer the token (xERC20 or ERC20) to
+        // this contract
+        SafeERC20.safeTransferFrom(
+            IERC20(token),
+            msg.sender,
+            address(this),
+            amount
+        );
+
+        if (lockbox != address(0) && token == erc20) {
+            // We are on the home chain: then we wrap the ERC20
+            // to the relative xERC20
+            IERC20(token).approve(lockbox, amount);
+            IXERC20Lockbox(lockbox).deposit(amount);
+        }
+
+        _finalizeSwap(
+            erc20Bytes,
+            xerc20,
+            amount,
+            destinationChainId,
+            recipient,
+            data
+        );
+    }
+
     function swap(
         address token,
         uint256 amount,
         uint256 destinationChainId,
         string calldata recipient
-    ) public payable {
+    ) public {
         swap(token, amount, destinationChainId, recipient, "");
+    }
+
+    function swapNative(
+        uint256 destinationChainId,
+        string memory recipient,
+        bytes memory data
+    ) public payable {
+        uint256 amount = msg.value;
+        if (amount == 0) revert InvalidAmount();
+
+        // When wrapping a native asset (i.e. ETH) we map it
+        // to 32 zero bytes in the registry
+        (bytes32 erc20, address xerc20) = IXERC20Registry(registry).getAssets(
+            bytes32(0)
+        );
+
+        address lockbox = IXERC20(xerc20).getLockbox();
+
+        // Lockbox must be native here
+        if (lockbox != address(0) && !IXERC20Lockbox(lockbox).IS_NATIVE())
+            revert InvalidSwap();
+
+        if (lockbox != address(0))
+            // User wants to wrap Ether: we deposit it to the lockbox and get the
+            // relative xERC20
+            IXERC20Lockbox(lockbox).depositNativeTo{value: amount}(
+                address(this)
+            );
+
+        _finalizeSwap(
+            erc20,
+            xerc20,
+            amount,
+            destinationChainId,
+            recipient,
+            data
+        );
+    }
+
+    function swapNative(
+        uint256 destinationChainId,
+        string memory recipient
+    ) public payable {
+        swapNative(destinationChainId, recipient, "");
     }
 }

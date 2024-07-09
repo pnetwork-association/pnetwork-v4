@@ -6,6 +6,7 @@ import hre from 'hardhat'
 import ERC1820BYTES from './bytecodes/ERC1820.cjs'
 import { deployProxy } from './utils/deploy-proxy.cjs'
 import { deploy } from './utils/deploy.cjs'
+import { getUpgradeOpts } from './utils/get-upgrade-opts.cjs'
 import { upgradeProxy } from './utils/upgrade-proxy.cjs'
 import { validateUpgrade } from './utils/validate-upgrade.cjs'
 
@@ -76,11 +77,6 @@ const deployERC1820 = () => helpers.setCode(ERC1820, ERC1820BYTES)
 
         return { owner, minter, recipient, user, evil, bridge, pToken }
       }
-
-      const getUpgradeOpts = _owner =>
-        _useGSN === ''
-          ? {}
-          : { call: { fn: 'initializeV2(address)', args: [_owner.address] } }
 
       it('Should mint some pTokens', async () => {
         const { owner, minter, recipient, pToken } = await loadFixture(setup)
