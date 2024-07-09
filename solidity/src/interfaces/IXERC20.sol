@@ -154,7 +154,7 @@ interface IXERC20 {
      *
      * @param adapter the relative adapter
      */
-    function getPAM(address adapter) external returns (address);
+    function getPAM(address adapter) external view returns (address);
 
     /**
      * @notice Returns if this token is local or not

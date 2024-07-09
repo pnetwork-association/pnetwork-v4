@@ -87,7 +87,7 @@ contract PTokenV2 is
         return (lockbox != address(0));
     }
 
-    function getPAM(address adapter) public override returns (address) {
+    function getPAM(address adapter) public view override returns (address) {
         return adapterToPAM[adapter];
     }
 

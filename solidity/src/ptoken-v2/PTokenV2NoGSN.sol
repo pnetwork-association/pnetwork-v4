@@ -124,7 +124,7 @@ contract PTokenV2NoGSN is
         return (lockbox != address(0));
     }
 
-    function getPAM(address adapter) public override returns (address) {
+    function getPAM(address adapter) public view override returns (address) {
         return adapterToPAM[adapter];
     }
 

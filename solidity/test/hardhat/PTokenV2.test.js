@@ -232,6 +232,10 @@ const deployERC1820 = () => helpers.setCode(ERC1820, ERC1820BYTES)
             .withArgs(PAM)
         })
 
+        it('Should return false when the lockbox is not set', async () => {
+          expect(await pTokenV2.isLocal()).to.be.equal(false)
+        })
+
         it('Only owner can set the lockbox', async () => {
           const isNative = false
           const erc20 = ZeroAddress
@@ -249,6 +253,16 @@ const deployERC1820 = () => helpers.setCode(ERC1820, ERC1820BYTES)
           await expect(pTokenV2.connect(owner).setLockbox(lockbox))
             .to.emit(pTokenV2, 'LockboxSet')
             .withArgs(lockbox)
+        })
+
+        it('Should return true when the lockbox is set', async () => {
+          expect(await pTokenV2.isLocal()).to.be.equal(true)
+        })
+
+        it('Should read storage correctly', async () => {
+          expect(await pTokenV2.getLockbox()).to.be.equal(lockbox)
+          expect(await pTokenV2.getPAM(bridge.address)).to.be.equal(PAM)
+          expect(await pTokenV2.getFeesManager()).to.be.equal(feesManagerTest)
         })
       })
     })
