@@ -7,6 +7,9 @@
     "lib": "lib",
     "test": "test"
   },
+  "files": [
+    "src"
+  ],
   "scripts": {
     "build": "forge build",
     "test": "yarn test:forge && yarn test:hh",
@@ -14,7 +17,7 @@
     "test:hh": "hardhat test",
     "lint": "npx solhint src/**/*.sol",
     "prettier": "prettier --write ./src ./test",
-    "coverage": "forge coverage --report summary"
+    "coverage": "./coverage.sh"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-chai-matchers": "^2.0.0",
