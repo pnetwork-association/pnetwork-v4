@@ -21,7 +21,7 @@ import {XERC20Lockbox} from "../../src/xerc20/XERC20Lockbox.sol";
 
 import "forge-std/console.sol";
 
-contract AdapterTest is Test, Helper {
+contract IntegrationTest is Test, Helper {
     uint256 constant CHAIN_A = 31337;
     uint256 constant CHAIN_B = 31338;
     bytes32 DEFAULT_TX_HASH =
