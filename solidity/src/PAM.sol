@@ -128,7 +128,7 @@ contract PAM is Ownable, IPAM {
         return (content.erc20 == operation.erc20 &&
             content.destinationChainId == operation.destinationChainId &&
             content.amount == operation.amount &&
-            content.sender == operation.sender &&
+            bytes32(uint256(uint160(content.sender))) == operation.sender &&
             _hexStringToAddress(content.recipient) == operation.recipient &&
             sha256(content.data) == sha256(content.data));
     }

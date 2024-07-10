@@ -22,7 +22,7 @@ interface IAdapter {
         bytes32 erc20;
         bytes32 destinationChainId;
         uint256 amount;
-        bytes32 sender;
+        address sender;
         string recipient;
         bytes data;
     }
@@ -80,4 +80,15 @@ interface IAdapter {
         string memory recipient,
         bytes memory data
     ) external;
+
+    function swapNative(
+        uint256 destinationChainId,
+        string memory recipient,
+        bytes memory data
+    ) external payable;
+
+    function swapNative(
+        uint256 destinationChainId,
+        string memory recipient
+    ) external payable;
 }

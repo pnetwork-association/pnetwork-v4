@@ -202,7 +202,7 @@ abstract contract Helper is Test {
             originChainId,
             content.destinationChainId,
             content.amount,
-            content.sender,
+            bytes32(uint256(uint160(content.sender))),
             _hexStringToAddress(content.recipient),
             content.data
         );

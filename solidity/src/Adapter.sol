@@ -31,6 +31,7 @@ contract Adapter is IAdapter, Ownable {
     error InvalidAmount();
     error InvalidSender();
     error RLPInputTooLong();
+    error InvalidFeesManager();
     error InvalidTokenAddress(address token);
     error UnsupportedChainId(uint256 chainId);
     error UnexpectedEventTopic(bytes32 topic);
@@ -111,7 +112,11 @@ contract Adapter is IAdapter, Ownable {
         // to the fees manager within the burn() fn, so we approve
         // the correct quantity here
         address feesManager = IXERC20(xerc20).getFeesManager();
+
+        if (feesManager == address(0)) revert InvalidFeesManager();
+
         uint256 fees = IFeesManager(feesManager).calculateFee(xerc20, amount);
+
         IERC20(xerc20).approve(feesManager, fees);
 
         // No need to substract the fees here, see the burn fn
@@ -122,9 +127,9 @@ contract Adapter is IAdapter, Ownable {
             EventContent(
                 _nonce,
                 erc20Bytes,
-                bytes32(destinationChainId), // We'll convert them to bytes32 off chain
+                bytes32(destinationChainId),
                 amount - fees,
-                bytes32(abi.encodePacked(msg.sender)),
+                msg.sender,
                 recipient,
                 data
             )
