@@ -178,6 +178,11 @@ contract IntegrationTest is Test, Helper {
         bytes memory data = "";
         string memory recipientStr = vm.toString(recipient);
 
+        // If the user has the xERC20 already means
+        // they have been wrapped already by the user
+        // so we just transfer the collateral here to
+        // reflect that
+        _transferToken(address(erc20_A), owner, address(lockbox_A), amount);
         _sendXERC20To(owner, address(xerc20_A), user, userBalance);
 
         vm.startPrank(user);
@@ -205,12 +210,12 @@ contract IntegrationTest is Test, Helper {
         adapter_A.swap(address(xerc20_A), amount, CHAIN_B, recipientStr, data);
 
         uint256 U = xerc20_A.balanceOf(user);
-        uint256 L = xerc20_A.balanceOf(address(lockbox_A));
+        uint256 L = erc20_A.balanceOf(address(lockbox_A));
         uint256 A = xerc20_A.balanceOf(address(adapter_A));
         uint256 F = xerc20_A.balanceOf(address(feesManager_A));
 
         assertEq(U, userBalance - amount);
-        assertEq(L, 0);
+        assertEq(L, amount);
         assertEq(A, 0);
         assertEq(F, fees);
 
