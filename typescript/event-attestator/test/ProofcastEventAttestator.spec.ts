@@ -9,7 +9,7 @@ describe('Proofcast Event Attestator Tests', () => {
       'dfcc79a57e91c42d7eea05f82a08bd1b7e77f30236bb7c56fe98d3366a1929c4'
     const blockHash =
       '0xa880cb2ab67ec9140db0f6de238b34d4108f6fab99315772ee987ef9002e0e63'
-    const txHash =
+    const transactionHash =
       '0x11365bbee18058f12c27236e891a66999c4325879865303f785854e9169c257a'
     const address = '0x2946259E0334f33A064106302415aD3391BeD384'
     const topics = [
@@ -24,14 +24,14 @@ describe('Proofcast Event Attestator Tests', () => {
       protocolId: 0x01,
       chainId: Chains.Hardhat,
       privateKey,
-      blockHash,
-      txHash,
     })
 
     const event = {
       address,
       topics,
       data,
+      blockHash,
+      transactionHash,
     } as unknown as Event
 
     const expectedSignature =

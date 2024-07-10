@@ -17,8 +17,6 @@ type Context = {
   version: number
   protocolId: number
   chainId: number
-  blockHash: string | undefined
-  txHash: string | undefined
   privateKey: string | undefined
 }
 
@@ -34,13 +32,11 @@ export class ProofcastEventAttestator {
   private signingKey: SigningKey
 
   constructor(
-    { version, protocolId, chainId, privateKey, blockHash, txHash }: Context = {
+    { version, protocolId, chainId, privateKey }: Context = {
       version: Versions.V1,
       protocolId: Protocols.Evm,
       chainId: Chains.Goerli,
       privateKey: undefined,
-      blockHash: undefined,
-      txHash: undefined,
     },
   ) {
     /// Context
@@ -48,8 +44,6 @@ export class ProofcastEventAttestator {
     this.protocolId = hexlify(protocolId)
     this.chainId = hexZeroPad(hexlify(chainId), 32)
     /// Context
-    this.blockHash = blockHash
-    this.txHash = txHash
 
     this.privateKey = privateKey
       ? privateKey
@@ -82,8 +76,8 @@ export class ProofcastEventAttestator {
   getEventPreImage(event: Event): string {
     return hexConcat([
       this.getEventContext(),
-      this.blockHash,
-      this.txHash,
+      event.blockHash,
+      event.transactionHash,
       this.getEventBytes(event),
     ])
   }

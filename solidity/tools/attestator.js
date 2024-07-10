@@ -26,15 +26,13 @@ const addMainCommand = _program =>
 const getPrivateKey = (privateKeyFile = './attestator.key') =>
   fs.readFile(privateKeyFile).then(_content => _content.toString())
 
-const getAttestator = R.curry(({ blockHash, txHash, chainId }, privateKey) =>
+const getAttestator = R.curry(({ chainId }, privateKey) =>
   Promise.resolve(
     new ProofcastEventAttestator({
       version: Versions.V1,
       protocolId: Protocols.Evm,
       chainId,
       privateKey,
-      blockHash,
-      txHash,
     }),
   ),
 )
@@ -68,7 +66,16 @@ const addGetMetadataCommand = _program =>
     )
     .description('Print the metadata to submit on chain and the related info')
     .action((address, data, topics, options) =>
-      getMetadata({ address, topics, data }, options),
+      getMetadata(
+        {
+          address,
+          topics,
+          data,
+          blockHash: options.blockHash,
+          transactionHash: options.txHash,
+        },
+        options,
+      ),
     ) && _program
 
 const main = () =>
