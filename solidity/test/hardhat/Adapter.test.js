@@ -15,7 +15,7 @@ const deployERC1820 = () => helpers.setCode(ERC1820, ERC1820BYTES)
 
 ;['', 'NoGSN'].map(_useGSN => {
   ;['', 'Native'].map(_isNative => {
-    describe.only(`Adapter swap${_isNative} Tests Units ${_useGSN}`, () => {
+    describe(`Adapter swap${_isNative} Tests Units ${_useGSN}`, () => {
       const setup = async () => {
         const [owner, minter, recipient, user, evil] =
           await hre.ethers.getSigners()

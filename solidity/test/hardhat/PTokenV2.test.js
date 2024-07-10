@@ -99,7 +99,7 @@ const deployERC1820 = () => helpers.setCode(ERC1820, ERC1820BYTES)
         await pToken.connect(owner).grantMinterRole(minter)
         await pToken.connect(minter).mint(recipient, value)
 
-        const opts = getUpgradeOpts(owner)
+        const opts = getUpgradeOpts(owner, _useGSN)
 
         const pTokenV2 = await upgradeProxy(
           hre,
@@ -136,7 +136,7 @@ const deployERC1820 = () => helpers.setCode(ERC1820, ERC1820BYTES)
           bridge = env.bridge
           pToken = env.pToken
 
-          const opts = getUpgradeOpts(owner)
+          const opts = getUpgradeOpts(owner, _useGSN)
 
           pTokenV2 = await upgradeProxy(hre, pToken, `PTokenV2${_useGSN}`, opts)
 
