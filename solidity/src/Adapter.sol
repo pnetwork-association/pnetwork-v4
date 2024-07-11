@@ -46,6 +46,7 @@ contract Adapter is IAdapter, Ownable {
         registry = registry_;
     }
 
+    // TODO: check reentrancy here
     function settle(
         Operation memory operation,
         IPAM.Metadata calldata metadata
@@ -108,16 +109,18 @@ contract Adapter is IAdapter, Ownable {
         string memory recipient,
         bytes memory data
     ) internal {
-        // At this point we control the xERC20 funds, some we'll go
-        // to the fees manager within the burn() fn, so we approve
-        // the correct quantity here
+        // At this point we control the xERC20 funds
         address feesManager = IXERC20(xerc20).getFeesManager();
 
-        if (feesManager == address(0)) revert InvalidFeesManager();
-
-        uint256 fees = IFeesManager(feesManager).calculateFee(xerc20, amount);
-
-        IERC20(xerc20).approve(feesManager, fees);
+        uint256 fees;
+        if (feesManager != address(0)) {
+            // Entering here means we are on the local chain, since
+            // it's there where the fee manager is deployed
+            // Some of the funds will go to the fees manager within the burn() fn,
+            // so we approve the correct quantity here
+            fees = IFeesManager(feesManager).calculateFee(xerc20, amount);
+            IERC20(xerc20).approve(feesManager, fees);
+        }
 
         // No need to substract the fees here, see the burn fn
         IXERC20(xerc20).burn(address(this), amount);
@@ -156,7 +159,8 @@ contract Adapter is IAdapter, Ownable {
         address lockbox = IXERC20(xerc20).getLockbox();
         address erc20 = address(uint160(uint256(erc20Bytes)));
 
-        // We don't accept native swap here
+        // Native swaps are not allowed within this fn,
+        // use the swapNative one
         if (lockbox != address(0) && IXERC20Lockbox(lockbox).IS_NATIVE())
             revert InvalidSwap();
 

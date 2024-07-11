@@ -356,10 +356,14 @@ contract XERC20 is ERC20, Ownable, IXERC20, ERC20Permit {
         address _user,
         uint256 _amount
     ) internal {
-        uint256 fees = IFeesManager(feesManager).calculateFee(
-            address(this),
-            _amount
-        );
+        uint256 fees;
+        // is local?
+        if (lockbox != address(0)) {
+            fees = IFeesManager(feesManager).calculateFee(
+                address(this),
+                _amount
+            );
+        }
 
         if (fees > _amount) revert UnsufficientAmount();
 
@@ -371,11 +375,13 @@ contract XERC20 is ERC20, Ownable, IXERC20, ERC20Permit {
             _useBurnerLimits(_caller, netAmount);
         }
 
-        IFeesManager(feesManager).depositFeeFrom(
-            msg.sender,
-            address(this),
-            fees
-        );
+        if (fees > 0) {
+            IFeesManager(feesManager).depositFeeFrom(
+                msg.sender,
+                address(this),
+                fees
+            );
+        }
 
         _burn(_user, netAmount);
     }

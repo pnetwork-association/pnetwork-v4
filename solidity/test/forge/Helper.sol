@@ -102,18 +102,16 @@ abstract contract Helper is Test {
                 address(erc20),
                 notNative
             );
+            feesManager = new FeesManager();
+            feesManager.setFee(address(xerc20), 0, 2000);
             xerc20.setLockbox(address(lockbox));
+            xerc20.setFeesManager(address(feesManager));
         } else {
             erc20 = ERC20(erc20Native);
         }
-
-        feesManager = new FeesManager();
-        feesManager.setFee(address(xerc20), 0, 2000);
         pam = new PAM();
         pam.setTeeSigner(signerPublicKey, signerAttestation);
-
         xerc20.setPAM(address(adapter), address(pam));
-        xerc20.setFeesManager(address(feesManager));
         xerc20.setLimits(address(adapter), mintingLimit, burningLimit);
 
         vm.stopPrank();

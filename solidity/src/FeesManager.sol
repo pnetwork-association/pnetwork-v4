@@ -35,6 +35,7 @@ contract FeesManager is IFeesManager, Ownable {
     error TooEarly();
     error AlreadyClaimed();
     error AlreadyInitialized();
+    error NotLocal(address xerc20);
     error UnsupportedToken(address xerc20);
 
     modifier onlyOnce() {
@@ -99,20 +100,18 @@ contract FeesManager is IFeesManager, Ownable {
         // the token. Host2host pegouts won't take any
         // fees, otherwise they would be taken twice when
         // pegging-out
-        bool isLocal = IXERC20(xerc20).isLocal();
+        if (!IXERC20(xerc20).isLocal()) revert NotLocal(xerc20);
 
-        if (isLocal) {
-            Fee memory info = feeInfoByAsset[xerc20];
-            if (!info.defined) revert UnsupportedToken(xerc20);
-            uint256 fee = (amount * info.basisPoints) / 1000000;
+        Fee memory info = feeInfoByAsset[xerc20];
 
-            return
-                fee < feeInfoByAsset[xerc20].minFee
-                    ? feeInfoByAsset[xerc20].minFee
-                    : fee;
-        }
+        if (!info.defined) revert UnsupportedToken(xerc20);
 
-        return 0;
+        uint256 fee = (amount * info.basisPoints) / 1000000;
+
+        return
+            fee < feeInfoByAsset[xerc20].minFee
+                ? feeInfoByAsset[xerc20].minFee
+                : fee;
     }
 
     /// @inheritdoc IFeesManager

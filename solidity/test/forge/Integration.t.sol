@@ -292,6 +292,9 @@ contract IntegrationTest is Test, Helper {
         uint256 fees = (pegoutAmount * 20) / 10000;
         uint256 netAmount = pegoutAmount - fees;
         uint256 prevBalanceLockbox_A = erc20_A.balanceOf(address(lockbox_A));
+        uint256 prevBalanceFeesManager_A = xerc20_A.balanceOf(
+            address(feesManager_A)
+        );
 
         vm.recordLogs();
         _performERC20Swap(
@@ -341,6 +344,11 @@ contract IntegrationTest is Test, Helper {
                 prevBalanceLockbox_A
             ),
             netAmount
+        );
+
+        assertEq(
+            xerc20_A.balanceOf(address(feesManager_A)),
+            prevBalanceFeesManager_A + fees
         );
     }
 }

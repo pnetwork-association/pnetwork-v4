@@ -355,10 +355,14 @@ contract PTokenV2 is
         address _user,
         uint256 _amount
     ) internal {
-        uint256 fees = IFeesManager(feesManager).calculateFee(
-            address(this),
-            _amount
-        );
+        uint256 fees;
+        // is local?
+        if (lockbox != address(0)) {
+            fees = IFeesManager(feesManager).calculateFee(
+                address(this),
+                _amount
+            );
+        }
 
         if (fees > _amount) revert("UnsufficientAmount");
 
@@ -371,11 +375,13 @@ contract PTokenV2 is
             _useBurnerLimits(_caller, netAmount);
         }
 
-        IFeesManager(feesManager).depositFeeFrom(
-            msg.sender,
-            address(this),
-            fees
-        );
+        if (fees > 0) {
+            IFeesManager(feesManager).depositFeeFrom(
+                msg.sender,
+                address(this),
+                fees
+            );
+        }
 
         _burn(_user, netAmount, "", "");
     }
