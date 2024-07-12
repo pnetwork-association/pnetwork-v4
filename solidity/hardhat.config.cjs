@@ -3,6 +3,7 @@ require('@openzeppelin/hardhat-upgrades')
 require('@nomicfoundation/hardhat-toolbox')
 require('@nomicfoundation/hardhat-foundry')
 require('@nomicfoundation/hardhat-network-helpers')
+require('solidity-coverage')
 require('hardhat-tracer')
 
 module.exports = {

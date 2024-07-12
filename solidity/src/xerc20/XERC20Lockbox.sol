@@ -121,7 +121,11 @@ contract XERC20Lockbox is IXERC20Lockbox {
     function _withdraw(address _to, uint256 _amount) internal {
         emit Withdraw(_to, _amount);
 
-        IERC20(address(XERC20)).safeTransferFrom(msg.sender, address(this), _amount);
+        IERC20(address(XERC20)).safeTransferFrom(
+            msg.sender,
+            address(this),
+            _amount
+        );
 
         // We need to recalculate the net amount here
         // otherwise we would burn more than our current

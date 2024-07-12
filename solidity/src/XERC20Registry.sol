@@ -52,6 +52,8 @@ contract XERC20Registry is IXERC20Registry, AccessControl {
     /**
      * @notice Adds an asset to the registry
      * @param erc20 Right-padded version of the ERC20 address or an hash if not local
+     * @dev   If the xerc20 refers to the native currency (i.e. eth) then this value
+     *        must be bytes32(0)
      * @param xerc20 The address of the xERC20
      *
      * @dev In order to support multiple chains, ERC20 could also be an hash of
@@ -92,17 +94,17 @@ contract XERC20Registry is IXERC20Registry, AccessControl {
         address xerc20 = erc20ToXERC20[bytes32(abi.encode(address(token)))];
         e = xerc20ToEntry[xerc20];
 
-        if (e.xerc20 != address(0) && e.erc20 != bytes32(0))
-            return (e.erc20, e.xerc20);
+        if (e.xerc20 != address(0)) return (e.erc20, e.xerc20);
 
         revert NotRegistered(token);
     }
 
     function getAssets(bytes32 erc20) external view returns (bytes32, address) {
         address xerc20 = erc20ToXERC20[erc20];
+
         Entry memory e = xerc20ToEntry[xerc20];
 
-        if (e.xerc20 == address(0) || e.erc20 == bytes32(0))
+        if (e.xerc20 == address(0))
             revert NotRegistered(address(uint160(uint256(erc20))));
 
         return (e.erc20, e.xerc20);

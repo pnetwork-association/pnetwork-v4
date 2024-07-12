@@ -21,7 +21,7 @@ import {XERC20Lockbox} from "../../src/xerc20/XERC20Lockbox.sol";
 
 import "forge-std/console.sol";
 
-contract AdapterTest is Test, Helper {
+contract IntegrationTest is Test, Helper {
     uint256 constant CHAIN_A = 31337;
     uint256 constant CHAIN_B = 31338;
     bytes32 DEFAULT_TX_HASH =
@@ -68,10 +68,10 @@ contract AdapterTest is Test, Helper {
         userBalance = 50000;
         metadata = IPAM.Metadata(
             vm.parseBytes(
-                "0x01010000000000000000000000000000000000000000000000000000000000007a69a880cb2ab67ec9140db0f6de238b34d4108f6fab99315772ee987ef9002e0e6311365bbee18058f12c27236e891a66999c4325879865303f785854e9169c257a0000000000000000000000002946259e0334f33a064106302415ad3391bed3846bc6e811416578512af8ca6ae0b73eee97a72c2b01aab7e87d6569e5dff8c6760000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000000000000000000000000000051a240271ab8ab9f9a21c82d9a85396b704e164d0000000000000000000000000000000000000000000000000000000000007a6a00000000000000000000000000000000000000000000000000000000000026fc2b5ad5c4795c026514f8317c7a215e218dccd6cf00000000000000000000000000000000000000000000000000000000000000000000000000000000000000e00000000000000000000000000000000000000000000000000000000000000140000000000000000000000000000000000000000000000000000000000000002a307836383133456239333632333732454546363230306633623164624333663831393637316342413639000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+                "0x01010000000000000000000000000000000000000000000000000000000000007a69a880cb2ab67ec9140db0f6de238b34d4108f6fab99315772ee987ef9002e0e6311365bbee18058f12c27236e891a66999c4325879865303f785854e9169c257a0000000000000000000000002946259e0334f33a064106302415ad3391bed384a68959eed8a7e77ce926c4c04ee06434559ae1db7f636ceacd659f5c9126f1c3000000000000000000000000000000000000000000000000000000000000000000000000000000000000000051a240271ab8ab9f9a21c82d9a85396b704e164d0000000000000000000000000000000000000000000000000000000000007a6a00000000000000000000000000000000000000000000000000000000000026fc0000000000000000000000002b5ad5c4795c026514f8317c7a215e218dccd6cf000000000000000000000000000000000000000000000000000000000000002a307836383133456239333632333732454546363230306633623164624333663831393637316342413639"
             ),
             vm.parseBytes(
-                "0x8758e833b0e3db8189644a7b1e660e07b9429a36f5929e7192697d21e8ea762c3e3ed6545f2c2bd1a62131e4a0a32e344f23a8a9d52b422a9a2b6c27803f17f51b"
+                "0x2ac391f76e0b65c22d954dd83373b14cb90419693607b0520b713d8fb0494e7407ed9c6ec02f7f877e8a297c8d554998e31f8c365388cdd80e4f290dd969fd721c"
             )
         );
     }
@@ -147,14 +147,17 @@ contract AdapterTest is Test, Helper {
 
         emit IAdapter.Swap(
             nonce,
-            IAdapter.EventContent(
-                nonce,
-                erc20Bytes_A,
-                bytes32(CHAIN_B),
-                amount - fees,
-                bytes32(abi.encodePacked(user)),
-                recipientStr,
-                data
+            IAdapter.EventBytes(
+                bytes.concat(
+                    bytes32(nonce),
+                    erc20Bytes_A,
+                    bytes32(CHAIN_B),
+                    bytes32(amount - fees),
+                    bytes32(uint256(uint160(user))),
+                    bytes32(bytes(recipientStr).length),
+                    bytes(recipientStr),
+                    data
+                )
             )
         );
 
@@ -178,6 +181,11 @@ contract AdapterTest is Test, Helper {
         bytes memory data = "";
         string memory recipientStr = vm.toString(recipient);
 
+        // If the user has the xERC20 already means
+        // they have been wrapped already by the user
+        // so we just transfer the collateral here to
+        // reflect that
+        _transferToken(address(erc20_A), owner, address(lockbox_A), amount);
         _sendXERC20To(owner, address(xerc20_A), user, userBalance);
 
         vm.startPrank(user);
@@ -191,26 +199,29 @@ contract AdapterTest is Test, Helper {
 
         emit IAdapter.Swap(
             nonce,
-            IAdapter.EventContent(
-                nonce,
-                erc20Bytes_A,
-                bytes32(CHAIN_B),
-                amount - fees,
-                bytes32(abi.encodePacked(user)),
-                recipientStr,
-                data
+            IAdapter.EventBytes(
+                bytes.concat(
+                    bytes32(nonce),
+                    erc20Bytes_A,
+                    bytes32(CHAIN_B),
+                    bytes32(amount - fees),
+                    bytes32(uint256(uint160(user))),
+                    bytes32(bytes(recipientStr).length),
+                    bytes(recipientStr),
+                    data
+                )
             )
         );
 
         adapter_A.swap(address(xerc20_A), amount, CHAIN_B, recipientStr, data);
 
         uint256 U = xerc20_A.balanceOf(user);
-        uint256 L = xerc20_A.balanceOf(address(lockbox_A));
+        uint256 L = erc20_A.balanceOf(address(lockbox_A));
         uint256 A = xerc20_A.balanceOf(address(adapter_A));
         uint256 F = xerc20_A.balanceOf(address(feesManager_A));
 
         assertEq(U, userBalance - amount);
-        assertEq(L, 0);
+        assertEq(L, amount);
         assertEq(A, 0);
         assertEq(F, fees);
 
@@ -238,18 +249,6 @@ contract AdapterTest is Test, Helper {
             DEFAULT_BLOCK_HASH,
             DEFAULT_TX_HASH
         );
-        // IAdapter.Operation memory operation = IAdapter.Operation(
-        //     DEFAULT_BLOCK_HASH,
-        //     DEFAULT_TX_HASH,
-        //     nonce,
-        //     erc20Bytes_A,
-        //     bytes32(CHAIN_A),
-        //     bytes32(CHAIN_B),
-        //     netAmount,
-        //     bytes32(abi.encodePacked(user)),
-        //     recipient,
-        //     data
-        // );
 
         vm.chainId(CHAIN_B);
 
@@ -299,6 +298,9 @@ contract AdapterTest is Test, Helper {
         uint256 fees = (pegoutAmount * 20) / 10000;
         uint256 netAmount = pegoutAmount - fees;
         uint256 prevBalanceLockbox_A = erc20_A.balanceOf(address(lockbox_A));
+        uint256 prevBalanceFeesManager_A = xerc20_A.balanceOf(
+            address(feesManager_A)
+        );
 
         vm.recordLogs();
         _performERC20Swap(
@@ -322,10 +324,10 @@ contract AdapterTest is Test, Helper {
 
         IPAM.Metadata memory pegoutMetadata = IPAM.Metadata(
             vm.parseBytes(
-                "0x01010000000000000000000000000000000000000000000000000000000000007a6aa880cb2ab67ec9140db0f6de238b34d4108f6fab99315772ee987ef9002e0e6311365bbee18058f12c27236e891a66999c4325879865303f785854e9169c257a00000000000000000000000063f58053c9499e1104a6f6c6d2581d6d83067eeb6bc6e811416578512af8ca6ae0b73eee97a72c2b01aab7e87d6569e5dff8c6760000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000000000000000000000000000051a240271ab8ab9f9a21c82d9a85396b704e164d0000000000000000000000000000000000000000000000000000000000007a6a00000000000000000000000000000000000000000000000000000000000013886813eb9362372eef6200f3b1dbc3f819671cba6900000000000000000000000000000000000000000000000000000000000000000000000000000000000000e00000000000000000000000000000000000000000000000000000000000000140000000000000000000000000000000000000000000000000000000000000002a307836383133456239333632333732454546363230306633623164624333663831393637316342413639000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+                "0x01010000000000000000000000000000000000000000000000000000000000007a6aa880cb2ab67ec9140db0f6de238b34d4108f6fab99315772ee987ef9002e0e6311365bbee18058f12c27236e891a66999c4325879865303f785854e9169c257a00000000000000000000000063f58053c9499e1104a6f6c6d2581d6d83067eeba68959eed8a7e77ce926c4c04ee06434559ae1db7f636ceacd659f5c9126f1c3000000000000000000000000000000000000000000000000000000000000000000000000000000000000000051a240271ab8ab9f9a21c82d9a85396b704e164d0000000000000000000000000000000000000000000000000000000000007a6a00000000000000000000000000000000000000000000000000000000000013880000000000000000000000006813eb9362372eef6200f3b1dbc3f819671cba69000000000000000000000000000000000000000000000000000000000000002a307836383133456239333632333732454546363230306633623164624333663831393637316342413639"
             ),
             vm.parseBytes(
-                "0xd3c157b5977b9dfe699568ba5b6dcc1d36f3f4782da6337a5e0832dae097801519e57c6e6ba84206607999af14a3edc515e76d9644373eb6d1f279b30b7f38a01c"
+                "0x50e11e1aa6192fa507cd01087106d799642cf431a73640e4ae7219d970f36418645c9cba3613fe4a396a99366598eaed8684700850466d1736b3590ae5a302b91b"
             )
         );
 
@@ -348,6 +350,11 @@ contract AdapterTest is Test, Helper {
                 prevBalanceLockbox_A
             ),
             netAmount
+        );
+
+        assertEq(
+            xerc20_A.balanceOf(address(feesManager_A)),
+            prevBalanceFeesManager_A + fees
         );
     }
 }

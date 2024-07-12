@@ -15,6 +15,7 @@ import {IPAM} from "../../src/interfaces/IPAM.sol";
 import {ERC20Test} from "../../src/test/ERC20Test.sol";
 import {IAdapter} from "../../src/interfaces/IAdapter.sol";
 import {XERC20Lockbox} from "../../src/xerc20/XERC20Lockbox.sol";
+import {BytesLib} from "solidity-bytes-utils/contracts/BytesLib.sol";
 
 import "forge-std/console.sol";
 
@@ -102,18 +103,16 @@ abstract contract Helper is Test {
                 address(erc20),
                 notNative
             );
+            feesManager = new FeesManager();
+            feesManager.setFee(address(xerc20), 0, 2000);
             xerc20.setLockbox(address(lockbox));
+            xerc20.setFeesManager(address(feesManager));
         } else {
             erc20 = ERC20(erc20Native);
         }
-
-        feesManager = new FeesManager();
-        feesManager.setFee(address(xerc20), 0, 2000);
         pam = new PAM();
         pam.setTeeSigner(signerPublicKey, signerAttestation);
-
         xerc20.setPAM(address(adapter), address(pam));
-        xerc20.setFeesManager(address(feesManager));
         xerc20.setLimits(address(adapter), mintingLimit, burningLimit);
 
         vm.stopPrank();
@@ -189,22 +188,29 @@ abstract contract Helper is Test {
         // console.log(vm.toString(entries[last].topics[0])); // topic0
         // console.log(vm.toString(entries[last].topics[1])); // topic1
 
-        IAdapter.EventContent memory content = abi.decode(
-            entries[last].data,
-            (IAdapter.EventContent)
+        bytes memory content = abi
+            .decode(entries[last].data, (IAdapter.EventBytes))
+            .content;
+
+        uint256 recipientLen = uint256(
+            bytes32(BytesLib.slice(content, 160, 32))
         );
 
-        operation = IAdapter.Operation(
-            blockHash,
-            txHash,
-            uint256(entries[last].topics[1]),
-            content.erc20,
-            originChainId,
-            content.destinationChainId,
-            content.amount,
-            content.sender,
-            _hexStringToAddress(content.recipient),
-            content.data
-        );
+        uint256 dataLen = content.length - recipientLen - 192;
+        return
+            IAdapter.Operation(
+                blockHash,
+                txHash,
+                uint256(entries[last].topics[1]), // nonce
+                bytes32(BytesLib.slice(content, 32, 32)), // erc20
+                originChainId,
+                bytes32(BytesLib.slice(content, 64, 32)), // destination chain id
+                uint256(bytes32(BytesLib.slice(content, 96, 32))), // amount
+                bytes32(BytesLib.slice(content, 128, 32)), //  sender
+                _hexStringToAddress(
+                    string(BytesLib.slice(content, 192, recipientLen)) // recipient
+                ),
+                BytesLib.slice(content, 224, dataLen) // data
+            );
     }
 }

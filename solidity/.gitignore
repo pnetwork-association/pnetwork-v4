@@ -12,6 +12,12 @@ out/
 # Docs
 docs/
 
+# Coverage
+lcov/
+lcov.info
+coverage/
+coverage.json
+
 # Dotenv file
 .env
 

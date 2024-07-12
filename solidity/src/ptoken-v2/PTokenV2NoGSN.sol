@@ -42,6 +42,7 @@ contract PTokenV2NoGSN is
         address indexed previousOwner,
         address indexed newOwner
     );
+    event PAMChanged(address newAddress);
     event FeesManagerChanged(address newAddress);
 
     function initialize(
@@ -58,8 +59,8 @@ contract PTokenV2NoGSN is
         ORIGIN_CHAIN_ID = originChainId;
     }
 
-    function initializeV2() public initializer2 {
-        __Ownable_init();
+    function initializeV2(address owner) public initializer2 {
+        _owner = owner;
     }
 
     /**
@@ -93,11 +94,11 @@ contract PTokenV2NoGSN is
     }
 
     function setFeesManager(address newAddress) public override {
-        if (feesManager == address(0)) {
-            feesManager = newAddress;
-        } else if (msg.sender != feesManager) revert("OnlyFeesManager");
-
-        // if (newAddress.code.length == 0) revert("NotAContract");
+        if (feesManager == address(0) && msg.sender != owner())
+            // First time
+            revert("OnlyOwner");
+        if (feesManager != address(0) && msg.sender != feesManager)
+            revert("OnlyFeesManager");
 
         feesManager = newAddress;
 
@@ -116,13 +117,14 @@ contract PTokenV2NoGSN is
         address pamAddress
     ) public onlyOwner {
         adapterToPAM[adapterAddress] = pamAddress;
+        PAMChanged(pamAddress);
     }
 
     function isLocal() public view override returns (bool) {
         return (lockbox != address(0));
     }
 
-    function getPAM(address adapter) public override returns (address) {
+    function getPAM(address adapter) public view override returns (address) {
         return adapterToPAM[adapter];
     }
 
@@ -390,10 +392,14 @@ contract PTokenV2NoGSN is
         address _user,
         uint256 _amount
     ) internal {
-        uint256 fees = IFeesManager(feesManager).calculateFee(
-            address(this),
-            _amount
-        );
+        uint256 fees;
+        // is local?
+        if (lockbox != address(0)) {
+            fees = IFeesManager(feesManager).calculateFee(
+                address(this),
+                _amount
+            );
+        }
 
         if (fees > _amount) revert("UnsufficientAmount");
 
@@ -406,11 +412,13 @@ contract PTokenV2NoGSN is
             _useBurnerLimits(_caller, netAmount);
         }
 
-        IFeesManager(feesManager).depositFeeFrom(
-            msg.sender,
-            address(this),
-            fees
-        );
+        if (fees > 0) {
+            IFeesManager(feesManager).depositFeeFrom(
+                msg.sender,
+                address(this),
+                fees
+            );
+        }
 
         _burn(_user, netAmount, "", "");
     }
@@ -454,21 +462,6 @@ contract PTokenV2NoGSN is
     ) public onlyAdmin returns (bool success) {
         ORIGIN_CHAIN_ID = _newOriginChainId;
         return true;
-    }
-
-    // Add OwnableUpgradeable implementation here just to not break layout.
-
-    /**
-     * @dev Initializes the contract setting the deployer as the initial owner.
-     */
-    function __Ownable_init() internal initializer2 {
-        __Ownable_init_unchained();
-    }
-
-    function __Ownable_init_unchained() internal initializer2 {
-        address msgSender = _msgSender();
-        _owner = msgSender;
-        emit OwnershipTransferred(address(0), msgSender);
     }
 
     /**

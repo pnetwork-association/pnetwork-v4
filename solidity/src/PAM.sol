@@ -91,10 +91,7 @@ contract PAM is Ownable, IPAM {
         emit TeeSignerChanged(teeAddress);
     }
 
-    function _hexStringToAddress(
-        string memory addr
-    ) internal pure returns (address) {
-        bytes memory tmp = bytes(addr);
+    function _bytesToAddress(bytes memory tmp) internal pure returns (address) {
         uint160 iaddr = 0;
         uint160 b1;
         uint160 b2;
@@ -122,15 +119,25 @@ contract PAM is Ownable, IPAM {
     }
 
     function _doesContentMatchOperation(
-        IAdapter.EventContent memory content,
+        bytes calldata content,
         IAdapter.Operation memory operation
-    ) internal pure returns (bool) {
-        return (content.erc20 == operation.erc20 &&
-            content.destinationChainId == operation.destinationChainId &&
-            content.amount == operation.amount &&
-            content.sender == operation.sender &&
-            _hexStringToAddress(content.recipient) == operation.recipient &&
-            sha256(content.data) == sha256(content.data));
+    ) internal view returns (bool) {
+        uint256 offset = 32;
+        bytes32 erc20 = bytes32(content[offset:offset += 32]);
+        bytes32 destinationChainId = bytes32(content[offset:offset += 32]);
+        uint256 amount = uint256(bytes32(content[offset:offset += 32]));
+        bytes32 sender = bytes32(content[offset:offset += 32]);
+        uint256 recipientLen = uint256(bytes32(content[offset:offset += 32]));
+        address recipient = _bytesToAddress(
+            content[offset:offset += recipientLen]
+        );
+        bytes memory data = content[offset:];
+        return (erc20 == operation.erc20 &&
+            destinationChainId == operation.destinationChainId &&
+            amount == operation.amount &&
+            sender == operation.sender &&
+            recipient == operation.recipient &&
+            sha256(data) == sha256(operation.data));
     }
 
     function isAuthorized(
@@ -174,12 +181,8 @@ contract PAM is Ownable, IPAM {
 
         offset += 32; // skip event signature
 
-        IAdapter.EventContent memory eventContent = abi.decode(
-            eventBytes[offset:], // data
-            (IAdapter.EventContent)
-        );
-
-        if (!_doesContentMatchOperation(eventContent, operation)) return false;
+        if (!_doesContentMatchOperation(eventBytes[offset:], operation))
+            return false;
 
         if (pastEvents[eventId]) return false;
 

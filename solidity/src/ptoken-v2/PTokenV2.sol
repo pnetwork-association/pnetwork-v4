@@ -27,6 +27,7 @@ contract PTokenV2 is
     address public feesManager;
     mapping(address => address) public adapterToPAM;
 
+    event PAMChanged(address newAddress);
     event FeesManagerChanged(address newAddress);
 
     function initialize(
@@ -54,11 +55,13 @@ contract PTokenV2 is
     }
 
     function setFeesManager(address newAddress) public override {
-        if (feesManager == address(0)) {
-            feesManager = newAddress;
-        } else if (msg.sender != feesManager) revert("OnlyFeesManager");
+        address msgSender = _msgSender();
 
-        // if (newAddress.code.length == 0) revert("NotAContract");
+        if (feesManager == address(0) && msgSender != owner())
+            // First time
+            revert("OnlyOwner");
+        if (feesManager != address(0) && msgSender != feesManager)
+            revert("OnlyFeesManager");
 
         feesManager = newAddress;
 
@@ -77,13 +80,14 @@ contract PTokenV2 is
         address pamAddress
     ) public onlyOwner {
         adapterToPAM[adapterAddress] = pamAddress;
+        emit PAMChanged(pamAddress);
     }
 
     function isLocal() public view override returns (bool) {
         return (lockbox != address(0));
     }
 
-    function getPAM(address adapter) public override returns (address) {
+    function getPAM(address adapter) public view override returns (address) {
         return adapterToPAM[adapter];
     }
 
@@ -351,10 +355,14 @@ contract PTokenV2 is
         address _user,
         uint256 _amount
     ) internal {
-        uint256 fees = IFeesManager(feesManager).calculateFee(
-            address(this),
-            _amount
-        );
+        uint256 fees;
+        // is local?
+        if (lockbox != address(0)) {
+            fees = IFeesManager(feesManager).calculateFee(
+                address(this),
+                _amount
+            );
+        }
 
         if (fees > _amount) revert("UnsufficientAmount");
 
@@ -367,11 +375,13 @@ contract PTokenV2 is
             _useBurnerLimits(_caller, netAmount);
         }
 
-        IFeesManager(feesManager).depositFeeFrom(
-            msg.sender,
-            address(this),
-            fees
-        );
+        if (fees > 0) {
+            IFeesManager(feesManager).depositFeeFrom(
+                msg.sender,
+                address(this),
+                fees
+            );
+        }
 
         _burn(_user, netAmount, "", "");
     }
