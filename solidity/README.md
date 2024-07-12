@@ -18,7 +18,7 @@
 
 Facilitates user/dApp interaction with the XERC20. It exposes two functions and relative variations depending on the asset being swapped:
 
-- `swap()`: initiate a crosschain transfer of an ERC20/XERC20 token to another chain
+- `swap()`: initiate a crosschain transfer of an ERC20/XERC20 token to another chain. The event emitted includes an indexed nonce plus the bytes with the event payload included into a struct called EventBytes.
 - `swapNative()`: initiate a crosschain transfer of the native currency to another chain
 - `settle()`: finalize the operation created by the swap on the destaintion, it may result into an unwrap operation of the asset if the settlement is done on the home chain (where the lockbox has been deployed) or just a mint operation on the destination chain
 
@@ -53,6 +53,15 @@ Newer version of the PToken contract which implements the xERC20 interface (the 
 Same as PTokenV2 but without the GSN logic.
 
 ### Data flow diagram
+
+### Run the tests
+
+You need yarn installed.
+
+```
+yarn install
+yarn test
+```
 
 ### Generate the coverage report
 
