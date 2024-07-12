@@ -33,15 +33,28 @@ Other variations of the function handles when the asset in the native chain curr
 
 ### XERC20
 
+This reflect the XERC20 standard with modifications on the `_burnWithCaller` function, which
+includes the logic to take the fees on the local chain. In addition the the adapter to PAM mapping has been added in order to give the token owner a way to change it.
+
 ### PToken
 
-### PTokenV1
+First version of the PToken contract, which is not xERC20 based.
+
+### PTokenNoGSN
+
+First version of the PToken contract, which is not xERC20 based and does not include the Gas Station Network logic.
 
 ### PTokenV2
 
+Newer version of the PToken contract which implements the xERC20 interface (the slightly changed version described above).
+
 ### PTokenV2NoGSN
 
-### Coverage report
+Same as PTokenV2 but without the GSN logic.
+
+### Data flow diagram
+
+### Generate the coverage report
 
 ```
 forge coverage --report lcov
