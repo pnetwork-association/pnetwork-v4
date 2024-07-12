@@ -17,17 +17,12 @@ interface IAdapter {
         bytes data;
     }
 
-    struct EventContent {
-        uint256 nonce;
-        bytes32 erc20;
-        bytes32 destinationChainId;
-        uint256 amount;
-        address sender;
-        string recipient;
-        bytes data;
+    // Wraps the event content
+    struct EventBytes {
+        bytes content;
     }
 
-    event Swap(uint256 indexed nonce, EventContent eventContent);
+    event Swap(uint256 indexed nonce, EventBytes eventBytes);
 
     event ReceiveUserDataFailed();
 

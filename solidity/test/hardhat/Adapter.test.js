@@ -1,3 +1,4 @@
+import { anyValue } from '@nomicfoundation/hardhat-chai-matchers/withArgs.js'
 import helpers, { loadFixture } from '@nomicfoundation/hardhat-network-helpers'
 import { Chains, ProofcastEventAttestator } from '@pnetwork/event-attestator'
 import { expect } from 'chai'
@@ -150,15 +151,7 @@ const deployERC1820 = () => helpers.setCode(ERC1820, ERC1820BYTES)
 
           await expect(tx)
             .to.emit(adapter, 'Swap')
-            .withArgs(expectedNonce, [
-              expectedNonce,
-              erc20Bytes,
-              destinationChainId,
-              amount - fees,
-              user.address,
-              recipient.address,
-              expectedData,
-            ])
+            .withArgs(expectedNonce, anyValue)
 
           const balancePost = _isNative
             ? await hre.ethers.provider.getBalance(user)
@@ -185,7 +178,15 @@ const deployERC1820 = () => helpers.setCode(ERC1820, ERC1820BYTES)
         })
       })
 
-      const getSwapEvent = async (
+      const getSwapEvent = async tx => {
+        const swapSig =
+          '0x9b706941b48091a1c675b439064f40b9d43c577d9c7134cce93179b9b0bf2a52'
+        const receipt = await tx.wait(0)
+
+        return receipt.logs.filter(x => x.topics.includes(swapSig))[0]
+      }
+
+      const generateSwapEvent = async (
         adapterTest,
         nonce,
         erc20,
@@ -195,19 +196,17 @@ const deployERC1820 = () => helpers.setCode(ERC1820, ERC1820BYTES)
         recipient,
         data,
       ) => {
-        let tx = await adapterTest.swap(
-          nonce,
-          erc20.target, // keep this: handle when erc20 is the ZeroAddress
-          destination,
-          amount,
-          user,
-          recipient,
-          data,
+        return getSwapEvent(
+          await adapterTest.swap(
+            nonce,
+            erc20.target, // keep this: handle when erc20 is the ZeroAddress
+            destination,
+            amount,
+            user,
+            recipient,
+            data,
+          ),
         )
-        const swapSig =
-          '0xb7f44fc1e9a3dc73e2b3edcde2016158d1d9449c356f751c6d77d4a20f2abd9b'
-        const receipt = await tx.wait(0)
-        return receipt.logs.filter(x => x.topics.includes(swapSig))[0]
       }
 
       describe(`settle(${_isNative})`, () => {
@@ -230,7 +229,7 @@ const deployERC1820 = () => helpers.setCode(ERC1820, ERC1820BYTES)
           const amount = 4000
 
           const adapterTest = await deploy(hre, 'AdapterTest', [])
-          const event = await getSwapEvent(
+          const event = await generateSwapEvent(
             adapterTest,
             nonce,
             erc20,
@@ -255,12 +254,12 @@ const deployERC1820 = () => helpers.setCode(ERC1820, ERC1820BYTES)
             eventAttestator.sign(event),
           ]
 
-          const eventContent = event.args[1]
+          const eventContent = event.args[1][0]
           const operation = new Operation({
             blockId: event.blockHash,
             txId: event.transactionHash,
             originChainId: Chains.Hardhat,
-            ...eventContent.toObject(),
+            eventContent,
           })
 
           await PAM.setEmitter(

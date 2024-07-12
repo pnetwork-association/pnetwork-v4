@@ -127,14 +127,17 @@ contract Adapter is IAdapter, Ownable {
 
         emit Swap(
             _nonce,
-            EventContent(
-                _nonce,
-                erc20Bytes,
-                bytes32(destinationChainId),
-                amount - fees,
-                msg.sender,
-                recipient,
-                data
+            EventBytes(
+                bytes.concat(
+                    bytes32(_nonce),
+                    erc20Bytes,
+                    bytes32(destinationChainId),
+                    bytes32(amount - fees),
+                    bytes32(uint256(uint160(msg.sender))),
+                    bytes32(bytes(recipient).length),
+                    bytes(recipient),
+                    data
+                )
             )
         );
 
