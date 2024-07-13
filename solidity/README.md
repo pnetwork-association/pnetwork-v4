@@ -22,6 +22,8 @@ Facilitates user/dApp interaction with the XERC20. It exposes two functions and 
 - `swapNative()`: initiate a crosschain transfer of the native currency to another chain
 - `settle()`: finalize the operation created by the swap on the destaintion, it may result into an unwrap operation of the asset if the settlement is done on the home chain (where the lockbox has been deployed) or just a mint operation on the destination chain
 
+This is the actual components used to bridge asset crosschains and it will have the minting/burning limits set in the pTokenV2/XERC20 contract.
+
 ### XERC20Lockbox
 
 Vault where the collateral is being kept safe. Exposes the following functions and relative variations depending on the asset being deposited or withdrawn:
@@ -54,9 +56,34 @@ Same as PTokenV2 but without the GSN logic.
 
 ### Data flow diagram
 
+In order to give a high level overview of the main flow, we provide the following diagrams:
+
+![data-flow](../docs/imgs/data-flow-01.png)
+
+### Authorization system overview
+
+The authorization system is deployed off-chain and is composed of
+
+- A light client running on the pertinent blockchain which scans each transaction for the events of interest
+- A decoding layer, which algorithm depends on the origin chain where the event was emitted (i.e. `abi.decode` for EVM like chains)
+- A logic which extracts the event bytes of interest (a concatenation of the token being swapped, the sender, recipinet etc...)
+- A logic which signs a series of data:
+  - context: where is defined the protocol id and the version of the current event format
+  - block and transaction hash containing the event
+  - the event bytes extracted after decoding the event
+
+Please see the following diagram as a reference:
+
+![auth-diagram](../docs/imgs/auth-01.png)
+
 ### Run the tests
 
-You need yarn installed.
+Tests suites are divided into
+
+- `hardhat/`: which includes units and forked environment tests
+- `forge/`: which includes integration and e2e tests
+
+In order to run them you need to have `yarn` installed and then run:
 
 ```
 yarn install
@@ -66,8 +93,7 @@ yarn test
 ### Generate the coverage report
 
 ```
-forge coverage --report lcov
-genhtml -o lcov lcov.info
+yarn coverage
 ```
 
-Then open the `html/index.html` file
+To see each score, open the `lcov/index.html` file.
