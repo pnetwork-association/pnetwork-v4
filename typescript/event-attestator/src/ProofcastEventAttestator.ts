@@ -59,10 +59,10 @@ export class ProofcastEventAttestator {
     return hexConcat([_signature.r, _signature.s, hexlify(_signature.v)])
   }
 
-  getEventBytes(event: Event): string {
+  getEventPayload(event: Event): string {
     // EVM event support only: for other chains may be
     // required to change logic based on version and protocolID
-    const eventContent = defaultAbiCoder.decode(
+    const eventBytes = defaultAbiCoder.decode(
       ['tuple(bytes)'],
       event.data,
     )[0][0]
@@ -70,7 +70,7 @@ export class ProofcastEventAttestator {
     return hexConcat([
       hexZeroPad(event.address, 32),
       sha256(hexConcat(event.topics)),
-      eventContent,
+      eventBytes,
     ])
   }
 
@@ -83,7 +83,7 @@ export class ProofcastEventAttestator {
       this.getEventContext(),
       event.blockHash,
       event.transactionHash,
-      this.getEventBytes(event),
+      this.getEventPayload(event),
     ])
   }
 

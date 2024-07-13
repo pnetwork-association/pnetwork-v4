@@ -121,8 +121,8 @@ contract PAM is Ownable, IPAM {
     function _doesContentMatchOperation(
         bytes calldata content,
         IAdapter.Operation memory operation
-    ) internal view returns (bool) {
-        uint256 offset = 32;
+    ) internal pure returns (bool) {
+        uint256 offset = 32; // skip the nonce
         bytes32 erc20 = bytes32(content[offset:offset += 32]);
         bytes32 destinationChainId = bytes32(content[offset:offset += 32]);
         uint256 amount = uint256(bytes32(content[offset:offset += 32]));
@@ -165,23 +165,27 @@ contract PAM is Ownable, IPAM {
         if (blockId != operation.blockId && txId != operation.txId)
             return false;
 
-        bytes calldata eventBytes = metadata.preimage[offset:];
+        bytes calldata eventPayload = metadata.preimage[offset:];
 
         bytes32 eventId = sha256(
-            bytes.concat(context, blockId, txId, eventBytes)
+            bytes.concat(context, blockId, txId, eventPayload)
         );
 
         if (ECDSA.recover(eventId, metadata.signature) != teeAddress)
             return false;
 
+        // Event Bytes format
+        //    | emitter   | protocol    |  originChainId     |   eventId     |  eventPayload  |
+        //    | (1 byte)  | (1 byte)   |    (32 bytes)      |  (32 bytes)   |    varlen    |
+
         offset = 32;
-        bytes32 emitter = bytes32(eventBytes[0:offset]);
+        bytes32 emitter = bytes32(eventPayload[0:offset]);
 
         if (emitter != expectedEmitter) return false;
 
         offset += 32; // skip event signature
 
-        if (!_doesContentMatchOperation(eventBytes[offset:], operation))
+        if (!_doesContentMatchOperation(eventPayload[offset:], operation))
             return false;
 
         if (pastEvents[eventId]) return false;
