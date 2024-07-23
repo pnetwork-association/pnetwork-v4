@@ -394,7 +394,7 @@ contract PTokenV2NoGSN is
     ) internal {
         uint256 fees;
         // is local?
-        if (lockbox != address(0)) {
+        if (lockbox != address(0) && feesManager != address(0)) {
             fees = IFeesManager(feesManager).calculateFee(
                 address(this),
                 _amount
