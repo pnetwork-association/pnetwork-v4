@@ -1,10 +1,13 @@
 /** @type import('hardhat/config').HardhatUserConfig */
+require('dotenv').config()
 require('@openzeppelin/hardhat-upgrades')
 require('@nomicfoundation/hardhat-toolbox')
 require('@nomicfoundation/hardhat-foundry')
 require('@nomicfoundation/hardhat-network-helpers')
 require('solidity-coverage')
 require('hardhat-tracer')
+
+const getEnvironmentVariable = _envVar => process.env[_envVar] || ''
 
 module.exports = {
   solidity: {
@@ -34,4 +37,30 @@ module.exports = {
   paths: {
     sources: './src',
   },
+  // Set these within the .env file
+  networks: {
+    hardhat: {
+      chains: {
+        // Otherwise will not fork for BSC,
+        // reference: https://hardhat.org/hardhat-network/docs/guides/forking-other-networks#using-a-custom-hardfork-history
+        56: {
+          hardforkHistory: {
+            cancun: 40700000,
+          },
+        },
+      },
+    },
+    ethFork: {
+      url: getEnvironmentVariable('ETH_RPC_URL'),
+    },
+    bscFork: {
+      url: getEnvironmentVariable('BSC_RPC_URL'),
+    },
+    bsc: {
+      chainid: 56,
+      url: getEnvironmentVariable('BSC_RPC_URL'),
+    },
+  },
 }
+
+require('./tasks/index.cjs')

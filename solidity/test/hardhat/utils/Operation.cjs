@@ -1,5 +1,5 @@
 const { ethers } = require('hardhat')
-const { pad32 } = require('./pad-left-32.cjs')
+const { padLeft32 } = require('./pad-left-32.cjs')
 
 class Operation {
   constructor({ blockId, txId, originChainId, eventContent }) {
@@ -10,7 +10,7 @@ class Operation {
       ethers.getBytes(ethers.dataSlice(eventContent, 0, (offset += 32))),
     )
     this.erc20 = ethers.dataSlice(eventContent, offset, (offset += 32))
-    this.originChainId = pad32(originChainId)
+    this.originChainId = padLeft32(originChainId)
     this.destinationChainId = ethers.dataSlice(
       eventContent,
       offset,

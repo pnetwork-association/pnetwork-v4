@@ -9,8 +9,9 @@ import ERC1820BYTES from './bytecodes/ERC1820.cjs'
 import Operation from './utils/Operation.cjs'
 import { deployProxy } from './utils/deploy-proxy.cjs'
 import { deploy } from './utils/deploy.cjs'
+import { getSwapEvent } from './utils/get-swap-event.cjs'
 import { getUpgradeOpts } from './utils/get-upgrade-opts.cjs'
-import { pad32 as padLeft32 } from './utils/pad-left-32.cjs'
+import { padLeft32 } from './utils/pad-left-32.cjs'
 import { upgradeProxy } from './utils/upgrade-proxy.cjs'
 
 const ERC1820 = '0x1820a4B7618BdE71Dce8cdc73aAB6C95905faD24'
@@ -177,14 +178,6 @@ const deployERC1820 = () => helpers.setCode(ERC1820, ERC1820BYTES)
           expect(await pTokenV2.balanceOf(feesManager)).to.be.equal(fees)
         })
       })
-
-      const getSwapEvent = async tx => {
-        const swapSig =
-          '0x9b706941b48091a1c675b439064f40b9d43c577d9c7134cce93179b9b0bf2a52'
-        const receipt = await tx.wait(0)
-
-        return receipt.logs.filter(x => x.topics.includes(swapSig))[0]
-      }
 
       const generateSwapEvent = async (
         adapterTest,

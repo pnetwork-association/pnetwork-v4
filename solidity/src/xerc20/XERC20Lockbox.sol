@@ -130,13 +130,15 @@ contract XERC20Lockbox is IXERC20Lockbox {
         // We need to recalculate the net amount here
         // otherwise we would burn more than our current
         // balance
+        uint256 fees;
         address feesManager = XERC20.getFeesManager();
-        uint256 fees = IFeesManager(feesManager).calculateFee(
-            address(XERC20),
-            _amount
-        );
-
-        IERC20(address(XERC20)).approve(feesManager, fees);
+        if (feesManager != address(0)) {
+            fees = IFeesManager(feesManager).calculateFee(
+                address(XERC20),
+                _amount
+            );
+            IERC20(address(XERC20)).approve(feesManager, fees);
+        }
 
         // Fees are taken inside the burn function
         XERC20.burn(address(this), _amount);

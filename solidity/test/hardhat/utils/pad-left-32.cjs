@@ -1,6 +1,6 @@
 const hre = require('hardhat')
 
-module.exports.pad32 = _value => {
+module.exports.padLeft32 = _value => {
   switch (typeof _value) {
     case 'string':
       return hre.ethers.zeroPadValue(_value, 32)
