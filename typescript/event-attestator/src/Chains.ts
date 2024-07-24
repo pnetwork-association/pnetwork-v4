@@ -3,4 +3,5 @@ export const Chains = {
   Goerli: 5,
   Hardhat: 31337,
   Mainnet: 1,
+  Bsc: 56,
 }

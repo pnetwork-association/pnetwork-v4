@@ -132,6 +132,7 @@ contract PAM is Ownable, IPAM {
             content[offset:offset += recipientLen]
         );
         bytes memory data = content[offset:];
+
         return (erc20 == operation.erc20 &&
             destinationChainId == operation.destinationChainId &&
             amount == operation.amount &&
