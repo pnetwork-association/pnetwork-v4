@@ -10,13 +10,7 @@ import "../src/test/ERC20Test.sol";
 
 import "forge-std/console.sol";
 
-contract RegisterXERC20 is Script {
-    function grantRegistrarRole(address registry, address registrar) external {
-        vm.startBroadcast();
-        XERC20Registry(registry).grantRole(keccak256("REGISTRAR"), registrar);
-        vm.stopBroadcast();
-    }
-
+contract AdapterScript is Script {
     function swap(
         address adapter,
         address token,

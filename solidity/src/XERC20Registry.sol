@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 import {IXERC20} from "./interfaces/IXERC20.sol";
 import {IXERC20Registry} from "./interfaces/IXERC20Registry.sol";
 import {IXERC20Lockbox} from "./interfaces/IXERC20Lockbox.sol";
 
-contract XERC20Registry is IXERC20Registry, AccessControl {
+contract XERC20Registry is IXERC20Registry, Ownable {
     struct Entry {
         bytes32 erc20; // sha256 of token utf-8 string if on different chains (i.e. EOS, algorand)
         address xerc20; // type compatible with the underlying chain (would be an account for EOS)
@@ -24,30 +24,41 @@ contract XERC20Registry is IXERC20Registry, AccessControl {
      */
     mapping(address => Entry) public xerc20ToEntry;
 
-    /**
-     * @notice Role allowed to register/deregister XERC20s
-     * @dev Role: 0xd6b769dbdbf190871759edfb79bd17eda0005e1b8c3b6b3f5b480b5604ad5014
-     */
-    bytes32 public constant REGISTRAR_ROLE = keccak256("REGISTRAR");
-
     event XERC20Registered(bytes32 erc20, address xerc20);
     event XERC20Deregistered(bytes32 erc20, address xerc20);
 
+    error NotAllowed();
+    error NotOwnableCompatible();
     error NotRegistered(address token);
-    error NotRegistrarRole(address sender);
 
-    modifier onlyRegistrar() {
-        if (!hasRole(REGISTRAR_ROLE, _msgSender()))
-            revert NotRegistrarRole(_msgSender());
+    /**
+     * Only the owner or the token owner of the registry is
+     * allowed to register/deregister an entry.
+     *
+     * NOTE: only ERC20 tokens implementing the Ownable interface are supported.
+     *
+     * @param token the ERC20 token
+     */
+    modifier onlyOwnerOrTokenOwner(address token) {
+        address owner_ = owner();
+        if (owner_ == address(0)) {
+            // Ownership has been renounced here
+            address tokenOwner;
+            try Ownable(token).owner() returns (address tokenOwner_) {
+                tokenOwner = tokenOwner_;
+            } catch {
+                revert NotOwnableCompatible();
+            }
+            if (tokenOwner != msg.sender) revert NotAllowed();
+        } else if (owner_ != msg.sender) revert NotAllowed();
+
         _;
     }
 
     /**
      * @notice Initializer function
      */
-    constructor() {
-        _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
-    }
+    constructor() Ownable(msg.sender) {}
 
     /**
      * @notice Adds an asset to the registry
@@ -60,29 +71,34 @@ contract XERC20Registry is IXERC20Registry, AccessControl {
      * a string (i.e. support EOS account, algorand addresses etc..)
      */
     function registerXERC20(
-        bytes32 erc20,
+        address erc20,
         address xerc20
-    ) external onlyRegistrar {
-        require(erc20ToXERC20[erc20] == address(0), "AlreadyRegistered");
+    ) external onlyOwnerOrTokenOwner(erc20) {
+        bytes32 erc20Bytes = bytes32(abi.encode(erc20));
+        require(erc20ToXERC20[erc20Bytes] == address(0), "AlreadyRegistered");
 
-        erc20ToXERC20[erc20] = xerc20;
-        xerc20ToEntry[xerc20] = Entry(erc20, xerc20);
+        erc20ToXERC20[erc20Bytes] = xerc20;
+        xerc20ToEntry[xerc20] = Entry(erc20Bytes, xerc20);
 
-        emit XERC20Registered(erc20, xerc20);
+        emit XERC20Registered(erc20Bytes, xerc20);
     }
 
     /**
      * @notice Removes an asset from the registry
-     * @param xerc20 The id of the registered asset
+     * @param erc20 The erc20 unwrapped asset
      */
-    function deregisterXERC20(address xerc20) external onlyRegistrar {
-        Entry memory e = xerc20ToEntry[xerc20];
-        require(e.xerc20 != address(0), "NotRegistered");
+    function deregisterXERC20(
+        address erc20
+    ) external onlyOwnerOrTokenOwner(erc20) {
+        bytes32 erc20Bytes = bytes32(abi.encode(erc20));
+        address xerc20 = erc20ToXERC20[erc20Bytes];
 
-        delete erc20ToXERC20[e.erc20];
-        delete xerc20ToEntry[e.xerc20];
+        if (xerc20 == address(0)) revert NotRegistered(xerc20);
 
-        emit XERC20Deregistered(e.erc20, e.xerc20);
+        delete erc20ToXERC20[erc20Bytes];
+        delete xerc20ToEntry[xerc20];
+
+        emit XERC20Deregistered(erc20Bytes, xerc20);
     }
 
     function getAssets(address token) public view returns (bytes32, address) {

@@ -8,13 +8,14 @@ import {Helper} from "./Helper.sol";
 import {XERC20} from "../../src/xerc20/XERC20.sol";
 import {ERC20Test} from "../../src/test/ERC20Test.sol";
 import {XERC20Registry} from "../../src/XERC20Registry.sol";
+import {ERC20NotOwnableTest} from "../../src/test/ERC20NotOwnableTest.sol";
 
 contract XERC20RegistryTest is Test, Helper {
     bytes32 constant REGISTRAR_ROLE = keccak256("REGISTRAR");
 
     address immutable OWNER;
     address immutable USER;
-    address immutable REGISTRAR;
+    address immutable TOKEN_OWNER;
 
     XERC20 public xerc20;
     ERC20Test public erc20;
@@ -25,25 +26,17 @@ contract XERC20RegistryTest is Test, Helper {
     constructor() {
         OWNER = vm.addr(1);
         USER = vm.addr(2);
-        REGISTRAR = vm.addr(3);
+        TOKEN_OWNER = vm.addr(3);
     }
 
     function setUp() public {
         vm.prank(OWNER);
         registry = new XERC20Registry();
         address factoryAddress = address(0);
+        vm.prank(TOKEN_OWNER);
         erc20 = new ERC20Test("Token A", "TKA", 10000);
         erc20Bytes = bytes32(abi.encode(address(erc20)));
         xerc20 = new XERC20("pToken A", "pTKA", factoryAddress);
-    }
-
-    function _expectOnlyRegistrarRevert() internal {
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                XERC20Registry.NotRegistrarRole.selector,
-                address(OWNER)
-            )
-        );
     }
 
     function _expectNotRegisteredRevert(address token) internal {
@@ -52,41 +45,100 @@ contract XERC20RegistryTest is Test, Helper {
         );
     }
 
-    function _grantRegistrarRole(address registrar) internal {
-        vm.prank(OWNER);
-        vm.expectEmit(address(registry));
-        emit IAccessControl.RoleGranted(REGISTRAR_ROLE, registrar, OWNER);
-        registry.grantRole(REGISTRAR_ROLE, registrar);
+    function _expectNotAllowedRevert() internal {
+        vm.expectRevert(
+            abi.encodeWithSelector(XERC20Registry.NotAllowed.selector)
+        );
     }
 
-    function test_registerXERC20_RevertWhen_CallerIsNotARegistrar() public {
+    function _expectNotOwnableCompatibleRevert() internal {
+        vm.expectRevert(
+            abi.encodeWithSelector(XERC20Registry.NotOwnableCompatible.selector)
+        );
+    }
+
+    function test_registerXERC20_RevertWhen_CallerIsNeitherOwnerNotTokenOwner()
+        public
+    {
+        vm.startPrank(USER);
+        _expectNotAllowedRevert();
+        registry.registerXERC20(address(erc20), address(xerc20));
+        vm.stopPrank();
+    }
+
+    function test_registerXERC20_RevertWhen_CallerIsOldOwner() public {
+        vm.startPrank(OWNER);
+        registry.renounceOwnership();
+        _expectNotAllowedRevert();
+        registry.registerXERC20(address(erc20), address(xerc20));
+        vm.stopPrank();
+    }
+
+    function test_registerXERC20_RevertWhen_ERC20DoesNotImplementOwnable()
+        public
+    {
+        ERC20NotOwnableTest erc20NotOwnable = new ERC20NotOwnableTest(
+            "Token B",
+            "TKNB",
+            100 ether
+        );
+        vm.startPrank(OWNER);
+        registry.renounceOwnership();
+        _expectNotOwnableCompatibleRevert();
+        registry.registerXERC20(address(erc20NotOwnable), address(xerc20));
+        vm.stopPrank();
+    }
+
+    function test_registerXERC20_When_ERC20DoesNotImplementOwnableButCallerIsOwner()
+        public
+    {
+        ERC20NotOwnableTest erc20NotOwnable = new ERC20NotOwnableTest(
+            "Token B",
+            "TKNB",
+            100 ether
+        );
+        vm.startPrank(OWNER);
+        vm.expectEmit(address(registry));
+        emit XERC20Registry.XERC20Registered(
+            bytes32(abi.encode(address(erc20NotOwnable))),
+            address(xerc20)
+        );
+        registry.registerXERC20(address(erc20NotOwnable), address(xerc20));
+        vm.stopPrank();
+    }
+
+    function test_registerXERC20_When_ERC20IsOwnableAndCallerIsTokenOwner()
+        public
+    {
         vm.prank(OWNER);
-        _expectOnlyRegistrarRevert();
-        registry.registerXERC20(erc20Bytes, address(xerc20));
+        registry.renounceOwnership();
+        vm.startPrank(TOKEN_OWNER);
+        vm.expectEmit(address(registry));
+        emit XERC20Registry.XERC20Registered(erc20Bytes, address(xerc20));
+        registry.registerXERC20(address(erc20), address(xerc20));
+        vm.stopPrank();
     }
 
     function test_registerXERC20_EmitXERC20Registered() public {
-        _grantRegistrarRole(REGISTRAR);
-        vm.prank(REGISTRAR);
+        vm.prank(OWNER);
         vm.expectEmit(address(registry));
         emit XERC20Registry.XERC20Registered(erc20Bytes, address(xerc20));
-        registry.registerXERC20(erc20Bytes, address(xerc20));
+        registry.registerXERC20(address(erc20), address(xerc20));
     }
 
     function test_deregisterXERC20_EmitXERC20Deregistered() public {
         _registerPair(
             block.chainid,
             OWNER,
-            REGISTRAR,
             registry,
             address(erc20),
             address(xerc20)
         );
 
-        vm.prank(REGISTRAR);
+        vm.prank(OWNER);
         vm.expectEmit(address(registry));
         emit XERC20Registry.XERC20Deregistered(erc20Bytes, address(xerc20));
-        registry.deregisterXERC20(address(xerc20));
+        registry.deregisterXERC20(address(erc20));
 
         _expectNotRegisteredRevert(address(erc20));
         registry.getAssets(erc20Bytes);
@@ -98,7 +150,6 @@ contract XERC20RegistryTest is Test, Helper {
         _registerPair(
             block.chainid,
             OWNER,
-            REGISTRAR,
             registry,
             address(erc20),
             address(xerc20)

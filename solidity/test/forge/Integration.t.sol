@@ -100,7 +100,6 @@ contract IntegrationTest is Test, Helper {
         _registerPair(
             CHAIN_A,
             owner,
-            owner,
             registry_A,
             address(erc20_A),
             address(xerc20_A)
@@ -108,7 +107,6 @@ contract IntegrationTest is Test, Helper {
 
         _registerPair(
             CHAIN_B,
-            owner,
             owner,
             registry_B,
             address(erc20_B),
