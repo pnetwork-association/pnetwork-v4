@@ -195,4 +195,25 @@ contract XERC20RegistryTest is Test, Helper {
         registry.registerXERC20(address(otherERC20), address(xerc20));
         vm.stopPrank();
     }
+
+    function test_registerXERC20_OnlyTheOwnerCanAddTheNativeXERC20() public {
+        vm.startPrank(OWNER);
+        vm.expectEmit(address(registry));
+        emit XERC20Registry.XERC20Registered(bytes32(0), address(xerc20));
+        registry.registerXERC20(address(0), address(xerc20));
+        vm.stopPrank();
+    }
+
+    function test_registerXERC20_RevertWhen_NativeAssetIsNotRegisteredByOwner()
+        public
+    {
+        vm.prank(EVIL);
+        _expectNotAllowedRevert();
+        registry.registerXERC20(address(0), address(xerc20));
+        vm.startPrank(OWNER);
+        registry.renounceOwnership();
+        _expectNotAllowedRevert();
+        registry.registerXERC20(address(0), address(xerc20));
+        vm.stopPrank();
+    }
 }

@@ -44,11 +44,13 @@ contract XERC20Registry is IXERC20Registry, Ownable {
     modifier onlyOwnerOrTokenOwner(address token) {
         address tokenOwner;
         address owner_ = owner();
-        try Ownable(token).owner() returns (address tokenOwner_) {
-            tokenOwner = tokenOwner_;
-        } catch {
-            // If ownership has been renounced there's nothing we can do
-            if (owner_ == address(0)) revert NotOwnableCompatible();
+        if (token != address(0)) {
+            try Ownable(token).owner() returns (address tokenOwner_) {
+                tokenOwner = tokenOwner_;
+            } catch {
+                // If ownership has been renounced there's nothing we can do
+                if (owner_ == address(0)) revert NotOwnableCompatible();
+            }
         }
 
         if (tokenOwner != msg.sender && owner_ != msg.sender)
