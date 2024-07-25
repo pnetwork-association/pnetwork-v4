@@ -38,6 +38,13 @@ Other variations of the function handles when the asset in the native chain curr
 This reflect the XERC20 standard with modifications on the `_burnWithCaller` function, which
 includes the logic to take the fees on the local chain. In addition the the adapter to PAM mapping has been added in order to give the token owner a way to change it.
 
+### XERC20Registry
+
+Keeps track of the ERC20 => XERC20 pairs in order for bridges to retrieve them easily. The Adapter contract expects the address of the registry upon deployment and
+it uses the `getAssets(address)` function in order to retrieve the correct pair.
+
+New entries can be added only by the owner of this contract and by the relevant ERC20 token owner. Similarly the same access control is applied for the deregistration of a pair from the registry.
+
 ### PToken
 
 First version of the PToken contract, which is not xERC20 based.

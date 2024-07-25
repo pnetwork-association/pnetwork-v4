@@ -16,6 +16,7 @@ contract XERC20RegistryTest is Test, Helper {
     address immutable OWNER;
     address immutable USER;
     address immutable TOKEN_OWNER;
+    address immutable EVIL;
 
     XERC20 public xerc20;
     ERC20Test public erc20;
@@ -27,6 +28,7 @@ contract XERC20RegistryTest is Test, Helper {
         OWNER = vm.addr(1);
         USER = vm.addr(2);
         TOKEN_OWNER = vm.addr(3);
+        EVIL = vm.addr(4);
     }
 
     function setUp() public {
@@ -54,6 +56,15 @@ contract XERC20RegistryTest is Test, Helper {
     function _expectNotOwnableCompatibleRevert() internal {
         vm.expectRevert(
             abi.encodeWithSelector(XERC20Registry.NotOwnableCompatible.selector)
+        );
+    }
+
+    function _expectAlreadyRegisteredRevert(address token) internal {
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                XERC20Registry.AlreadyRegistered.selector,
+                token
+            )
         );
     }
 
@@ -164,6 +175,24 @@ contract XERC20RegistryTest is Test, Helper {
         assertEq(c, erc20Bytes);
         assertEq(d, address(xerc20));
 
+        vm.stopPrank();
+    }
+
+    function test_registerXERC20_RevertWhen_XERC20IsAlreadyMappedToERC20()
+        public
+    {
+        _registerPair(
+            block.chainid,
+            OWNER,
+            registry,
+            address(erc20),
+            address(xerc20)
+        );
+
+        vm.startPrank(EVIL);
+        ERC20Test otherERC20 = new ERC20Test("Token C", "TKNC", 100 ether);
+        _expectAlreadyRegisteredRevert(address(xerc20));
+        registry.registerXERC20(address(otherERC20), address(xerc20));
         vm.stopPrank();
     }
 }

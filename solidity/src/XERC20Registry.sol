@@ -7,6 +7,7 @@ import {IXERC20} from "./interfaces/IXERC20.sol";
 import {IXERC20Registry} from "./interfaces/IXERC20Registry.sol";
 import {IXERC20Lockbox} from "./interfaces/IXERC20Lockbox.sol";
 
+import "forge-std/console.sol";
 contract XERC20Registry is IXERC20Registry, Ownable {
     struct Entry {
         bytes32 erc20; // sha256 of token utf-8 string if on different chains (i.e. EOS, algorand)
@@ -30,6 +31,7 @@ contract XERC20Registry is IXERC20Registry, Ownable {
     error NotAllowed();
     error NotOwnableCompatible();
     error NotRegistered(address token);
+    error AlreadyRegistered(address token);
 
     /**
      * Only the owner or the token owner of the registry is
@@ -40,17 +42,17 @@ contract XERC20Registry is IXERC20Registry, Ownable {
      * @param token the ERC20 token
      */
     modifier onlyOwnerOrTokenOwner(address token) {
+        address tokenOwner;
         address owner_ = owner();
-        if (owner_ == address(0)) {
-            // Ownership has been renounced here
-            address tokenOwner;
-            try Ownable(token).owner() returns (address tokenOwner_) {
-                tokenOwner = tokenOwner_;
-            } catch {
-                revert NotOwnableCompatible();
-            }
-            if (tokenOwner != msg.sender) revert NotAllowed();
-        } else if (owner_ != msg.sender) revert NotAllowed();
+        try Ownable(token).owner() returns (address tokenOwner_) {
+            tokenOwner = tokenOwner_;
+        } catch {
+            // If ownership has been renounced there's nothing we can do
+            if (owner_ == address(0)) revert NotOwnableCompatible();
+        }
+
+        if (tokenOwner != msg.sender && owner_ != msg.sender)
+            revert NotAllowed();
 
         _;
     }
@@ -75,7 +77,13 @@ contract XERC20Registry is IXERC20Registry, Ownable {
         address xerc20
     ) external onlyOwnerOrTokenOwner(erc20) {
         bytes32 erc20Bytes = bytes32(abi.encode(erc20));
-        require(erc20ToXERC20[erc20Bytes] == address(0), "AlreadyRegistered");
+
+        if (erc20ToXERC20[erc20Bytes] != address(0))
+            revert AlreadyRegistered(erc20);
+
+        Entry memory entry = xerc20ToEntry[xerc20];
+        if (entry.erc20 != bytes32(0) || entry.xerc20 != address(0))
+            revert AlreadyRegistered(xerc20);
 
         erc20ToXERC20[erc20Bytes] = xerc20;
         xerc20ToEntry[xerc20] = Entry(erc20Bytes, xerc20);
