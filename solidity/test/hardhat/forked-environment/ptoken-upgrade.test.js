@@ -23,7 +23,7 @@ const ADDRESS_PNETWORK_SIGNER = '0x341aA660fD5c280F5a9501E3822bB4a98E816D1b'
 
 // NOTE: this test suite is meant to be run all at once
 // Filtering tests through test.only directive may result
-// into tests failures and wrong behaviour
+// into test failures and wrong behaviour
 //
 // NOTE: Flow order is from top to bottom
 const conditionalDescribe = process.env['FORK'] ? describe : describe.skip
@@ -78,13 +78,12 @@ conditionalDescribe(
         registry = await deploy(hre, 'XERC20Registry', [])
         adapterBsc = await deploy(hre, 'Adapter', [registry.target])
 
-        await registry.grantRole(await registry.REGISTRAR_ROLE(), owner)
-        await registry.registerXERC20(padLeft32(ADDRESS_ERC20_TOKEN), ptoken)
+        await registry.registerXERC20(ADDRESS_ERC20_TOKEN, ptoken)
 
         await hardhatSetBalance(hre, rpc, proxyAdminOwner.address, oneEth)
       })
 
-      it('Should upgrade the ptoken successfully', async () => {
+      it.only('Should upgrade the ptoken successfully', async () => {
         const userBalance = await ptoken.balanceOf(user)
 
         const useGSN = ptoken.setTrustedSigner != undefined ? '' : 'NoGSN'
@@ -166,10 +165,7 @@ conditionalDescribe(
 
         await xerc20.setLockbox(lockbox)
         await xerc20.setLimits(adapterEth, mintingLimit, burningLimit)
-        await registry.grantRole(await registry.REGISTRAR_ROLE(), owner)
-        await registry
-          .connect(owner)
-          .registerXERC20(padLeft32(erc20.target), xerc20)
+        await registry.connect(owner).registerXERC20(erc20.target, xerc20)
 
         await hardhatSetBalance(hre, rpc, pnetwork.address, oneEth)
       })

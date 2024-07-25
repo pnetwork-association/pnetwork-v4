@@ -7,7 +7,16 @@ import {IXERC20} from "./interfaces/IXERC20.sol";
 import {IXERC20Registry} from "./interfaces/IXERC20Registry.sol";
 import {IXERC20Lockbox} from "./interfaces/IXERC20Lockbox.sol";
 
-import "forge-std/console.sol";
+import "hardhat/console.sol";
+
+interface OwnedLike {
+    address public owner;
+}
+
+interface OwnableLike {
+    function owner() external returns (address);
+}
+
 contract XERC20Registry is IXERC20Registry, Ownable {
     struct Entry {
         bytes32 erc20; // sha256 of token utf-8 string if on different chains (i.e. EOS, algorand)
@@ -33,6 +42,21 @@ contract XERC20Registry is IXERC20Registry, Ownable {
     error NotRegistered(address token);
     error AlreadyRegistered(address token);
 
+    function _maybeGetTokenOwner(
+        address owner_,
+        address token
+    ) internal returns (address tokenOwner) {
+        tokenOwner = OwnedLike(token).owner;
+
+        console.log("tokenOwner", tokenOwner);
+        try OwnableLike(token).owner() returns (address tokenOwner_) {
+            tokenOwner = tokenOwner_;
+        } catch {
+            // If ownership has been renounced there's nothing we can do
+            if (owner_ == address(0)) revert NotOwnableCompatible();
+        }
+    }
+
     /**
      * Only the owner or the token owner of the registry is
      * allowed to register/deregister an entry.
@@ -45,12 +69,7 @@ contract XERC20Registry is IXERC20Registry, Ownable {
         address tokenOwner;
         address owner_ = owner();
         if (token != address(0)) {
-            try Ownable(token).owner() returns (address tokenOwner_) {
-                tokenOwner = tokenOwner_;
-            } catch {
-                // If ownership has been renounced there's nothing we can do
-                if (owner_ == address(0)) revert NotOwnableCompatible();
-            }
+            tokenOwner = _maybeGetTokenOwner(owner_, token);
         }
 
         if (tokenOwner != msg.sender && owner_ != msg.sender)

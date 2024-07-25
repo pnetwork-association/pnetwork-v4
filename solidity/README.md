@@ -45,6 +45,8 @@ it uses the `getAssets(address)` function in order to retrieve the correct pair.
 
 New entries can be added only by the owner of this contract and by the relevant ERC20 token owner. Similarly the same access control is applied for the deregistration of a pair from the registry.
 
+When registering an XERC20 for the native currency (i.e. ETH) the zero address is used and this is the only exception
+
 ### PToken
 
 First version of the PToken contract, which is not xERC20 based.

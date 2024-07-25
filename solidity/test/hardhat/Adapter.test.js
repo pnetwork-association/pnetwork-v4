@@ -82,8 +82,7 @@ const deployERC1820 = () => helpers.setCode(ERC1820, ERC1820BYTES)
           padLeft32(adapter.target),
         )
         await feesManager.setFee(pTokenV2, minFee, basisPoints)
-        await registry.grantRole(await registry.REGISTRAR_ROLE(), owner)
-        await registry.registerXERC20(erc20Bytes, pTokenV2)
+        await registry.registerXERC20(erc20.target, pTokenV2)
         await pTokenV2.setFeesManager(feesManager)
         await pTokenV2.setLockbox(lockbox)
         await pTokenV2.setLimits(adapter, mintingLimit, burningLimit)
@@ -115,7 +114,6 @@ const deployERC1820 = () => helpers.setCode(ERC1820, ERC1820BYTES)
             recipient,
             adapter,
             erc20,
-            erc20Bytes,
             pTokenV2,
             lockbox,
             feesManager,
@@ -127,7 +125,6 @@ const deployERC1820 = () => helpers.setCode(ERC1820, ERC1820BYTES)
             ? await hre.ethers.provider.getBalance(user)
             : await erc20.balanceOf(user)
           const expectedNonce = 0
-          const expectedData = '0x'
 
           adapter = await adapter.connect(user)
 
