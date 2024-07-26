@@ -9,7 +9,6 @@ import {PAM} from "../../src/PAM.sol";
 import {Adapter} from "../../src/Adapter.sol";
 import {XERC20} from "../../src/xerc20/XERC20.sol";
 import {FeesManager} from "../../src/FeesManager.sol";
-import {XERC20Registry} from "../../src/XERC20Registry.sol";
 
 import {IPAM} from "../../src/interfaces/IPAM.sol";
 import {ERC20Test} from "../../src/test/ERC20Test.sol";
@@ -31,23 +30,6 @@ abstract contract Helper is Test {
     uint256 burningLimit = 2000000;
     bool native = true;
     bool notNative = false;
-
-    function _registerPair(
-        uint256 chain,
-        address owner,
-        address registrar,
-        XERC20Registry registry,
-        address erc20,
-        address xerc20
-    ) public {
-        uint256 prevChain = block.chainid;
-        vm.chainId(chain);
-        vm.prank(owner);
-        registry.grantRole(keccak256("REGISTRAR"), registrar);
-        vm.prank(registrar);
-        registry.registerXERC20(bytes32(abi.encode(erc20)), xerc20);
-        vm.chainId(prevChain);
-    }
 
     function _transferToken(
         address token,
@@ -79,7 +61,6 @@ abstract contract Helper is Test {
     )
         internal
         returns (
-            XERC20Registry registry,
             Adapter adapter,
             ERC20 erc20,
             XERC20 xerc20,
@@ -211,5 +192,21 @@ abstract contract Helper is Test {
                 ),
                 BytesLib.slice(content, 224, dataLen) // data
             );
+    }
+
+    function _getEventId(
+        bytes memory metadataPreImage
+    ) internal pure returns (bytes32) {
+        bytes memory context = BytesLib.slice(metadataPreImage, 0, 34);
+        bytes32 blockId = bytes32(BytesLib.slice(metadataPreImage, 34, 32));
+        bytes32 txId = bytes32(BytesLib.slice(metadataPreImage, 66, 32));
+        uint256 payloadlen = metadataPreImage.length - 98;
+        bytes memory eventPayload = BytesLib.slice(
+            metadataPreImage,
+            98,
+            payloadlen
+        );
+
+        return sha256(bytes.concat(context, blockId, txId, eventPayload));
     }
 }

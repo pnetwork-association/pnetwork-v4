@@ -12,5 +12,5 @@ interface IPAM {
     function isAuthorized(
         IAdapter.Operation memory operation,
         Metadata calldata metadata
-    ) external returns (bool);
+    ) external returns (bool, bytes32);
 }

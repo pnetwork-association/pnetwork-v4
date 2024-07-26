@@ -11,7 +11,6 @@ import {PAM} from "../../src/PAM.sol";
 import {Helper} from "./Helper.sol";
 import {Adapter} from "../../src/Adapter.sol";
 import {FeesManager} from "../../src/FeesManager.sol";
-import {XERC20Registry} from "../../src/XERC20Registry.sol";
 import {IPAM} from "../../src/interfaces/IPAM.sol";
 import {IAdapter} from "../../src/interfaces/IAdapter.sol";
 
@@ -45,7 +44,6 @@ contract IntegrationTest is Test, Helper {
     Adapter adapter_A;
     XERC20Lockbox lockbox_A;
     FeesManager feesManager_A;
-    XERC20Registry registry_A;
     PAM pam_A;
 
     XERC20 xerc20_B;
@@ -53,7 +51,6 @@ contract IntegrationTest is Test, Helper {
     Adapter adapter_B;
     XERC20Lockbox lockbox_B;
     FeesManager feesManager_B;
-    XERC20Registry registry_B;
     PAM pam_B;
 
     /// @dev Variables
@@ -78,7 +75,6 @@ contract IntegrationTest is Test, Helper {
 
     function setUp() public {
         (
-            registry_A,
             adapter_A,
             erc20_A,
             xerc20_A,
@@ -88,7 +84,6 @@ contract IntegrationTest is Test, Helper {
         ) = _setupChain(CHAIN_A, owner, address(0));
 
         (
-            registry_B,
             adapter_B,
             erc20_B,
             xerc20_B,
@@ -232,13 +227,15 @@ contract IntegrationTest is Test, Helper {
             DEFAULT_TX_HASH
         );
 
+        bytes32 eventId = _getEventId(metadata.preimage);
+
         vm.chainId(CHAIN_B);
 
         vm.expectEmit(address(xerc20_B));
         uint256 fees = (amount * 20) / 10000;
         emit IERC20.Transfer(address(0), recipient, amount - fees);
         vm.expectEmit(address(adapter_B));
-        emit IAdapter.Settled();
+        emit IAdapter.Settled(eventId);
 
         adapter_B.settle(operation, metadata);
 
@@ -313,12 +310,14 @@ contract IntegrationTest is Test, Helper {
             )
         );
 
+        bytes32 eventId = _getEventId(pegoutMetadata.preimage);
+
         vm.expectEmit(address(xerc20_A));
         emit IERC20.Transfer(address(lockbox_A), address(0), netAmount);
         vm.expectEmit(address(erc20_A));
         emit IERC20.Transfer(address(lockbox_A), recipient, netAmount);
         vm.expectEmit(address(adapter_A));
-        emit IAdapter.Settled();
+        emit IAdapter.Settled(eventId);
         IAdapter(adapter_A).settle(operation, pegoutMetadata);
 
         assertEq(xerc20_A.balanceOf(recipient), 0);
