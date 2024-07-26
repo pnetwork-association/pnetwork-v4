@@ -26,7 +26,7 @@ interface IAdapter {
 
     event ReceiveUserDataFailed();
 
-    event Settled();
+    event Settled(bytes32 indexed eventId);
 
     /**
      * Finalise the swap operation on the destination chain
@@ -41,8 +41,6 @@ interface IAdapter {
 
     /**
      * @notice Wraps a token to another chain
-     *
-     * @dev Be sure the pair is registered in the local XERC20 registry
      *
      * @param token ERC20 or xERC20 to move across chains (it must be supported by the Adapter)
      * @param amount token quantity to move across chains
@@ -60,9 +58,7 @@ interface IAdapter {
     /**
      * @notice Wraps a token to another chain
      *
-     * @dev Be sure the pair is registered in the local XERC20 registry
-     *
-     * @param token ERC20 or xERC20 to move across chains (it must be supported by the Adapter
+     * @param token ERC20 or xERC20 to move across chains (it must be supported by the Adapter)
      * @param amount token quantity to move across chains
      * @param recipient whom will receive the token
      * @param destinationChainId chain id where the wrapped version is destined to
