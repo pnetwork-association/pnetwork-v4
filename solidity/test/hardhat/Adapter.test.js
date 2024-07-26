@@ -270,7 +270,8 @@ const deployERC1820 = () => helpers.setCode(ERC1820, ERC1820BYTES)
             await expect(tx)
               .to.emit(erc20, 'Transfer')
               .withArgs(lockbox, recipient, netAmount)
-          await expect(tx).to.emit(adapter, 'Settled')
+          const eventId = eventAttestator.getEventId(event)
+          await expect(tx).to.emit(adapter, 'Settled').withArgs(eventId)
 
           if (_isNative) {
             await expect(tx).to.changeEtherBalance(lockbox, -netAmount)

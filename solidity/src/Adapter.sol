@@ -29,12 +29,12 @@ contract Adapter is IAdapter, Ownable {
 
     error NotAllowed();
     error InvalidSwap();
-    error Unauthorized();
     error InvalidAmount();
     error InvalidSender();
     error RLPInputTooLong();
     error InvalidOperation();
     error InvalidFeesManager();
+    error Unauthorized(bytes32 eventId);
     error InvalidTokenAddress(address token);
     error UnsupportedChainId(uint256 chainId);
     error UnexpectedEventTopic(bytes32 topic);
@@ -61,7 +61,15 @@ contract Adapter is IAdapter, Ownable {
 
         address pam = IXERC20(xerc20).getPAM(address(this));
 
-        if (!IPAM(pam).isAuthorized(operation, metadata)) revert Unauthorized();
+        (bool isAuthorized, bytes32 eventId) = IPAM(pam).isAuthorized(
+            operation,
+            metadata
+        );
+        if (!isAuthorized) revert Unauthorized(eventId);
+
+        if (pastEvents[eventId]) revert AlreadyProcessed(eventId);
+
+        pastEvents[eventId] = true;
 
         address lockbox = IXERC20(xerc20).getLockbox();
 
@@ -102,7 +110,7 @@ contract Adapter is IAdapter, Ownable {
             if (!success) emit ReceiveUserDataFailed();
         }
 
-        emit Settled();
+        emit Settled(eventId);
     }
 
     function _finalizeSwap(

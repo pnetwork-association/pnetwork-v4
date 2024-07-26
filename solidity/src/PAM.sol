@@ -14,7 +14,6 @@ contract PAM is Ownable, IPAM {
     address public teeAddressNew;
     uint256 public teeAddressChangeGraceThreshold;
     mapping(bytes32 => bytes32) emitters;
-    mapping(bytes32 => bool) pastEvents;
 
     error InvalidEventRLP();
     error InvalidTeeSigner();
@@ -122,6 +121,9 @@ contract PAM is Ownable, IPAM {
         bytes calldata content,
         IAdapter.Operation memory operation
     ) internal pure returns (bool) {
+        // Event Bytes content (see _finalizeSwap() in Adapter)
+        // | nonce | erc20 | destination | amount | sender | recipientLen | recipient |   data   |
+        // |  32B  |  32B  |     32B     |  32B   |  32B   |     32B      |   varlen  |  varlen  |
         uint256 offset = 32; // skip the nonce
         bytes32 erc20 = bytes32(content[offset:offset += 32]);
         bytes32 destinationChainId = bytes32(content[offset:offset += 32]);
@@ -141,13 +143,10 @@ contract PAM is Ownable, IPAM {
             sha256(data) == sha256(operation.data));
     }
 
-    function isAuthorized(
+    function _contextChecks(
         IAdapter.Operation memory operation,
         Metadata calldata metadata
-    ) external returns (bool) {
-        //  Metadata format:
-        //    | version   | protocol   |  originChainId     |   eventId     |  eventBytes  |
-        //    | (1 byte)  | (1 byte)   |    (32 bytes)      |  (32 bytes)   |    varlen    |
+    ) internal view returns (bool) {
         if (teeAddress == address(0)) return false;
 
         uint16 offset = 2; // skip protocol, version
@@ -155,45 +154,49 @@ contract PAM is Ownable, IPAM {
 
         if (originChainId != operation.originChainId) return false;
 
-        bytes32 expectedEmitter = emitters[originChainId];
-
-        if (expectedEmitter == bytes32(0)) return false;
-
-        bytes memory context = metadata.preimage[0:offset];
         bytes32 blockId = bytes32(metadata.preimage[offset:offset += 32]);
         bytes32 txId = bytes32(metadata.preimage[offset:offset += 32]);
 
         if (blockId != operation.blockId && txId != operation.txId)
             return false;
 
-        bytes calldata eventPayload = metadata.preimage[offset:];
+        return true;
+    }
 
-        bytes32 eventId = sha256(
-            bytes.concat(context, blockId, txId, eventPayload)
-        );
+    function isAuthorized(
+        IAdapter.Operation memory operation,
+        Metadata calldata metadata
+    ) external view returns (bool, bytes32) {
+        //  Metadata preimage format:
+        //    | version | protocol | origin | blockHash | txHash | eventPayload |
+        //    |   1B    |    1B    |   32B  |    32B    |   32B  |    varlen    |
+        //    +----------- context ---------+------------- event ---------------+
+
+        if (!_contextChecks(operation, metadata)) return (false, bytes32(0));
+        bytes32 eventId = sha256(metadata.preimage);
 
         if (ECDSA.recover(eventId, metadata.signature) != teeAddress)
-            return false;
+            return (false, eventId);
 
-        // Event Bytes format
-        //    | emitter   | protocol    |  originChainId     |   eventId     |  eventPayload  |
-        //    | (1 byte)  | (1 byte)   |    (32 bytes)      |  (32 bytes)   |    varlen    |
+        // Event payload format
+        // |  emitter  |  sha256(topics)  |  eventBytes  |
+        // |    32B    |        32B       |    varlen    |
+        bytes32 originChainId = bytes32(metadata.preimage[2:34]);
 
-        offset = 32;
+        uint256 offset = 32;
+        bytes calldata eventPayload = metadata.preimage[98:];
         bytes32 emitter = bytes32(eventPayload[0:offset]);
+        bytes32 expectedEmitter = emitters[originChainId];
 
-        if (emitter != expectedEmitter) return false;
+        if ((expectedEmitter == bytes32(0)) || (emitter != expectedEmitter))
+            return (false, eventId);
 
-        offset += 32; // skip event signature
+        offset += 32; // skip sha256(topics) part
 
         if (!_doesContentMatchOperation(eventPayload[offset:], operation))
-            return false;
+            return (false, eventId);
 
-        if (pastEvents[eventId]) return false;
-
-        pastEvents[eventId] = true;
-
-        return true;
+        return (true, eventId);
     }
 
     function _getAddressFromPublicKey(
