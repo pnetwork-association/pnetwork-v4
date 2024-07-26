@@ -4,7 +4,6 @@ pragma solidity ^0.8.13;
 import "forge-std/Script.sol";
 import "../src/Adapter.sol";
 import "../src/xerc20/XERC20.sol";
-import "../src/XERC20Registry.sol";
 import "../src/xerc20/XERC20Lockbox.sol";
 import "../src/test/ERC20Test.sol";
 
