@@ -120,7 +120,7 @@ contract PAM is Ownable, IPAM {
     function _doesContentMatchOperation(
         bytes calldata content,
         IAdapter.Operation memory operation
-    ) internal pure returns (bool) {
+    ) internal view returns (bool) {
         // Event Bytes content (see _finalizeSwap() in Adapter)
         // | nonce | erc20 | destination | amount | sender | recipientLen | recipient |   data   |
         // |  32B  |  32B  |     32B     |  32B   |  32B   |     32B      |   varlen  |  varlen  |

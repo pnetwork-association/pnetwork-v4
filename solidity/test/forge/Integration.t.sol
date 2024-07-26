@@ -16,7 +16,9 @@ import {IAdapter} from "../../src/interfaces/IAdapter.sol";
 
 import {XERC20} from "../../src/xerc20/XERC20.sol";
 import {ERC20Test} from "../../src/test/ERC20Test.sol";
+import {DataReceiver} from "../../src/test/DataReceiver.sol";
 import {XERC20Lockbox} from "../../src/xerc20/XERC20Lockbox.sol";
+import {ExcessivelySafeCall} from "../../src/libraries/ExcessivelySafeCall.sol";
 
 import "forge-std/console.sol";
 
@@ -337,5 +339,56 @@ contract IntegrationTest is Test, Helper {
             xerc20_A.balanceOf(address(feesManager_A)),
             prevBalanceFeesManager_A + fees
         );
+    }
+
+    function test_settle_e2e_withUserData() public {
+        uint256 amount = 10000;
+        DataReceiver receiver = new DataReceiver();
+        bytes memory data = vm.parseBytes("0xC0FFEE");
+
+        vm.recordLogs();
+        _performERC20Swap(
+            CHAIN_A,
+            address(erc20_A),
+            user,
+            address(adapter_A),
+            CHAIN_B,
+            address(receiver), // recipient
+            amount,
+            data
+        );
+
+        IAdapter.Operation memory operation = _getOperationFromRecordedLogs(
+            bytes32(CHAIN_A),
+            DEFAULT_BLOCK_HASH,
+            DEFAULT_TX_HASH
+        );
+
+        metadata.preimage = vm.parseBytes(
+            "0x01010000000000000000000000000000000000000000000000000000000000007a69a880cb2ab67ec9140db0f6de238b34d4108f6fab99315772ee987ef9002e0e6311365bbee18058f12c27236e891a66999c4325879865303f785854e9169c257a0000000000000000000000006d411e0a54382ed43f02410ce1c7a7c122afa6e1a68959eed8a7e77ce926c4c04ee06434559ae1db7f636ceacd659f5c9126f1c300000000000000000000000000000000000000000000000000000000000000000000000000000000000000002946259e0334f33a064106302415ad3391bed3840000000000000000000000000000000000000000000000000000000000007a6a00000000000000000000000000000000000000000000000000000000000026fc0000000000000000000000002b5ad5c4795c026514f8317c7a215e218dccd6cf000000000000000000000000000000000000000000000000000000000000002a307835363135644542373938424233453464466130313339644661316233443433334363323362373266c0ffee"
+        );
+        metadata.signature = vm.parseBytes(
+            "0x4d677785f125d2b6fbeb56c8360fbff583f504e5d4af23e02f0b0e7dc6a0f1c756b85935bdea9c32786a2671faf2b12fedce0874b67b7b60ade4c891219237ee1c"
+        );
+
+        bytes32 eventId = _getEventId(metadata.preimage);
+
+        vm.chainId(CHAIN_B);
+
+        vm.expectEmit(address(xerc20_B));
+        uint256 fees = (amount * 20) / 10000;
+        emit IERC20.Transfer(address(0), address(receiver), amount - fees);
+        vm.expectEmit(address(receiver));
+        emit DataReceiver.DataReceived(data);
+        vm.expectEmit(address(adapter_B));
+        emit IAdapter.Settled(eventId);
+
+        adapter_B.settle(operation, metadata);
+
+        uint256 R = xerc20_B.balanceOf(address(receiver));
+        uint256 A = xerc20_B.balanceOf(address(adapter_B));
+
+        assertEq(R, amount - fees);
+        assertEq(A, 0);
     }
 }

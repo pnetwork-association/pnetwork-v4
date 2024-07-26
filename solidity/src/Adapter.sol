@@ -107,6 +107,7 @@ contract Adapter is IAdapter, Ownable {
                 0,
                 data
             );
+
             if (!success) emit ReceiveUserDataFailed();
         }
 
