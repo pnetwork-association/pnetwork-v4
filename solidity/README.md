@@ -10,19 +10,22 @@
 ### Fees
 
 - Fees are taken when the asset is wrapped and unwrapped in order to not take them twice
-- In spite of this, fees are deposited to a contract called `FeesManager` which is supposed to be deployed on the home(local) chain only
+- Consequently, fees are deposited to a contract called `FeesManager` which is supposed to be deployed on the home(local) chain only
 
 ## Contracts
 
 ### Adapter
 
-Facilitates user/dApp interaction with the XERC20. It exposes two functions and relative variations depending on the asset being swapped:
+Note: we use the name Adapter instead of Bridge in order to be consistent with the xERC20 standard jargon.
+This component facilitates user/dApp interaction with the xERC20 token. It exposes two functions and relative variations depending on the asset being swapped (native or not native):
 
-- `swap()`: initiate a crosschain transfer of an ERC20/XERC20 token to another chain. The event emitted includes an indexed nonce plus the bytes with the event payload included into a struct called EventBytes.
-- `swapNative()`: initiate a crosschain transfer of the native currency to another chain
-- `settle()`: finalize the operation created by the swap on the destaintion, it may result into an unwrap operation of the asset if the settlement is done on the home chain (where the lockbox has been deployed) or just a mint operation on the destination chain
+- swap(): initiate a cross chain transfer of an ERC20/xERC20 token to another chain. The event emitted includes an indexed nonce plus the event bytes including important information which are going to be verified upon authorization in the settle function.
 
-This is the actual components used to bridge asset crosschains and it will have the minting/burning limits set in the pTokenV2/XERC20 contract.
+- settle(): finalise the operation created by the swap event on the destination, it may result in an unwrap operation of the asset if the settlement is done on the home chain (where the lockbox contract has been deployed) or just a mint operation on the destination chain.
+
+This is the actual component used to bridge asset crosschains and it will have the minting/burning limits set in the pTokenV2/XERC20 contract.
+
+Note: the approach taken here requires an Adapter contract deployed for each pair of ERC20/pToken, this is to overcome the need of a registry keeping tracks of assets pairs (see Connext's approach) deployed on each supported chain.
 
 ### XERC20Lockbox
 
