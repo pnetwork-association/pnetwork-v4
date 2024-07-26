@@ -92,8 +92,6 @@ abstract contract Helper is Test {
         vm.chainId(chain);
         vm.startPrank(owner);
 
-        registry = new XERC20Registry();
-        adapter = new Adapter(address(registry));
         xerc20 = new XERC20("pToken A", "pTKA", factoryAddress);
 
         if (erc20Native == address(0)) {
@@ -112,6 +110,7 @@ abstract contract Helper is Test {
         }
         pam = new PAM();
         pam.setTeeSigner(signerPublicKey, signerAttestation);
+        adapter = new Adapter(address(xerc20), address(erc20));
         xerc20.setPAM(address(adapter), address(pam));
         xerc20.setLimits(address(adapter), mintingLimit, burningLimit);
 

@@ -28,6 +28,12 @@ interface IAdapter {
 
     event Settled();
 
+    /**
+     * Finalise the swap operation on the destination chain
+     *
+     * @param operation struct with all the required properties to finalise the swap
+     * @param metadata struct needed for the PAM in order to verify the operation is legit
+     */
     function settle(
         Operation memory operation,
         IPAM.Metadata calldata metadata
@@ -38,7 +44,7 @@ interface IAdapter {
      *
      * @dev Be sure the pair is registered in the local XERC20 registry
      *
-     * @param token ERC20 or xERC20 to move across chains
+     * @param token ERC20 or xERC20 to move across chains (it must be supported by the Adapter)
      * @param amount token quantity to move across chains
      * @param recipient whom will receive the token
      * @param destinationChainId chain id where the wrapped version is destined to
@@ -56,10 +62,11 @@ interface IAdapter {
      *
      * @dev Be sure the pair is registered in the local XERC20 registry
      *
-     * @param token ERC20 or xERC20 to move across chains
+     * @param token ERC20 or xERC20 to move across chains (it must be supported by the Adapter
      * @param amount token quantity to move across chains
      * @param recipient whom will receive the token
      * @param destinationChainId chain id where the wrapped version is destined to
+     * @param data arbitrary message that would be sent at the end of the settle() function
      *
      * @dev If the destination chain id doesn't fit in 32 bytes or if there are collisions
      *      the options are one of the two:
@@ -76,12 +83,31 @@ interface IAdapter {
         bytes memory data
     ) external;
 
+    /**
+     * Wraps the native currency to another chain
+     *
+     * @param destinationChainId chain id where the wrapped version is destined to
+     * @param recipient whom will receive the token
+     * @param data arbitrary message that would be sent at the end of the settle() function
+     *
+     * @dev The adapter must have the ERC20 address set to addres(0), since there's no ERC20
+     * token of reference for the native currency.
+     */
     function swapNative(
         uint256 destinationChainId,
         string memory recipient,
         bytes memory data
     ) external payable;
 
+    /**
+     * Wraps the native currency to another chain
+     *
+     * @param destinationChainId chain id where the wrapped version is destined to
+     * @param recipient whom will receive the token
+     *
+     * @dev The adapter must have the ERC20 address set to addres(0), since there's no ERC20
+     * token of reference for the native currency.
+     */
     function swapNative(
         uint256 destinationChainId,
         string memory recipient

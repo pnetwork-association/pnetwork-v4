@@ -23,14 +23,17 @@ contract Adapter is IAdapter, Ownable {
 
     uint256 _nonce;
 
-    address public registry;
+    address public erc20;
+    address public xerc20;
     mapping(bytes32 => bool) public pastEvents;
 
+    error NotAllowed();
     error InvalidSwap();
     error Unauthorized();
     error InvalidAmount();
     error InvalidSender();
     error RLPInputTooLong();
+    error InvalidOperation();
     error InvalidFeesManager();
     error InvalidTokenAddress(address token);
     error UnsupportedChainId(uint256 chainId);
@@ -42,18 +45,19 @@ contract Adapter is IAdapter, Ownable {
     error InvalidMessageId(uint256 actual, uint256 expected);
     error InvalidDestinationChainId(uint256 destinationChainId);
 
-    constructor(address registry_) Ownable(msg.sender) {
-        registry = registry_;
+    constructor(address _xerc20, address _erc20) Ownable(msg.sender) {
+        erc20 = _erc20;
+        xerc20 = _xerc20;
     }
 
+    /// @inheritdoc IAdapter
     // TODO: check reentrancy here
     function settle(
         Operation memory operation,
         IPAM.Metadata calldata metadata
     ) external {
-        (, address xerc20) = IXERC20Registry(registry).getAssets(
-            operation.erc20
-        );
+        if (operation.erc20 != bytes32(abi.encode(erc20)))
+            revert InvalidOperation();
 
         address pam = IXERC20(xerc20).getPAM(address(this));
 
@@ -102,8 +106,6 @@ contract Adapter is IAdapter, Ownable {
     }
 
     function _finalizeSwap(
-        bytes32 erc20Bytes,
-        address xerc20,
         uint256 amount,
         uint256 destinationChainId,
         string memory recipient,
@@ -130,7 +132,7 @@ contract Adapter is IAdapter, Ownable {
             EventBytes(
                 bytes.concat(
                     bytes32(_nonce),
-                    erc20Bytes,
+                    bytes32(abi.encode(erc20)),
                     bytes32(destinationChainId),
                     bytes32(amount - fees),
                     bytes32(uint256(uint160(msg.sender))),
@@ -146,6 +148,7 @@ contract Adapter is IAdapter, Ownable {
         }
     }
 
+    /// @inheritdoc IAdapter
     function swap(
         address token,
         uint256 amount,
@@ -154,13 +157,10 @@ contract Adapter is IAdapter, Ownable {
         bytes memory data
     ) public {
         if (token == address(0)) revert InvalidTokenAddress(token);
+        if ((token != erc20) && (token != xerc20)) revert NotAllowed();
         if (amount <= 0) revert InvalidAmount();
 
-        (bytes32 erc20Bytes, address xerc20) = IXERC20Registry(registry)
-            .getAssets(token);
-
         address lockbox = IXERC20(xerc20).getLockbox();
-        address erc20 = address(uint160(uint256(erc20Bytes)));
 
         // Native swaps are not allowed within this fn,
         // use the swapNative one
@@ -183,16 +183,10 @@ contract Adapter is IAdapter, Ownable {
             IXERC20Lockbox(lockbox).deposit(amount);
         }
 
-        _finalizeSwap(
-            erc20Bytes,
-            xerc20,
-            amount,
-            destinationChainId,
-            recipient,
-            data
-        );
+        _finalizeSwap(amount, destinationChainId, recipient, data);
     }
 
+    /// @inheritdoc IAdapter
     function swap(
         address token,
         uint256 amount,
@@ -202,19 +196,15 @@ contract Adapter is IAdapter, Ownable {
         swap(token, amount, destinationChainId, recipient, "");
     }
 
+    /// @inheritdoc IAdapter
     function swapNative(
         uint256 destinationChainId,
         string memory recipient,
         bytes memory data
     ) public payable {
         uint256 amount = msg.value;
+        if (erc20 != address(0)) revert NotAllowed();
         if (amount == 0) revert InvalidAmount();
-
-        // When wrapping a native asset (i.e. ETH) we map it
-        // to 32 zero bytes in the registry
-        (bytes32 erc20, address xerc20) = IXERC20Registry(registry).getAssets(
-            bytes32(0)
-        );
 
         address lockbox = IXERC20(xerc20).getLockbox();
 
@@ -229,16 +219,10 @@ contract Adapter is IAdapter, Ownable {
                 address(this)
             );
 
-        _finalizeSwap(
-            erc20,
-            xerc20,
-            amount,
-            destinationChainId,
-            recipient,
-            data
-        );
+        _finalizeSwap(amount, destinationChainId, recipient, data);
     }
 
+    /// @inheritdoc IAdapter
     function swapNative(
         uint256 destinationChainId,
         string memory recipient

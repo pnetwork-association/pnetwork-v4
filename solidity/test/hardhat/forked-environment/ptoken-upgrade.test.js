@@ -60,7 +60,7 @@ conditionalDescribe(
     })
 
     describe('Binance Smart Chain - swap()', () => {
-      let ptoken, proxyAdminOwner, registry, ptokenv2
+      let ptoken, proxyAdminOwner, ptokenv2
       before(async () => {
         const rpc = hre.config.networks.bscFork.url
         const blockToForkFrom = 40729521 // 2024-07-23 15:22
@@ -75,11 +75,10 @@ conditionalDescribe(
         proxyAdminOwner = await hre.ethers.getImpersonatedSigner(
           ADDRESS_PTOKEN_PROXY_ADMIN_OWNER,
         )
-        registry = await deploy(hre, 'XERC20Registry', [])
-        adapterBsc = await deploy(hre, 'Adapter', [registry.target])
-
-        await registry.grantRole(await registry.REGISTRAR_ROLE(), owner)
-        await registry.registerXERC20(padLeft32(ADDRESS_ERC20_TOKEN), ptoken)
+        adapterBsc = await deploy(hre, 'Adapter', [
+          ptoken.target,
+          ADDRESS_ERC20_TOKEN,
+        ])
 
         await hardhatSetBalance(hre, rpc, proxyAdminOwner.address, oneEth)
       })
@@ -136,7 +135,7 @@ conditionalDescribe(
 
     describe('Ethereum mainnet - collateral migration', () => {
       let vault, pnetwork
-      let registry, lockbox, xerc20, pam
+      let lockbox, xerc20, pam
       before(async () => {
         const rpc = hre.config.networks.ethFork.url
         const blockToForkFrom = 20369499 // 2024-07-23 15:22
@@ -156,8 +155,10 @@ conditionalDescribe(
         pnetwork = await hre.ethers.getImpersonatedSigner(
           ADDRESS_PNETWORK_SIGNER,
         )
-        registry = await deploy(hre, 'XERC20Registry', [])
-        adapterEth = await deploy(hre, 'Adapter', [registry.target])
+        adapterEth = await deploy(hre, 'Adapter', [
+          xerc20.target,
+          ADDRESS_ERC20_TOKEN,
+        ])
         lockbox = await deploy(hre, 'XERC20Lockbox', [
           xerc20.target,
           erc20.target,
@@ -166,10 +167,6 @@ conditionalDescribe(
 
         await xerc20.setLockbox(lockbox)
         await xerc20.setLimits(adapterEth, mintingLimit, burningLimit)
-        await registry.grantRole(await registry.REGISTRAR_ROLE(), owner)
-        await registry
-          .connect(owner)
-          .registerXERC20(padLeft32(erc20.target), xerc20)
 
         await hardhatSetBalance(hre, rpc, pnetwork.address, oneEth)
       })
