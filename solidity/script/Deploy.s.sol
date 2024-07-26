@@ -19,20 +19,18 @@ contract Deploy is Script {
         uint256 burningLimit = 1 ether;
         address factory = address(0);
 
-        XERC20Registry registry = new XERC20Registry();
-        Adapter adapter = new Adapter(address(registry));
         ERC20Test erc20 = new ERC20Test(name, symbol, 1000 ether);
         XERC20 xerc20 = new XERC20(
             string.concat("p", name),
             string.concat("p", symbol),
             factory
         );
-
         XERC20Lockbox lockbox = new XERC20Lockbox(
             address(xerc20),
             address(erc20),
             false
         );
+        Adapter adapter = new Adapter(address(xerc20), address(erc20));
 
         xerc20.setLockbox(address(lockbox));
         xerc20.setLimits(address(adapter), mintingLimit, burningLimit);

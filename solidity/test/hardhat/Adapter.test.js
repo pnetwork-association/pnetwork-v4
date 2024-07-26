@@ -51,16 +51,19 @@ const deployERC1820 = () => helpers.setCode(ERC1820, ERC1820BYTES)
 
         const isNative = _isNative == 'Native'
         const feesManager = await deploy(hre, 'FeesManager', [])
-        const registry = await deploy(hre, 'XERC20Registry', [])
         const erc20 = isNative
           ? { target: ZeroAddress }
           : await deploy(hre, 'ERC20Test', [name, symbol, supply])
 
-        const adapter = await deploy(hre, 'Adapter', [registry.target])
         const lockbox = await deploy(hre, 'XERC20Lockbox', [
           pTokenV2.target,
           erc20.target,
           isNative,
+        ])
+
+        const adapter = await deploy(hre, 'Adapter', [
+          pTokenV2.target,
+          erc20.target,
         ])
 
         const PAM = await deploy(hre, 'PAM', [])
@@ -82,8 +85,6 @@ const deployERC1820 = () => helpers.setCode(ERC1820, ERC1820BYTES)
           padLeft32(adapter.target),
         )
         await feesManager.setFee(pTokenV2, minFee, basisPoints)
-        await registry.grantRole(await registry.REGISTRAR_ROLE(), owner)
-        await registry.registerXERC20(erc20Bytes, pTokenV2)
         await pTokenV2.setFeesManager(feesManager)
         await pTokenV2.setLockbox(lockbox)
         await pTokenV2.setLimits(adapter, mintingLimit, burningLimit)
@@ -115,7 +116,6 @@ const deployERC1820 = () => helpers.setCode(ERC1820, ERC1820BYTES)
             recipient,
             adapter,
             erc20,
-            erc20Bytes,
             pTokenV2,
             lockbox,
             feesManager,
@@ -127,7 +127,6 @@ const deployERC1820 = () => helpers.setCode(ERC1820, ERC1820BYTES)
             ? await hre.ethers.provider.getBalance(user)
             : await erc20.balanceOf(user)
           const expectedNonce = 0
-          const expectedData = '0x'
 
           adapter = await adapter.connect(user)
 
