@@ -50,6 +50,7 @@ contract Adapter is IAdapter, Ownable {
         xerc20 = _xerc20;
     }
 
+    /// @inheritdoc IAdapter
     // TODO: check reentrancy here
     function settle(
         Operation memory operation,
@@ -147,6 +148,7 @@ contract Adapter is IAdapter, Ownable {
         }
     }
 
+    /// @inheritdoc IAdapter
     function swap(
         address token,
         uint256 amount,
@@ -184,6 +186,7 @@ contract Adapter is IAdapter, Ownable {
         _finalizeSwap(amount, destinationChainId, recipient, data);
     }
 
+    /// @inheritdoc IAdapter
     function swap(
         address token,
         uint256 amount,
@@ -193,12 +196,14 @@ contract Adapter is IAdapter, Ownable {
         swap(token, amount, destinationChainId, recipient, "");
     }
 
+    /// @inheritdoc IAdapter
     function swapNative(
         uint256 destinationChainId,
         string memory recipient,
         bytes memory data
     ) public payable {
         uint256 amount = msg.value;
+        if (erc20 != address(0)) revert NotAllowed();
         if (amount == 0) revert InvalidAmount();
 
         address lockbox = IXERC20(xerc20).getLockbox();
@@ -217,6 +222,7 @@ contract Adapter is IAdapter, Ownable {
         _finalizeSwap(amount, destinationChainId, recipient, data);
     }
 
+    /// @inheritdoc IAdapter
     function swapNative(
         uint256 destinationChainId,
         string memory recipient
