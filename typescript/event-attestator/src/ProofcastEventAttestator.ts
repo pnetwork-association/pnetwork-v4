@@ -104,12 +104,4 @@ export class ProofcastEventAttestator {
 
     return this.formatSignature(signature)
   }
-
-  getMetadata(event: Event): string {
-    return hexConcat([
-      this.getEventContext(),
-      this.getEventId(event),
-      this.sign(event),
-    ])
-  }
 }
