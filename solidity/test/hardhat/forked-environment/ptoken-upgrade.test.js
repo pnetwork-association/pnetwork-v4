@@ -1,3 +1,4 @@
+import helpers from '@nomicfoundation/hardhat-network-helpers'
 import { Chains, ProofcastEventAttestator } from '@pnetwork/event-attestator'
 import { expect } from 'chai'
 import { ZeroAddress } from 'ethers/constants'
@@ -12,7 +13,6 @@ import { upgradeProxy } from '../utils/upgrade-proxy.cjs'
 import PTokenAbi from './abi/bsc/PToken.json' assert { type: 'json' }
 import Erc20Abi from './abi/eth/ERC20.json' assert { type: 'json' }
 import VaultAbi from './abi/eth/Vault.json' assert { type: 'json' }
-import { hardhatReset, hardhatSetBalance } from './utils/index.cjs'
 
 const ADDRESS_PTOKEN_V1_VAULT = '0xe396757ec7e6ac7c8e5abe7285dde47b98f22db8' // vault on ETH
 const ADDRESS_ERC20_TOKEN = '0x1fe24f25b1cf609b9c4e7e12d802e3640dfa5e43' // CGG on ETH
@@ -64,13 +64,13 @@ conditionalDescribe(
       before(async () => {
         const rpc = hre.config.networks.bscFork.url
         const blockToForkFrom = 40729521 // 2024-07-23 15:22
-        await hardhatReset(hre, rpc, blockToForkFrom)
+        await helpers.reset(rpc, blockToForkFrom)
 
         user = await hre.ethers.getImpersonatedSigner(
           '0x816a99530B0f272Bb6ba4913b8952249f8d2E21b',
         )
 
-        await hardhatSetBalance(hre, rpc, user.address, oneEth)
+        await helpers.setBalance(user.address, oneEth)
         ptoken = await hre.ethers.getContractAt(PTokenAbi, ADDRESS_PTOKEN)
         proxyAdminOwner = await hre.ethers.getImpersonatedSigner(
           ADDRESS_PTOKEN_PROXY_ADMIN_OWNER,
@@ -80,7 +80,7 @@ conditionalDescribe(
           ADDRESS_ERC20_TOKEN,
         ])
 
-        await hardhatSetBalance(hre, rpc, proxyAdminOwner.address, oneEth)
+        await helpers.setBalance(proxyAdminOwner.address, oneEth)
       })
 
       it('Should upgrade the ptoken successfully', async () => {
@@ -101,7 +101,9 @@ conditionalDescribe(
       })
 
       it('Should apply the required setup and perform a swap to Ethereum', async () => {
-        const destinationChainId = padLeft32(Chains.Mainnet)
+        // We use HH chainid here instead of Mainnet because we don't have
+        // the possibility to force it when forking.
+        const destinationChainId = padLeft32(Chains.Hardhat)
         const ptokenOwner = await hre.ethers.getImpersonatedSigner(
           await ptokenv2.owner(),
         )
@@ -139,7 +141,7 @@ conditionalDescribe(
       before(async () => {
         const rpc = hre.config.networks.ethFork.url
         const blockToForkFrom = 20369499 // 2024-07-23 15:22
-        await hardhatReset(hre, rpc, blockToForkFrom)
+        await helpers.reset(rpc, blockToForkFrom)
 
         erc20 = await hre.ethers.getContractAt(Erc20Abi, ADDRESS_ERC20_TOKEN)
 
@@ -165,10 +167,12 @@ conditionalDescribe(
           isNative,
         ])
 
+        pam = await deploy(hre, 'PAM', [])
+
         await xerc20.setLockbox(lockbox)
         await xerc20.setLimits(adapterEth, mintingLimit, burningLimit)
 
-        await hardhatSetBalance(hre, rpc, pnetwork.address, oneEth)
+        await helpers.setBalance(pnetwork.address, oneEth)
       })
 
       it('Should transfer all the funds to the lockbox', async () => {
@@ -189,7 +193,6 @@ conditionalDescribe(
 
       it('Should settle the pegout correctly', async () => {
         const attestation = '0x'
-        const pam = await deploy(hre, 'PAM', [])
 
         await pam.setTeeSigner(eventAttestator.publicKey, attestation)
         await pam.setEmitter(

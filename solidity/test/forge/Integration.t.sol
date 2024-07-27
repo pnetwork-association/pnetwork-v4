@@ -18,27 +18,23 @@ import {XERC20} from "../../src/xerc20/XERC20.sol";
 import {ERC20Test} from "../../src/test/ERC20Test.sol";
 import {DataReceiver} from "../../src/test/DataReceiver.sol";
 import {XERC20Lockbox} from "../../src/xerc20/XERC20Lockbox.sol";
-import {ExcessivelySafeCall} from "../../src/libraries/ExcessivelySafeCall.sol";
 
 import "forge-std/console.sol";
 
 contract IntegrationTest is Test, Helper {
     uint256 constant CHAIN_A = 31337;
     uint256 constant CHAIN_B = 31338;
-    bytes32 DEFAULT_TX_HASH =
-        vm.parseBytes32(
-            "0x11365bbee18058f12c27236e891a66999c4325879865303f785854e9169c257a"
-        );
-    bytes32 DEFAULT_BLOCK_HASH =
-        vm.parseBytes32(
-            "0xa880cb2ab67ec9140db0f6de238b34d4108f6fab99315772ee987ef9002e0e63"
-        );
+    string attestatorPrivateKey =
+        "0xdfcc79a57e91c42d7eea05f82a08bd1b7e77f30236bb7c56fe98d3366a1929c4";
+    string attestatorPublicKey =
+        "0x0480472f799469d9af8790307a022802785c2b1e2f9c0930bdf9bafe193245e7a37cf43c720edc0892a2a97050005207e412f2227b1d92a78b8ee366fe4fea5ac9";
+    address attestatorAddress = 0x3Da392a1403440087cA765E20B7c442b8129392b;
+    bytes32 SWAP_TOPIC = IAdapter.Swap.selector;
 
     /// @dev Signers
     address user;
     address owner;
     address recipient;
-    IPAM.Metadata metadata;
 
     /// @dev Contracts
     XERC20 xerc20_A;
@@ -59,20 +55,14 @@ contract IntegrationTest is Test, Helper {
     uint256 userBalance;
     bytes32 erc20Bytes_A;
     bytes32 erc20Bytes_B;
+    IAdapter.Operation operation;
+    IPAM.Metadata metadata;
 
     constructor() {
         owner = vm.addr(1);
         user = vm.addr(2);
         recipient = vm.addr(3);
         userBalance = 50000;
-        metadata = IPAM.Metadata(
-            vm.parseBytes(
-                "0x01010000000000000000000000000000000000000000000000000000000000007a69a880cb2ab67ec9140db0f6de238b34d4108f6fab99315772ee987ef9002e0e63a880cb2ab67ec9140db0f6de238b34d4108f6fab99315772ee987ef9002e0e630000000000000000000000006d411e0a54382ed43f02410ce1c7a7c122afa6e1a68959eed8a7e77ce926c4c04ee06434559ae1db7f636ceacd659f5c9126f1c300000000000000000000000000000000000000000000000000000000000000000000000000000000000000002946259e0334f33a064106302415ad3391bed3840000000000000000000000000000000000000000000000000000000000007a6a00000000000000000000000000000000000000000000000000000000000026fc0000000000000000000000002b5ad5c4795c026514f8317c7a215e218dccd6cf000000000000000000000000000000000000000000000000000000000000002a307836383133456239333632333732454546363230306633623164624333663831393637316342413639"
-            ),
-            vm.parseBytes(
-                "0x387515efe7f640c04214a06d8ec89f2d211c8f197711557c5fff7ac4362543cc05baed1946c41bdeb69cc743319eff3ffa41729e67f4d9b57416f9266a6a69261c"
-            )
-        );
     }
 
     function setUp() public {
@@ -223,10 +213,13 @@ contract IntegrationTest is Test, Helper {
             data
         );
 
-        IAdapter.Operation memory operation = _getOperationFromRecordedLogs(
-            bytes32(CHAIN_A),
-            DEFAULT_BLOCK_HASH,
-            DEFAULT_TX_HASH
+        Vm.Log[] memory logs = vm.getRecordedLogs();
+        operation = _getOperationFromLogs(logs, SWAP_TOPIC);
+        metadata = _getMetadataFromLogs(
+            logs,
+            SWAP_TOPIC,
+            operation,
+            attestatorPrivateKey
         );
 
         bytes32 eventId = _getEventId(metadata.preimage);
@@ -264,10 +257,13 @@ contract IntegrationTest is Test, Helper {
             data
         );
 
-        IAdapter.Operation memory operation = _getOperationFromRecordedLogs(
-            bytes32(CHAIN_A),
-            DEFAULT_BLOCK_HASH,
-            DEFAULT_TX_HASH
+        Vm.Log[] memory logs = vm.getRecordedLogs();
+        operation = _getOperationFromLogs(logs, SWAP_TOPIC);
+        metadata = _getMetadataFromLogs(
+            logs,
+            SWAP_TOPIC,
+            operation,
+            attestatorPrivateKey
         );
 
         vm.chainId(CHAIN_B);
@@ -289,30 +285,24 @@ contract IntegrationTest is Test, Helper {
             address(xerc20_B),
             recipient,
             address(adapter_B),
-            CHAIN_B,
+            CHAIN_A,
             recipient,
             pegoutAmount,
             data
         );
 
-        operation = _getOperationFromRecordedLogs(
-            bytes32(CHAIN_B),
-            DEFAULT_BLOCK_HASH,
-            DEFAULT_TX_HASH
+        logs = vm.getRecordedLogs();
+        operation = _getOperationFromLogs(logs, SWAP_TOPIC);
+        metadata = _getMetadataFromLogs(
+            logs,
+            SWAP_TOPIC,
+            operation,
+            attestatorPrivateKey
         );
 
         vm.chainId(CHAIN_A);
 
-        IPAM.Metadata memory pegoutMetadata = IPAM.Metadata(
-            vm.parseBytes(
-                "0x01010000000000000000000000000000000000000000000000000000000000007a6aa880cb2ab67ec9140db0f6de238b34d4108f6fab99315772ee987ef9002e0e63a880cb2ab67ec9140db0f6de238b34d4108f6fab99315772ee987ef9002e0e6300000000000000000000000063f58053c9499e1104a6f6c6d2581d6d83067eeba68959eed8a7e77ce926c4c04ee06434559ae1db7f636ceacd659f5c9126f1c300000000000000000000000000000000000000000000000000000000000000000000000000000000000000002946259e0334f33a064106302415ad3391bed3840000000000000000000000000000000000000000000000000000000000007a6a00000000000000000000000000000000000000000000000000000000000013880000000000000000000000006813eb9362372eef6200f3b1dbc3f819671cba69000000000000000000000000000000000000000000000000000000000000002a307836383133456239333632333732454546363230306633623164624333663831393637316342413639"
-            ),
-            vm.parseBytes(
-                "0xf8f5739485a5567060d29db7c923080313f65ef0070ce942b4a3fd32c0747fd0253d22b56af8c251bc79b9014057eddc24ec4bdd1951bc75ca2ee38e09fe55f21b"
-            )
-        );
-
-        bytes32 eventId = _getEventId(pegoutMetadata.preimage);
+        bytes32 eventId = _getEventId(metadata.preimage);
 
         vm.expectEmit(address(xerc20_A));
         emit IERC20.Transfer(address(lockbox_A), address(0), netAmount);
@@ -320,7 +310,7 @@ contract IntegrationTest is Test, Helper {
         emit IERC20.Transfer(address(lockbox_A), recipient, netAmount);
         vm.expectEmit(address(adapter_A));
         emit IAdapter.Settled(eventId);
-        IAdapter(adapter_A).settle(operation, pegoutMetadata);
+        IAdapter(adapter_A).settle(operation, metadata);
 
         assertEq(xerc20_A.balanceOf(recipient), 0);
         assertEq(xerc20_A.balanceOf(address(adapter_A)), 0);
@@ -358,17 +348,13 @@ contract IntegrationTest is Test, Helper {
             data
         );
 
-        IAdapter.Operation memory operation = _getOperationFromRecordedLogs(
-            bytes32(CHAIN_A),
-            DEFAULT_BLOCK_HASH,
-            DEFAULT_TX_HASH
-        );
-
-        metadata.preimage = vm.parseBytes(
-            "0x01010000000000000000000000000000000000000000000000000000000000007a69a880cb2ab67ec9140db0f6de238b34d4108f6fab99315772ee987ef9002e0e6311365bbee18058f12c27236e891a66999c4325879865303f785854e9169c257a0000000000000000000000006d411e0a54382ed43f02410ce1c7a7c122afa6e1a68959eed8a7e77ce926c4c04ee06434559ae1db7f636ceacd659f5c9126f1c300000000000000000000000000000000000000000000000000000000000000000000000000000000000000002946259e0334f33a064106302415ad3391bed3840000000000000000000000000000000000000000000000000000000000007a6a00000000000000000000000000000000000000000000000000000000000026fc0000000000000000000000002b5ad5c4795c026514f8317c7a215e218dccd6cf000000000000000000000000000000000000000000000000000000000000002a307835363135644542373938424233453464466130313339644661316233443433334363323362373266c0ffee"
-        );
-        metadata.signature = vm.parseBytes(
-            "0x4d677785f125d2b6fbeb56c8360fbff583f504e5d4af23e02f0b0e7dc6a0f1c756b85935bdea9c32786a2671faf2b12fedce0874b67b7b60ade4c891219237ee1c"
+        Vm.Log[] memory logs = vm.getRecordedLogs();
+        operation = _getOperationFromLogs(logs, SWAP_TOPIC);
+        metadata = _getMetadataFromLogs(
+            logs,
+            SWAP_TOPIC,
+            operation,
+            attestatorPrivateKey
         );
 
         bytes32 eventId = _getEventId(metadata.preimage);
