@@ -233,10 +233,7 @@ const deployERC1820 = () => helpers.setCode(ERC1820, ERC1820BYTES)
           )
 
           if (_isNative) {
-            await hre.network.provider.send('hardhat_setBalance', [
-              lockbox.target,
-              hre.ethers.toBeHex(amount),
-            ])
+            await helpers.setBalance(lockbox.target, hre.ethers.toBeHex(amount))
           } else {
             await erc20.connect(owner).transfer(lockbox, amount)
           }
