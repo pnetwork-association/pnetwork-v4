@@ -160,13 +160,30 @@ abstract contract Helper is Test {
         bytes32 blockHash,
         bytes32 txHash
     ) internal returns (IAdapter.Operation memory operation) {
+        return
+            _getOperationFromRecordedLogs(
+                originChainId,
+                blockHash,
+                txHash,
+                false
+            );
+    }
+
+    function _getOperationFromRecordedLogs(
+        bytes32 originChainId,
+        bytes32 blockHash,
+        bytes32 txHash,
+        bool print
+    ) internal returns (IAdapter.Operation memory operation) {
         Vm.Log[] memory entries = vm.getRecordedLogs();
         uint256 last = entries.length - 1;
-        // console.log("////////////////////////////////");
-        // console.log(entries[last].emitter); // address
-        // console.log(vm.toString(entries[last].data)); // data
-        // console.log(vm.toString(entries[last].topics[0])); // topic0
-        // console.log(vm.toString(entries[last].topics[1])); // topic1
+        if (print) {
+            console.log("////////////////////////////////");
+            console.log(entries[last].emitter); // address
+            console.log(vm.toString(entries[last].data)); // data
+            console.log(vm.toString(entries[last].topics[0])); // topic0
+            console.log(vm.toString(entries[last].topics[1])); // topic1
+        }
 
         bytes memory content = abi
             .decode(entries[last].data, (IAdapter.EventBytes))
@@ -190,7 +207,7 @@ abstract contract Helper is Test {
                 _hexStringToAddress(
                     string(BytesLib.slice(content, 192, recipientLen)) // recipient
                 ),
-                BytesLib.slice(content, 224, dataLen) // data
+                BytesLib.slice(content, 192 + recipientLen, dataLen) // data
             );
     }
 
