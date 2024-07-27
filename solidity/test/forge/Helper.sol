@@ -211,6 +211,123 @@ abstract contract Helper is Test {
             );
     }
 
+    function _findLogWithTopic(
+        Vm.Log[] memory logs,
+        bytes32 topic
+    ) internal returns (Vm.Log memory) {
+        uint256 i;
+        for (i = 0; i < logs.length; i++) {
+            if (logs[i].topics[0] == topic) break;
+        }
+
+        assert(i < logs.length);
+
+        return logs[i];
+    }
+
+    function _getOperationFromLogs(
+        Vm.Log[] memory logs,
+        bytes32 topic,
+        bool print
+    ) internal returns (IAdapter.Operation memory) {
+        Vm.Log memory log = _findLogWithTopic(logs, topic);
+        vm.roll(4);
+        bytes32 blockHash = blockhash(block.number - 2);
+        bytes32 txHash = blockhash(block.number - 1);
+
+        if (print) {
+            console.log(
+                string.concat(
+                    "./attestator.js ",
+                    "metadata ",
+                    " -b ",
+                    vm.toString(blockHash),
+                    " -t ",
+                    vm.toString(txHash),
+                    " ",
+                    vm.toString(log.emitter),
+                    " ",
+                    vm.toString(log.data),
+                    " ",
+                    vm.toString(log.topics[0]),
+                    " ",
+                    vm.toString(log.topics[1])
+                )
+            );
+            console.log("");
+        }
+
+        bytes memory eventBytes = abi
+            .decode(log.data, (IAdapter.EventBytes))
+            .content;
+
+        uint256 recipientLen = uint256(
+            bytes32(BytesLib.slice(eventBytes, 160, 32))
+        );
+
+        uint256 dataLen = eventBytes.length - recipientLen - 192;
+        return
+            IAdapter.Operation(
+                blockHash,
+                txHash,
+                uint256(log.topics[1]), // nonce
+                bytes32(BytesLib.slice(eventBytes, 32, 32)), // erc20
+                bytes32(block.chainid),
+                bytes32(BytesLib.slice(eventBytes, 64, 32)), // destination chain id
+                uint256(bytes32(BytesLib.slice(eventBytes, 96, 32))), // amount
+                bytes32(BytesLib.slice(eventBytes, 128, 32)), //  sender
+                _hexStringToAddress(
+                    string(BytesLib.slice(eventBytes, 192, recipientLen)) // recipient
+                ),
+                BytesLib.slice(eventBytes, 192 + recipientLen, dataLen) // data
+            );
+    }
+
+    function _getOperationFromLogs(
+        Vm.Log[] memory logs,
+        bytes32 topic
+    ) internal returns (IAdapter.Operation memory) {
+        return _getOperationFromLogs(logs, topic, false);
+    }
+
+    function _getMetadataFromLogs(
+        Vm.Log[] memory logs,
+        bytes32 topic,
+        IAdapter.Operation memory operation,
+        string memory privateKey
+    ) internal returns (IPAM.Metadata memory) {
+        Vm.Log memory log = _findLogWithTopic(logs, topic);
+
+        bytes1 version = 0x01;
+        bytes1 protocolId = 0x01;
+        bytes memory context = bytes.concat(
+            version,
+            protocolId,
+            bytes32(block.chainid)
+        );
+
+        bytes memory eventBytes = abi
+            .decode(log.data, (IAdapter.EventBytes))
+            .content;
+
+        bytes memory eventPayload = bytes.concat(
+            bytes32(abi.encode(log.emitter)),
+            sha256(bytes.concat(log.topics[0], log.topics[1])),
+            eventBytes
+        );
+
+        bytes memory preimage = bytes.concat(
+            context,
+            operation.blockId,
+            operation.txId,
+            eventPayload
+        );
+        uint256 pk = uint256(vm.parseBytes32(privateKey));
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(pk, sha256(preimage));
+        bytes memory signature = abi.encodePacked(r, s, v);
+        return IPAM.Metadata(preimage, signature);
+    }
+
     function _getEventId(
         bytes memory metadataPreImage
     ) internal pure returns (bytes32) {

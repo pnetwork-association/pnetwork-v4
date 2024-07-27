@@ -1,3 +1,4 @@
+import helpers from '@nomicfoundation/hardhat-network-helpers'
 import { Chains, ProofcastEventAttestator } from '@pnetwork/event-attestator'
 import { expect } from 'chai'
 import { ZeroAddress } from 'ethers/constants'
@@ -101,7 +102,9 @@ conditionalDescribe(
       })
 
       it('Should apply the required setup and perform a swap to Ethereum', async () => {
-        const destinationChainId = padLeft32(Chains.Mainnet)
+        // We use HH chainid here instead of Mainnet because we don't have
+        // the possibility to force it when forking.
+        const destinationChainId = padLeft32(Chains.Hardhat)
         const ptokenOwner = await hre.ethers.getImpersonatedSigner(
           await ptokenv2.owner(),
         )
@@ -139,7 +142,7 @@ conditionalDescribe(
       before(async () => {
         const rpc = hre.config.networks.ethFork.url
         const blockToForkFrom = 20369499 // 2024-07-23 15:22
-        await hardhatReset(hre, rpc, blockToForkFrom)
+        await helpers.reset(rpc, blockToForkFrom)
 
         erc20 = await hre.ethers.getContractAt(Erc20Abi, ADDRESS_ERC20_TOKEN)
 
@@ -165,6 +168,8 @@ conditionalDescribe(
           isNative,
         ])
 
+        pam = await deploy(hre, 'PAM', [])
+
         await xerc20.setLockbox(lockbox)
         await xerc20.setLimits(adapterEth, mintingLimit, burningLimit)
 
@@ -189,7 +194,6 @@ conditionalDescribe(
 
       it('Should settle the pegout correctly', async () => {
         const attestation = '0x'
-        const pam = await deploy(hre, 'PAM', [])
 
         await pam.setTeeSigner(eventAttestator.publicKey, attestation)
         await pam.setEmitter(

@@ -13,11 +13,10 @@ contract PAM is Ownable, IPAM {
     address public teeAddress;
     address public teeAddressNew;
     uint256 public teeAddressChangeGraceThreshold;
-    mapping(bytes32 => bytes32) emitters;
+    mapping(bytes32 => bytes32) public emitters;
+    mapping(bytes32 => bool) public pastEvents;
 
-    error InvalidEventRLP();
-    error InvalidTeeSigner();
-    error InvalidSignature();
+    error UnsetTeeSigner();
     error GracePeriodNotElapsed();
     error InvalidNewTeeSigner();
     error AlreadyProcessed(bytes32 eventId);
@@ -56,6 +55,9 @@ contract PAM is Ownable, IPAM {
         } else {
             // The new address will be set after a grace period of 48 hours
             teeAddressNew = _getAddressFromPublicKey(pubKey);
+
+            if (teeAddressNew == address(0)) revert InvalidNewTeeSigner();
+
             teeAddressChangeGraceThreshold =
                 block.timestamp +
                 TEE_ADDRESS_CHANGE_GRACE_PERIOD;
@@ -82,7 +84,6 @@ contract PAM is Ownable, IPAM {
     function applyNewTeeSigner() external {
         if (block.timestamp < teeAddressChangeGraceThreshold)
             revert GracePeriodNotElapsed();
-        if (teeAddressNew == address(0)) revert InvalidNewTeeSigner();
 
         teeAddress = teeAddressNew;
         teeAddressNew = address(0);
@@ -124,7 +125,8 @@ contract PAM is Ownable, IPAM {
         // Event Bytes content (see _finalizeSwap() in Adapter)
         // | nonce | erc20 | destination | amount | sender | recipientLen | recipient |   data   |
         // |  32B  |  32B  |     32B     |  32B   |  32B   |     32B      |   varlen  |  varlen  |
-        uint256 offset = 32; // skip the nonce
+        uint256 offset = 32;
+        uint256 nonce = uint256(bytes32(content[0:offset]));
         bytes32 erc20 = bytes32(content[offset:offset += 32]);
         bytes32 destinationChainId = bytes32(content[offset:offset += 32]);
         uint256 amount = uint256(bytes32(content[offset:offset += 32]));
@@ -135,8 +137,10 @@ contract PAM is Ownable, IPAM {
         );
         bytes memory data = content[offset:];
 
-        return (erc20 == operation.erc20 &&
+        return (nonce == operation.nonce &&
+            erc20 == operation.erc20 &&
             destinationChainId == operation.destinationChainId &&
+            destinationChainId == bytes32(block.chainid) &&
             amount == operation.amount &&
             sender == operation.sender &&
             recipient == operation.recipient &&
@@ -146,9 +150,7 @@ contract PAM is Ownable, IPAM {
     function _contextChecks(
         IAdapter.Operation memory operation,
         Metadata calldata metadata
-    ) internal view returns (bool) {
-        if (teeAddress == address(0)) return false;
-
+    ) internal pure returns (bool) {
         uint16 offset = 2; // skip protocol, version
         bytes32 originChainId = bytes32(metadata.preimage[offset:offset += 32]);
 
@@ -157,7 +159,7 @@ contract PAM is Ownable, IPAM {
         bytes32 blockId = bytes32(metadata.preimage[offset:offset += 32]);
         bytes32 txId = bytes32(metadata.preimage[offset:offset += 32]);
 
-        if (blockId != operation.blockId && txId != operation.txId)
+        if (blockId != operation.blockId || txId != operation.txId)
             return false;
 
         return true;
@@ -171,6 +173,8 @@ contract PAM is Ownable, IPAM {
         //    | version | protocol | origin | blockHash | txHash | eventPayload |
         //    |   1B    |    1B    |   32B  |    32B    |   32B  |    varlen    |
         //    +----------- context ---------+------------- event ---------------+
+
+        if (teeAddress == address(0)) revert UnsetTeeSigner();
 
         if (!_contextChecks(operation, metadata)) return (false, bytes32(0));
         bytes32 eventId = sha256(metadata.preimage);
@@ -192,7 +196,6 @@ contract PAM is Ownable, IPAM {
             return (false, eventId);
 
         offset += 32; // skip sha256(topics) part
-
         if (!_doesContentMatchOperation(eventPayload[offset:], operation))
             return (false, eventId);
 
