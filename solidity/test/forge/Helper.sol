@@ -155,66 +155,10 @@ abstract contract Helper is Test {
         return address(iaddr);
     }
 
-    function _getOperationFromRecordedLogs(
-        bytes32 originChainId,
-        bytes32 blockHash,
-        bytes32 txHash
-    ) internal returns (IAdapter.Operation memory operation) {
-        return
-            _getOperationFromRecordedLogs(
-                originChainId,
-                blockHash,
-                txHash,
-                false
-            );
-    }
-
-    function _getOperationFromRecordedLogs(
-        bytes32 originChainId,
-        bytes32 blockHash,
-        bytes32 txHash,
-        bool print
-    ) internal returns (IAdapter.Operation memory operation) {
-        Vm.Log[] memory entries = vm.getRecordedLogs();
-        uint256 last = entries.length - 1;
-        if (print) {
-            console.log("////////////////////////////////");
-            console.log(entries[last].emitter); // address
-            console.log(vm.toString(entries[last].data)); // data
-            console.log(vm.toString(entries[last].topics[0])); // topic0
-            console.log(vm.toString(entries[last].topics[1])); // topic1
-        }
-
-        bytes memory content = abi
-            .decode(entries[last].data, (IAdapter.EventBytes))
-            .content;
-
-        uint256 recipientLen = uint256(
-            bytes32(BytesLib.slice(content, 160, 32))
-        );
-
-        uint256 dataLen = content.length - recipientLen - 192;
-        return
-            IAdapter.Operation(
-                blockHash,
-                txHash,
-                uint256(entries[last].topics[1]), // nonce
-                bytes32(BytesLib.slice(content, 32, 32)), // erc20
-                originChainId,
-                bytes32(BytesLib.slice(content, 64, 32)), // destination chain id
-                uint256(bytes32(BytesLib.slice(content, 96, 32))), // amount
-                bytes32(BytesLib.slice(content, 128, 32)), //  sender
-                _hexStringToAddress(
-                    string(BytesLib.slice(content, 192, recipientLen)) // recipient
-                ),
-                BytesLib.slice(content, 192 + recipientLen, dataLen) // data
-            );
-    }
-
     function _findLogWithTopic(
         Vm.Log[] memory logs,
         bytes32 topic
-    ) internal returns (Vm.Log memory) {
+    ) internal pure returns (Vm.Log memory) {
         uint256 i;
         for (i = 0; i < logs.length; i++) {
             if (logs[i].topics[0] == topic) break;
@@ -295,7 +239,7 @@ abstract contract Helper is Test {
         bytes32 topic,
         IAdapter.Operation memory operation,
         string memory privateKey
-    ) internal returns (IPAM.Metadata memory) {
+    ) internal view returns (IPAM.Metadata memory) {
         Vm.Log memory log = _findLogWithTopic(logs, topic);
 
         bytes1 version = 0x01;
