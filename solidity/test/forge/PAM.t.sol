@@ -2,7 +2,6 @@
 pragma solidity ^0.8.25;
 
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
 import {Vm} from "forge-std/Vm.sol";
 import {Helper} from "./Helper.sol";
@@ -90,15 +89,6 @@ contract PAMTest is Test, Helper {
         eventId = _getEventId(metadata.preimage);
 
         vm.chainId(destinationChainId);
-    }
-
-    function _expectOwnableUnauthorizedAccountRevert(address anAddress) public {
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                Ownable.OwnableUnauthorizedAccount.selector,
-                anAddress
-            )
-        );
     }
 
     function test_setTeeSigner_RevertWhen_callerIsNotOwner() public {
