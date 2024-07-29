@@ -4,6 +4,7 @@ require('@openzeppelin/hardhat-upgrades')
 require('@nomicfoundation/hardhat-toolbox')
 require('@nomicfoundation/hardhat-foundry')
 require('@nomicfoundation/hardhat-network-helpers')
+require('hardhat-gas-reporter')
 require('solidity-coverage')
 require('hardhat-tracer')
 
