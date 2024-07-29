@@ -257,14 +257,10 @@ abstract contract Helper is Test {
             bytes32(block.chainid)
         );
 
-        bytes memory eventBytes = abi
-            .decode(log.data, (IAdapter.EventBytes))
-            .content;
-
         bytes memory eventPayload = bytes.concat(
             bytes32(abi.encode(log.emitter)),
             sha256(bytes.concat(log.topics[0], log.topics[1])),
-            eventBytes
+            log.data
         );
 
         bytes memory preimage = bytes.concat(

@@ -3,7 +3,6 @@ import { Event, Signature } from 'ethers'
 import {
   SigningKey,
   computeAddress,
-  defaultAbiCoder,
   hexConcat,
   hexZeroPad,
   hexlify,
@@ -62,15 +61,10 @@ export class ProofcastEventAttestator {
   getEventPayload(event: Event): string {
     // EVM event support only: for other chains may be
     // required to change logic based on version and protocolID
-    const eventBytes = defaultAbiCoder.decode(
-      ['tuple(bytes)'],
-      event.data,
-    )[0][0]
-
     return hexConcat([
       hexZeroPad(event.address, 32),
       sha256(hexConcat(event.topics)),
-      eventBytes,
+      event.data,
     ])
   }
 

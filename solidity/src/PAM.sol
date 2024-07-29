@@ -122,16 +122,21 @@ contract PAM is Ownable, IPAM {
             return (false, eventId);
 
         offset += 32; // skip sha256(topics) part
-        if (!_doesContentMatchOperation(eventPayload[offset:], operation))
+        IAdapter.EventBytes memory eventBytes = abi.decode(
+            eventPayload[offset:],
+            (IAdapter.EventBytes)
+        );
+
+        if (!this.doesContentMatchOperation(eventBytes.content, operation))
             return (false, eventId);
 
         return (true, eventId);
     }
 
-    function _doesContentMatchOperation(
+    function doesContentMatchOperation(
         bytes calldata content,
         IAdapter.Operation memory operation
-    ) internal view returns (bool) {
+    ) public view returns (bool) {
         // Event Bytes content (see _finalizeSwap() in Adapter)
         // | nonce | erc20 | destination | amount | sender | recipientLen | recipient |   data   |
         // |  32B  |  32B  |     32B     |  32B   |  32B   |     32B      |   varlen  |  varlen  |
