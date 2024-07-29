@@ -32,7 +32,7 @@ contract XERC20 is ERC20, Ownable, IXERC20, ERC20Permit {
     mapping(address => address) public adapterToPAM;
 
     error OnlyFeesManager();
-    error UnsufficientAmount();
+    error InsufficientAmount();
     error NotAContract(address addr);
 
     event FeesManagerChanged(address newAddress);
@@ -365,7 +365,7 @@ contract XERC20 is ERC20, Ownable, IXERC20, ERC20Permit {
             );
         }
 
-        if (fees > _amount) revert UnsufficientAmount();
+        if (fees > _amount) revert InsufficientAmount();
 
         uint256 netAmount = _amount - fees;
 
