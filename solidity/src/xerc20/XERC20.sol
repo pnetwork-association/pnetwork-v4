@@ -364,7 +364,7 @@ contract XERC20 is ERC20, Ownable, IXERC20, ERC20Permit {
         uint256 _amount
     ) internal {
         uint256 fees;
-        // is local?
+        // We don't make an internal call to isLocal() in order to save gas
         if (lockbox != address(0) && feesManager != address(0)) {
             fees = IFeesManager(feesManager).calculateFee(
                 address(this),
