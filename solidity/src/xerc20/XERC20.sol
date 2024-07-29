@@ -52,14 +52,21 @@ contract XERC20 is ERC20, Ownable, IXERC20, ERC20Permit {
         address _factory
     ) ERC20(_name, _symbol) ERC20Permit(_name) Ownable(msg.sender) {}
 
+    modifier onlyContractAddress(address anAddress) {
+        if (anAddress.code.length == 0) revert NotAContract(anAddress);
+        _;
+    }
+
+    modifier onlyFeesManager() {
+        if (feesManager != address(0) && msg.sender != feesManager)
+            revert OnlyFeesManager();
+        _;
+    }
+
     /// @inheritdoc IXERC20
-    function setFeesManager(address newAddress) public {
-        if (feesManager == address(0)) {
-            feesManager = newAddress;
-        } else if (msg.sender != feesManager) revert OnlyFeesManager();
-
-        if (newAddress.code.length == 0) revert NotAContract(newAddress);
-
+    function setFeesManager(
+        address newAddress
+    ) public onlyFeesManager onlyContractAddress(newAddress) {
         feesManager = newAddress;
 
         emit FeesManagerChanged(newAddress);
@@ -75,7 +82,7 @@ contract XERC20 is ERC20, Ownable, IXERC20, ERC20Permit {
     function setPAM(
         address adapterAddress,
         address pamAddress
-    ) external onlyOwner {
+    ) external onlyOwner onlyContractAddress(pamAddress) {
         adapterToPAM[adapterAddress] = pamAddress;
         emit PAMChanged(pamAddress);
     }
