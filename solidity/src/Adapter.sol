@@ -113,49 +113,6 @@ contract Adapter is IAdapter, Ownable {
         emit Settled(eventId);
     }
 
-    function _finalizeSwap(
-        uint256 amount,
-        uint256 destinationChainId,
-        string memory recipient,
-        bytes memory data
-    ) internal {
-        // At this point we control the xERC20 funds
-        address feesManager = IXERC20(xerc20).getFeesManager();
-
-        uint256 fees;
-        if (feesManager != address(0)) {
-            // Entering here means we are on the local chain, since
-            // it's there where the fee manager is deployed
-            // Some of the funds will go to the fees manager within the burn() fn,
-            // so we approve the correct quantity here
-            fees = IFeesManager(feesManager).calculateFee(xerc20, amount);
-            IERC20(xerc20).approve(feesManager, fees);
-        }
-
-        // No need to substract the fees here, see the burn fn
-        IXERC20(xerc20).burn(address(this), amount);
-
-        emit Swap(
-            _nonce,
-            EventBytes(
-                bytes.concat(
-                    bytes32(_nonce),
-                    bytes32(abi.encode(erc20)),
-                    bytes32(destinationChainId),
-                    bytes32(amount - fees),
-                    bytes32(uint256(uint160(msg.sender))),
-                    bytes32(bytes(recipient).length),
-                    bytes(recipient),
-                    data
-                )
-            )
-        );
-
-        unchecked {
-            ++_nonce;
-        }
-    }
-
     /// @inheritdoc IAdapter
     function swap(
         address token,
@@ -236,5 +193,48 @@ contract Adapter is IAdapter, Ownable {
         string memory recipient
     ) public payable {
         swapNative(destinationChainId, recipient, "");
+    }
+
+    function _finalizeSwap(
+        uint256 amount,
+        uint256 destinationChainId,
+        string memory recipient,
+        bytes memory data
+    ) internal {
+        // At this point we control the xERC20 funds
+        address feesManager = IXERC20(xerc20).getFeesManager();
+
+        uint256 fees;
+        if (feesManager != address(0)) {
+            // Entering here means we are on the local chain, since
+            // it's there where the fee manager is deployed
+            // Some of the funds will go to the fees manager within the burn() fn,
+            // so we approve the correct quantity here
+            fees = IFeesManager(feesManager).calculateFee(xerc20, amount);
+            IERC20(xerc20).approve(feesManager, fees);
+        }
+
+        // No need to substract the fees here, see the burn fn
+        IXERC20(xerc20).burn(address(this), amount);
+
+        emit Swap(
+            _nonce,
+            EventBytes(
+                bytes.concat(
+                    bytes32(_nonce),
+                    bytes32(abi.encode(erc20)),
+                    bytes32(destinationChainId),
+                    bytes32(amount - fees),
+                    bytes32(uint256(uint160(msg.sender))),
+                    bytes32(bytes(recipient).length),
+                    bytes(recipient),
+                    data
+                )
+            )
+        );
+
+        unchecked {
+            ++_nonce;
+        }
     }
 }

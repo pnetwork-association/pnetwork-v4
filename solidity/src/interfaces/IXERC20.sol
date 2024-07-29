@@ -41,6 +41,7 @@ interface IXERC20 {
      * @param minterParams The minting parameters for the bridge
      * @param burnerParams The burning parameters for the bridge
      */
+    // solhint-disable-next-line
     struct Bridge {
         BridgeParameters minterParams;
         BridgeParameters burnerParams;
@@ -54,6 +55,7 @@ interface IXERC20 {
      * @param maxLimit The max limit of the bridge
      * @param currentLimit The current limit of the bridge
      */
+    // solhint-disable-next-line
     struct BridgeParameters {
         uint256 timestamp;
         uint256 ratePerSecond;
@@ -147,24 +149,24 @@ interface IXERC20 {
     /**
      * @notice Returns the fees manager address
      */
-    function getLockbox() external view returns (address);
+    function getLockbox() external returns (address);
 
     /**
      * @notice Returns the PAM address
      *
      * @param adapter the relative adapter
      */
-    function getPAM(address adapter) external view returns (address);
+    function getPAM(address adapter) external returns (address);
 
     /**
      * @notice Returns if this token is local or not
      */
-    function isLocal() external view returns (bool);
+    function isLocal() external returns (bool);
 
     /**
      * @notice Returns the fees manager address
      */
-    function getFeesManager() external view returns (address);
+    function getFeesManager() external returns (address);
 
     /**
      * @notice Set the fees manager address

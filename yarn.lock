@@ -1903,6 +1903,7 @@ __metadata:
     hardhat-gas-reporter: "npm:^1.0.8"
     hardhat-tracer: "npm:^3.0.1"
     ramda: "npm:^0.30.1"
+    solhint: "npm:^5.0.2"
     solidity-coverage: "npm:^0.8.1"
     ts-node: "npm:>=8.0.0"
     typechain: "npm:^8.3.0"
@@ -8820,6 +8821,38 @@ __metadata:
   bin:
     solhint: solhint.js
   checksum: 10c0/0da4ce2aca4fcd2bb74a7d656f359940cb5c7059101db7d5f25ef31708763a8e8362480c20ee8dd525ded6ec897b328aa0e9b86b79ffaa59585c5c59722612dc
+  languageName: node
+  linkType: hard
+
+"solhint@npm:^5.0.2":
+  version: 5.0.2
+  resolution: "solhint@npm:5.0.2"
+  dependencies:
+    "@solidity-parser/parser": "npm:^0.18.0"
+    ajv: "npm:^6.12.6"
+    antlr4: "npm:^4.13.1-patch-1"
+    ast-parents: "npm:^0.0.1"
+    chalk: "npm:^4.1.2"
+    commander: "npm:^10.0.0"
+    cosmiconfig: "npm:^8.0.0"
+    fast-diff: "npm:^1.2.0"
+    glob: "npm:^8.0.3"
+    ignore: "npm:^5.2.4"
+    js-yaml: "npm:^4.1.0"
+    latest-version: "npm:^7.0.0"
+    lodash: "npm:^4.17.21"
+    pluralize: "npm:^8.0.0"
+    prettier: "npm:^2.8.3"
+    semver: "npm:^7.5.2"
+    strip-ansi: "npm:^6.0.1"
+    table: "npm:^6.8.1"
+    text-table: "npm:^0.2.0"
+  dependenciesMeta:
+    prettier:
+      optional: true
+  bin:
+    solhint: solhint.js
+  checksum: 10c0/4fec845ec6b8bebc7bee5abef42b40474d0e162a31d21ee10d98e4cb7db1f1fcdd338b927a880d7659fd336cc738737709d86af174fb388a08bcc4f50e3a2623
   languageName: node
   linkType: hard
 

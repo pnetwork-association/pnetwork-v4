@@ -38,7 +38,7 @@ interface IFeesManager {
     function calculateFee(
         address xerc20,
         uint256 amount
-    ) external view returns (uint256);
+    ) external returns (uint256);
 
     /*
      * Allows a staker to claim protocol fees for a specific token and epoch.

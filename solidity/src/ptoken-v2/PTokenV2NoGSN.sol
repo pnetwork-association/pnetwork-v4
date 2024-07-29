@@ -33,7 +33,7 @@ contract PTokenV2NoGSN is
 
     // V2
     uint256 private constant _DURATION = 1 days;
-    address public override lockbox;
+    address public lockbox;
     mapping(address => Bridge) bridges;
     address public feesManager;
     mapping(address => address) public adapterToPAM;
@@ -85,14 +85,6 @@ contract PTokenV2NoGSN is
         }
     }
 
-    modifier onlyAdmin() {
-        require(
-            hasRole(DEFAULT_ADMIN_ROLE, _msgSender()),
-            "Caller is not an admin"
-        );
-        _;
-    }
-
     function setFeesManager(address newAddress) public override {
         if (feesManager == address(0) && msg.sender != owner())
             // First time
@@ -115,24 +107,24 @@ contract PTokenV2NoGSN is
     function setPAM(
         address adapterAddress,
         address pamAddress
-    ) public onlyOwner {
+    ) external onlyOwner {
         adapterToPAM[adapterAddress] = pamAddress;
         PAMChanged(pamAddress);
     }
 
-    function isLocal() public view override returns (bool) {
+    function isLocal() external view override returns (bool) {
         return (lockbox != address(0));
     }
 
-    function getPAM(address adapter) public view override returns (address) {
+    function getPAM(address adapter) external view override returns (address) {
         return adapterToPAM[adapter];
     }
 
-    function getFeesManager() public view override returns (address) {
+    function getFeesManager() external view override returns (address) {
         return feesManager;
     }
 
-    function getLockbox() public view override returns (address) {
+    function getLockbox() external view override returns (address) {
         return lockbox;
     }
 
@@ -143,7 +135,7 @@ contract PTokenV2NoGSN is
      * @param _amount The amount of tokens being minted
      */
 
-    function mint(address _user, uint256 _amount) public override {
+    function mint(address _user, uint256 _amount) external override {
         _mintWithCaller(msg.sender, _user, _amount);
     }
 
@@ -154,7 +146,7 @@ contract PTokenV2NoGSN is
      * @param _amount The amount of tokens being burned
      */
 
-    function burn(address _user, uint256 _amount) public override {
+    function burn(address _user, uint256 _amount) external override {
         if (msg.sender != _user) {
             _spendAllowance(_user, msg.sender, _amount);
         }
@@ -168,7 +160,7 @@ contract PTokenV2NoGSN is
      * @param _lockbox The address of the lockbox
      */
 
-    function setLockbox(address _lockbox) public override onlyOwner {
+    function setLockbox(address _lockbox) external override onlyOwner {
         // if (msg.sender != FACTORY) revert IXERC20_NotFactory();
         lockbox = _lockbox;
 
@@ -457,13 +449,6 @@ contract PTokenV2NoGSN is
         return hasRole(MINTER_ROLE, _account);
     }
 
-    function changeOriginChainId(
-        bytes4 _newOriginChainId
-    ) public onlyAdmin returns (bool success) {
-        ORIGIN_CHAIN_ID = _newOriginChainId;
-        return true;
-    }
-
     /**
      * @dev Returns the address of the current owner.
      */
@@ -486,7 +471,7 @@ contract PTokenV2NoGSN is
      * NOTE: Renouncing ownership will leave the contract without an owner,
      * thereby removing any functionality that is only available to the owner.
      */
-    function renounceOwnership() public virtual onlyOwner {
+    function renounceOwnership() external virtual onlyOwner {
         emit OwnershipTransferred(_owner, address(0));
         _owner = address(0);
     }
@@ -495,7 +480,7 @@ contract PTokenV2NoGSN is
      * @dev Transfers ownership of the contract to a new account (`newOwner`).
      * Can only be called by the current owner.
      */
-    function transferOwnership(address newOwner) public virtual onlyOwner {
+    function transferOwnership(address newOwner) external virtual onlyOwner {
         require(
             newOwner != address(0),
             "Ownable: new owner is the zero address"
