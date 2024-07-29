@@ -32,7 +32,7 @@ contract XERC20 is ERC20, Ownable, IXERC20, ERC20Permit {
     mapping(address => address) public adapterToPAM;
 
     error OnlyFeesManager();
-    error UnsufficientAmount();
+    error InsufficientAmount();
     error NotAContract(address addr);
 
     event FeesManagerChanged(address newAddress);
@@ -52,14 +52,21 @@ contract XERC20 is ERC20, Ownable, IXERC20, ERC20Permit {
         address _factory
     ) ERC20(_name, _symbol) ERC20Permit(_name) Ownable(msg.sender) {}
 
+    modifier onlyContractAddress(address anAddress) {
+        if (anAddress.code.length == 0) revert NotAContract(anAddress);
+        _;
+    }
+
+    modifier onlyFeesManager() {
+        if (feesManager != address(0) && msg.sender != feesManager)
+            revert OnlyFeesManager();
+        _;
+    }
+
     /// @inheritdoc IXERC20
-    function setFeesManager(address newAddress) public {
-        if (feesManager == address(0)) {
-            feesManager = newAddress;
-        } else if (msg.sender != feesManager) revert OnlyFeesManager();
-
-        if (newAddress.code.length == 0) revert NotAContract(newAddress);
-
+    function setFeesManager(
+        address newAddress
+    ) public onlyFeesManager onlyContractAddress(newAddress) {
         feesManager = newAddress;
 
         emit FeesManagerChanged(newAddress);
@@ -75,7 +82,7 @@ contract XERC20 is ERC20, Ownable, IXERC20, ERC20Permit {
     function setPAM(
         address adapterAddress,
         address pamAddress
-    ) external onlyOwner {
+    ) external onlyOwner onlyContractAddress(pamAddress) {
         adapterToPAM[adapterAddress] = pamAddress;
         emit PAMChanged(pamAddress);
     }
@@ -357,7 +364,7 @@ contract XERC20 is ERC20, Ownable, IXERC20, ERC20Permit {
         uint256 _amount
     ) internal {
         uint256 fees;
-        // is local?
+        // We don't make an internal call to isLocal() in order to save gas
         if (lockbox != address(0) && feesManager != address(0)) {
             fees = IFeesManager(feesManager).calculateFee(
                 address(this),
@@ -365,7 +372,7 @@ contract XERC20 is ERC20, Ownable, IXERC20, ERC20Permit {
             );
         }
 
-        if (fees > _amount) revert UnsufficientAmount();
+        if (fees > _amount) revert InsufficientAmount();
 
         uint256 netAmount = _amount - fees;
 

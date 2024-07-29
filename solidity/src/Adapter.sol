@@ -41,7 +41,7 @@ contract Adapter is IAdapter, Ownable {
     error AlreadyProcessed(bytes32 operationId);
     error UnsupportedProtocolId(bytes1 protocolId);
     error InvalidEventContentLength(uint256 length);
-    error UnsufficientAmount(uint256 amount, uint256 fees);
+    error InsufficientAmount(uint256 amount, uint256 fees);
     error InvalidMessageId(uint256 actual, uint256 expected);
     error InvalidDestinationChainId(uint256 destinationChainId);
 

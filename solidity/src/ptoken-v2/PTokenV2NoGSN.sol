@@ -393,7 +393,7 @@ contract PTokenV2NoGSN is
             );
         }
 
-        if (fees > _amount) revert("UnsufficientAmount");
+        if (fees > _amount) revert("InsufficientAmount");
 
         uint256 netAmount = _amount - fees;
 
