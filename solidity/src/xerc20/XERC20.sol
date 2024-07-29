@@ -75,28 +75,28 @@ contract XERC20 is ERC20, Ownable, IXERC20, ERC20Permit {
     function setPAM(
         address adapterAddress,
         address pamAddress
-    ) public onlyOwner {
+    ) external onlyOwner {
         adapterToPAM[adapterAddress] = pamAddress;
         emit PAMChanged(pamAddress);
     }
 
     /// @inheritdoc IXERC20
-    function isLocal() public view returns (bool) {
+    function isLocal() external view returns (bool) {
         return (lockbox != address(0));
     }
 
     /// @inheritdoc IXERC20
-    function getPAM(address adapter) public view returns (address) {
+    function getPAM(address adapter) external view returns (address) {
         return adapterToPAM[adapter];
     }
 
     /// @inheritdoc IXERC20
-    function getFeesManager() public view returns (address) {
+    function getFeesManager() external view returns (address) {
         return feesManager;
     }
 
     /// @inheritdoc IXERC20
-    function getLockbox() public view returns (address) {
+    function getLockbox() external view returns (address) {
         return lockbox;
     }
 
@@ -107,7 +107,7 @@ contract XERC20 is ERC20, Ownable, IXERC20, ERC20Permit {
      * @param _amount The amount of tokens being minted
      */
 
-    function mint(address _user, uint256 _amount) public {
+    function mint(address _user, uint256 _amount) external {
         _mintWithCaller(msg.sender, _user, _amount);
     }
 
@@ -118,7 +118,7 @@ contract XERC20 is ERC20, Ownable, IXERC20, ERC20Permit {
      * @param _amount The amount of tokens being burned
      */
 
-    function burn(address _user, uint256 _amount) public {
+    function burn(address _user, uint256 _amount) external {
         if (msg.sender != _user) {
             _spendAllowance(_user, msg.sender, _amount);
         }

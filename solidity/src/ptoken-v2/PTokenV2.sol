@@ -22,7 +22,7 @@ contract PTokenV2 is
 
     // V2
     uint256 private constant _DURATION = 1 days;
-    address public override lockbox;
+    address public lockbox;
     mapping(address => Bridge) bridges;
     address public feesManager;
     mapping(address => address) public adapterToPAM;
@@ -46,15 +46,7 @@ contract PTokenV2 is
         ORIGIN_CHAIN_ID = originChainId;
     }
 
-    modifier onlyAdmin() {
-        require(
-            hasRole(DEFAULT_ADMIN_ROLE, _msgSender()),
-            "Caller is not an admin"
-        );
-        _;
-    }
-
-    function setFeesManager(address newAddress) public override {
+    function setFeesManager(address newAddress) external override {
         address msgSender = _msgSender();
 
         if (feesManager == address(0) && msgSender != owner())
@@ -78,24 +70,24 @@ contract PTokenV2 is
     function setPAM(
         address adapterAddress,
         address pamAddress
-    ) public onlyOwner {
+    ) external onlyOwner {
         adapterToPAM[adapterAddress] = pamAddress;
         emit PAMChanged(pamAddress);
     }
 
-    function isLocal() public view override returns (bool) {
+    function isLocal() external view override returns (bool) {
         return (lockbox != address(0));
     }
 
-    function getPAM(address adapter) public view override returns (address) {
+    function getPAM(address adapter) external view override returns (address) {
         return adapterToPAM[adapter];
     }
 
-    function getFeesManager() public view override returns (address) {
+    function getFeesManager() external view override returns (address) {
         return feesManager;
     }
 
-    function getLockbox() public view override returns (address) {
+    function getLockbox() external view override returns (address) {
         return lockbox;
     }
 
@@ -106,7 +98,7 @@ contract PTokenV2 is
      * @param _amount The amount of tokens being minted
      */
 
-    function mint(address _user, uint256 _amount) public override {
+    function mint(address _user, uint256 _amount) external override {
         _mintWithCaller(msg.sender, _user, _amount);
     }
 
@@ -117,7 +109,7 @@ contract PTokenV2 is
      * @param _amount The amount of tokens being burned
      */
 
-    function burn(address _user, uint256 _amount) public override {
+    function burn(address _user, uint256 _amount) external override {
         if (msg.sender != _user) {
             _spendAllowance(_user, msg.sender, _amount);
         }
@@ -131,7 +123,7 @@ contract PTokenV2 is
      * @param _lockbox The address of the lockbox
      */
 
-    function setLockbox(address _lockbox) public override onlyOwner {
+    function setLockbox(address _lockbox) external override onlyOwner {
         // if (msg.sender != FACTORY) revert IXERC20_NotFactory();
         lockbox = _lockbox;
 
@@ -436,12 +428,5 @@ contract PTokenV2 is
         returns (bytes memory)
     {
         return GSNRecipientUpgradeable._msgData();
-    }
-
-    function changeOriginChainId(
-        bytes4 _newOriginChainId
-    ) public onlyAdmin returns (bool success) {
-        ORIGIN_CHAIN_ID = _newOriginChainId;
-        return true;
     }
 }

@@ -23,24 +23,13 @@ interface IXERC20_solc_0_6 {
         address indexed _bridge
     );
 
-    // /**
-    //  * @notice Reverts when a user with too low of a limit tries to call mint/burn
-    //  */
-
-    // error IXERC20_NotHighEnoughLimits();
-
-    // /**
-    //  * @notice Reverts when caller is not the factory
-    //  */
-
-    // error IXERC20_NotFactory();
-
     /**
      * @notice Contains the full minting and burning data for a particular bridge
      *
      * @param minterParams The minting parameters for the bridge
      * @param burnerParams The burning parameters for the bridge
      */
+    // solhint-disable-next-line
     struct Bridge {
         BridgeParameters minterParams;
         BridgeParameters burnerParams;
@@ -54,14 +43,13 @@ interface IXERC20_solc_0_6 {
      * @param maxLimit The max limit of the bridge
      * @param currentLimit The current limit of the bridge
      */
+    // solhint-disable-next-line
     struct BridgeParameters {
         uint256 timestamp;
         uint256 ratePerSecond;
         uint256 maxLimit;
         uint256 currentLimit;
     }
-
-    function lockbox() external view returns (address);
 
     /**
      * @notice Sets the lockbox address

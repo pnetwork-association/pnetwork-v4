@@ -92,10 +92,35 @@ contract FeesManager is IFeesManager, Ownable {
     }
 
     /// @inheritdoc IFeesManager
+    function depositFee(address xerc20, uint256 amount) external {
+        depositFeeForEpoch(xerc20, amount, currentEpoch);
+    }
+
+    /// @inheritdoc IFeesManager
+    function depositFeeFrom(
+        address from,
+        address xerc20,
+        uint256 amount
+    ) external {
+        depositFeeForEpochFrom(from, xerc20, amount, currentEpoch);
+    }
+
+    /// @inheritdoc IFeesManager
+    function setFee(
+        address xerc20,
+        uint256 minAmount,
+        uint16 basisPoints
+    ) external onlyOwner {
+        if (xerc20 == address(0)) revert InvalidToken();
+        feeInfoByAsset[xerc20] = Fee(minAmount, basisPoints, true);
+        emit FeeUpdated(xerc20, minAmount, basisPoints);
+    }
+
+    /// @inheritdoc IFeesManager
     function calculateFee(
         address xerc20,
         uint256 amount
-    ) external view returns (uint256) {
+    ) external returns (uint256) {
         // We take the fees only when wrapping/unwrapping
         // the token. Host2host pegouts won't take any
         // fees, otherwise this logic would taken them twice when
@@ -112,20 +137,6 @@ contract FeesManager is IFeesManager, Ownable {
             fee < feeInfoByAsset[xerc20].minFee
                 ? feeInfoByAsset[xerc20].minFee
                 : fee;
-    }
-
-    /// @inheritdoc IFeesManager
-    function depositFee(address xerc20, uint256 amount) external {
-        depositFeeForEpoch(xerc20, amount, currentEpoch);
-    }
-
-    /// @inheritdoc IFeesManager
-    function depositFeeFrom(
-        address from,
-        address xerc20,
-        uint256 amount
-    ) external {
-        depositFeeForEpochFrom(from, xerc20, amount, currentEpoch);
     }
 
     /// @inheritdoc IFeesManager
@@ -152,16 +163,5 @@ contract FeesManager is IFeesManager, Ownable {
 
         depositedAmountByEpoch[epoch][xerc20] += amount;
         IERC20(xerc20).safeTransferFrom(from, address(this), amount);
-    }
-
-    /// @inheritdoc IFeesManager
-    function setFee(
-        address xerc20,
-        uint256 minAmount,
-        uint16 basisPoints
-    ) external onlyOwner {
-        if (xerc20 == address(0)) revert InvalidToken();
-        feeInfoByAsset[xerc20] = Fee(minAmount, basisPoints, true);
-        emit FeeUpdated(xerc20, minAmount, basisPoints);
     }
 }

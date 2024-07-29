@@ -16,6 +16,15 @@ contract PAM is Ownable, IPAM {
     mapping(bytes32 => bytes32) public emitters;
     mapping(bytes32 => bool) public pastEvents;
 
+    event EmitterSet(bytes32 chainid, bytes32 emitter);
+    event EmitterUnset(bytes32 chainId);
+    event TeeSignerChanged(address newAddress);
+    event TeeSignerPendingChange(
+        address newAddress,
+        bytes attestation,
+        uint256 gracePeriod
+    );
+
     error UnsetTeeSigner();
     error GracePeriodNotElapsed();
     error InvalidNewTeeSigner();
@@ -28,21 +37,12 @@ contract PAM is Ownable, IPAM {
     error InvalidEventId(bytes32 actual, bytes32 expected);
     error InvalidDestinationChainId(uint256 chainId);
 
-    event EmitterSet(bytes32 chainid, bytes32 emitter);
-    event EmitterUnset(bytes32 chainId);
-    event TeeSignerChanged(address newAddress);
-    event TeeSignerPendingChange(
-        address newAddress,
-        bytes attestation,
-        uint256 gracePeriod
-    );
-
     constructor() Ownable(msg.sender) {}
 
     function setTeeSigner(
         bytes calldata pubKey,
         bytes memory attestation
-    ) public onlyOwner {
+    ) external onlyOwner {
         if (teeAddress == address(0)) {
             // Setting the teeAddress the first time
             teeAddress = _getAddressFromPublicKey(pubKey);
@@ -69,13 +69,13 @@ contract PAM is Ownable, IPAM {
         }
     }
 
-    function setEmitter(bytes32 chainid, bytes32 emitter) public onlyOwner {
+    function setEmitter(bytes32 chainid, bytes32 emitter) external onlyOwner {
         emitters[chainid] = emitter;
 
         emit EmitterSet(chainid, emitter);
     }
 
-    function unsetEmitter(bytes32 chainid) public onlyOwner {
+    function unsetEmitter(bytes32 chainid) external onlyOwner {
         delete emitters[chainid];
 
         emit EmitterUnset(chainid);
@@ -91,31 +91,41 @@ contract PAM is Ownable, IPAM {
         emit TeeSignerChanged(teeAddress);
     }
 
-    function _bytesToAddress(bytes memory tmp) internal pure returns (address) {
-        uint160 iaddr = 0;
-        uint160 b1;
-        uint160 b2;
-        for (uint256 i = 2; i < 2 + 2 * 20; i += 2) {
-            iaddr *= 256;
-            b1 = uint160(uint8(tmp[i]));
-            b2 = uint160(uint8(tmp[i + 1]));
-            if ((b1 >= 97) && (b1 <= 102)) {
-                b1 -= 87;
-            } else if ((b1 >= 65) && (b1 <= 70)) {
-                b1 -= 55;
-            } else if ((b1 >= 48) && (b1 <= 57)) {
-                b1 -= 48;
-            }
-            if ((b2 >= 97) && (b2 <= 102)) {
-                b2 -= 87;
-            } else if ((b2 >= 65) && (b2 <= 70)) {
-                b2 -= 55;
-            } else if ((b2 >= 48) && (b2 <= 57)) {
-                b2 -= 48;
-            }
-            iaddr += (b1 * 16 + b2);
-        }
-        return address(iaddr);
+    function isAuthorized(
+        IAdapter.Operation memory operation,
+        Metadata calldata metadata
+    ) external view returns (bool, bytes32) {
+        //  Metadata preimage format:
+        //    | version | protocol | origin | blockHash | txHash | eventPayload |
+        //    |   1B    |    1B    |   32B  |    32B    |   32B  |    varlen    |
+        //    +----------- context ---------+------------- event ---------------+
+
+        if (teeAddress == address(0)) revert UnsetTeeSigner();
+
+        if (!_contextChecks(operation, metadata)) return (false, bytes32(0));
+        bytes32 eventId = sha256(metadata.preimage);
+
+        if (ECDSA.recover(eventId, metadata.signature) != teeAddress)
+            return (false, eventId);
+
+        // Event payload format
+        // |  emitter  |  sha256(topics)  |  eventBytes  |
+        // |    32B    |        32B       |    varlen    |
+        bytes32 originChainId = bytes32(metadata.preimage[2:34]);
+
+        uint256 offset = 32;
+        bytes calldata eventPayload = metadata.preimage[98:];
+        bytes32 emitter = bytes32(eventPayload[0:offset]);
+        bytes32 expectedEmitter = emitters[originChainId];
+
+        if ((expectedEmitter == bytes32(0)) || (emitter != expectedEmitter))
+            return (false, eventId);
+
+        offset += 32; // skip sha256(topics) part
+        if (!_doesContentMatchOperation(eventPayload[offset:], operation))
+            return (false, eventId);
+
+        return (true, eventId);
     }
 
     function _doesContentMatchOperation(
@@ -165,41 +175,31 @@ contract PAM is Ownable, IPAM {
         return true;
     }
 
-    function isAuthorized(
-        IAdapter.Operation memory operation,
-        Metadata calldata metadata
-    ) external view returns (bool, bytes32) {
-        //  Metadata preimage format:
-        //    | version | protocol | origin | blockHash | txHash | eventPayload |
-        //    |   1B    |    1B    |   32B  |    32B    |   32B  |    varlen    |
-        //    +----------- context ---------+------------- event ---------------+
-
-        if (teeAddress == address(0)) revert UnsetTeeSigner();
-
-        if (!_contextChecks(operation, metadata)) return (false, bytes32(0));
-        bytes32 eventId = sha256(metadata.preimage);
-
-        if (ECDSA.recover(eventId, metadata.signature) != teeAddress)
-            return (false, eventId);
-
-        // Event payload format
-        // |  emitter  |  sha256(topics)  |  eventBytes  |
-        // |    32B    |        32B       |    varlen    |
-        bytes32 originChainId = bytes32(metadata.preimage[2:34]);
-
-        uint256 offset = 32;
-        bytes calldata eventPayload = metadata.preimage[98:];
-        bytes32 emitter = bytes32(eventPayload[0:offset]);
-        bytes32 expectedEmitter = emitters[originChainId];
-
-        if ((expectedEmitter == bytes32(0)) || (emitter != expectedEmitter))
-            return (false, eventId);
-
-        offset += 32; // skip sha256(topics) part
-        if (!_doesContentMatchOperation(eventPayload[offset:], operation))
-            return (false, eventId);
-
-        return (true, eventId);
+    function _bytesToAddress(bytes memory tmp) internal pure returns (address) {
+        uint160 iaddr = 0;
+        uint160 b1;
+        uint160 b2;
+        for (uint256 i = 2; i < 2 + 2 * 20; i += 2) {
+            iaddr *= 256;
+            b1 = uint160(uint8(tmp[i]));
+            b2 = uint160(uint8(tmp[i + 1]));
+            if ((b1 >= 97) && (b1 <= 102)) {
+                b1 -= 87;
+            } else if ((b1 >= 65) && (b1 <= 70)) {
+                b1 -= 55;
+            } else if ((b1 >= 48) && (b1 <= 57)) {
+                b1 -= 48;
+            }
+            if ((b2 >= 97) && (b2 <= 102)) {
+                b2 -= 87;
+            } else if ((b2 >= 65) && (b2 <= 70)) {
+                b2 -= 55;
+            } else if ((b2 >= 48) && (b2 <= 57)) {
+                b2 -= 48;
+            }
+            iaddr += (b1 * 16 + b2);
+        }
+        return address(iaddr);
     }
 
     function _getAddressFromPublicKey(
