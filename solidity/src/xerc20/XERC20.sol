@@ -58,7 +58,7 @@ contract XERC20 is ERC20, Ownable, IXERC20, ERC20Permit {
             feesManager = newAddress;
         } else if (msg.sender != feesManager) revert OnlyFeesManager();
 
-        if (newAddress.code.length == 0) revert NotAContract(feesManager);
+        if (newAddress.code.length == 0) revert NotAContract(newAddress);
 
         feesManager = newAddress;
 

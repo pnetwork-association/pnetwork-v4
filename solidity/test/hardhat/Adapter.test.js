@@ -50,7 +50,14 @@ const deployERC1820 = () => helpers.setCode(ERC1820, ERC1820BYTES)
         )
 
         const isNative = _isNative == 'Native'
-        const feesManager = await deploy(hre, 'FeesManager', [])
+        const firstEpoch = 0
+        const nodes = []
+        const stakedAmounts = []
+        const feesManager = await deploy(hre, 'FeesManager', [
+          firstEpoch,
+          nodes,
+          stakedAmounts,
+        ])
         const erc20 = isNative
           ? { target: ZeroAddress }
           : await deploy(hre, 'ERC20Test', [name, symbol, supply])

@@ -48,12 +48,6 @@ interface IFeesManager {
     function claimFeeByEpoch(address xerc20, uint16 epoch) external;
 
     /*
-     * Allows to deposit protocol fees for the native currency that will be distributed for a specific epoch.
-     * @param {uint16} epoch - The epoch number for which fees are being deposited.
-     */
-    function depositFeeForEpoch(uint16 epoch) external payable;
-
-    /*
      * Allows to deposit protocol fees for a certain token that will be distributed for the current epoch.
      * @param {address} xerc20 - The token address for which fees are being deposited.
      * @param {uint256} amount - The amount of fees being deposited for the specified token.
@@ -96,5 +90,18 @@ interface IFeesManager {
         address xerc20,
         uint256 amount,
         uint16 epoch
+    ) external;
+
+    /**
+     * Set the fees for the underlying xerc20 token
+     *
+     * @param xerc20 supported token where the fees are denominated to
+     * @param minAmount minimum amount of fees
+     * @param basisPoints basis points (4 decimals, i.e. 2 basis points => 0.2% => 2000)
+     */
+    function setFee(
+        address xerc20,
+        uint256 minAmount,
+        uint16 basisPoints
     ) external;
 }

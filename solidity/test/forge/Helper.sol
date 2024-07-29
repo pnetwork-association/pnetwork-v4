@@ -4,6 +4,7 @@ pragma solidity ^0.8.0;
 import {Vm} from "forge-std/Vm.sol";
 import {Test} from "forge-std/Test.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
 import {PAM} from "../../src/PAM.sol";
 import {Adapter} from "../../src/Adapter.sol";
@@ -28,6 +29,7 @@ abstract contract Helper is Test {
     uint256 erc20Supply = 1000000;
     uint256 mintingLimit = 2000000;
     uint256 burningLimit = 2000000;
+
     bool native = true;
     bool notNative = false;
 
@@ -82,7 +84,12 @@ abstract contract Helper is Test {
                 address(erc20),
                 notNative
             );
-            feesManager = new FeesManager();
+
+            address[] memory nodes = new address[](1);
+            nodes[0] = vm.addr(111);
+            uint256[] memory stakedAmounts = new uint256[](1);
+            stakedAmounts[0] = 1 ether;
+            feesManager = new FeesManager(0, nodes, stakedAmounts);
             feesManager.setFee(address(xerc20), 0, 2000);
             xerc20.setLockbox(address(lockbox));
             xerc20.setFeesManager(address(feesManager));
@@ -286,5 +293,14 @@ abstract contract Helper is Test {
         );
 
         return sha256(bytes.concat(context, blockId, txId, eventPayload));
+    }
+
+    function _expectOwnableUnauthorizedAccountRevert(address anAddress) public {
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                Ownable.OwnableUnauthorizedAccount.selector,
+                anAddress
+            )
+        );
     }
 }
