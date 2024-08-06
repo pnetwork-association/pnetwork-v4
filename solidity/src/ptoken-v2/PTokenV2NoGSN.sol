@@ -86,9 +86,6 @@ contract PTokenV2NoGSN is
     }
 
     function setFeesManager(address newAddress) public override {
-        if (feesManager == address(0) && msg.sender != owner())
-            // First time
-            revert("OnlyOwner");
         if (feesManager != address(0) && msg.sender != feesManager)
             revert("OnlyFeesManager");
 

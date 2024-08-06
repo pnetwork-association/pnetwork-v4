@@ -62,6 +62,9 @@ module.exports = {
       url: getEnvironmentVariable('BSC_RPC_URL'),
     },
   },
+  gasReporter: {
+    enabled: process.env.REPORT_GAS || false,
+  },
 }
 
 require('./tasks/index.cjs')
