@@ -35,7 +35,7 @@ describe('Proofcast Event Attestator Tests', () => {
     } as unknown as Event
 
     const expectedSignature =
-      '0x2ac391f76e0b65c22d954dd83373b14cb90419693607b0520b713d8fb0494e7407ed9c6ec02f7f877e8a297c8d554998e31f8c365388cdd80e4f290dd969fd721c'
+      '0x2b70d76c18ab0b3809b9c20db31bebfa157b5061825f2958e3ed93c3a40f51db156897096ae758644aae1fe8ee88c05db976437f4c76166dbe827cd887e0b2c21c'
 
     expect(ea.sign(event)).toStrictEqual(expectedSignature)
   })

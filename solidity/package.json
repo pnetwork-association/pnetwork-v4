@@ -41,7 +41,7 @@
     "dotenv": "^16.4.5",
     "ethers": "^6.13.1",
     "hardhat": "^2.22.6",
-    "hardhat-gas-reporter": "^1.0.8",
+    "hardhat-gas-reporter": "^2.2.0",
     "hardhat-tracer": "^3.0.1",
     "ramda": "^0.30.1",
     "solhint": "^5.0.2",
