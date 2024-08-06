@@ -49,9 +49,6 @@ contract PTokenV2 is
     function setFeesManager(address newAddress) external override {
         address msgSender = _msgSender();
 
-        if (feesManager == address(0) && msgSender != owner())
-            // First time
-            revert("OnlyOwner");
         if (feesManager != address(0) && msgSender != feesManager)
             revert("OnlyFeesManager");
 
