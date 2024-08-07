@@ -137,6 +137,9 @@ const deployERC1820 = () => helpers.setCode(ERC1820, ERC1820BYTES)
           pTokenV2,
           feesManagerTest
 
+        const mintingLimit = 300
+        const burningLimit = 200
+
         before(async () => {
           const env = await loadFixture(setup)
           owner = env.owner
@@ -193,9 +196,6 @@ const deployERC1820 = () => helpers.setCode(ERC1820, ERC1820BYTES)
         })
 
         it.only('Only the owner can set limits', async () => {
-          const mintingLimit = 200
-          const burningLimit = 300
-
           const tx = pTokenV2
             .connect(evil)
             .setLimits(bridge, mintingLimit, burningLimit)
@@ -325,6 +325,62 @@ const deployERC1820 = () => helpers.setCode(ERC1820, ERC1820BYTES)
           expect(await pTokenV2.getLockbox()).to.be.equal(lockbox)
           expect(await pTokenV2.getPAM(bridge.address)).to.be.equal(PAM)
           expect(await pTokenV2.getFeesManager()).to.be.equal(feesManagerTest)
+        })
+
+        it.only('Should revert when going over the minting/burning limits', async () => {
+          // Verify the bridge is allowed to mint/burn
+          await expect(pTokenV2.connect(bridge).mint(user, 1))
+            .to.emit(pTokenV2, 'Transfer')
+            .withArgs(ZeroAddress, user, 1)
+
+          await pTokenV2.connect(user).approve(bridge, 1)
+
+          await expect(
+            pTokenV2.connect(bridge)['burn(address,uint256)'](user, 1),
+          )
+            .to.emit(pTokenV2, 'Transfer')
+            .withArgs(user, ZeroAddress, 1)
+
+          const remainingMintAmount =
+            await pTokenV2.mintingCurrentLimitOf(bridge)
+
+          if (_tokenKind === 'XERC20') {
+            await expect(
+              pTokenV2.connect(bridge).mint(user, remainingMintAmount + 1n),
+            ).to.be.revertedWithCustomError(
+              pTokenV2,
+              'IXERC20_NotHighEnoughLimits',
+            )
+          } else {
+            await expect(
+              pTokenV2.connect(bridge).mint(user, remainingMintAmount + 1n),
+            ).to.be.revertedWith('IXERC20_NotHighEnoughLimits')
+          }
+
+          // Transfer the whole amount in order to burn
+          await pTokenV2.connect(bridge).mint(user, remainingMintAmount)
+
+          const remainingBurnLimit =
+            await pTokenV2.burningCurrentLimitOf(bridge)
+
+          await pTokenV2.connect(user).approve(bridge, remainingBurnLimit + 1n)
+
+          if (_tokenKind === 'XERC20') {
+            await expect(
+              pTokenV2
+                .connect(bridge)
+                ['burn(address,uint256)'](user, remainingBurnLimit + 1n),
+            ).to.be.revertedWithCustomError(
+              pTokenV2,
+              'IXERC20_NotHighEnoughLimits',
+            )
+          } else {
+            await expect(
+              pTokenV2
+                .connect(bridge)
+                ['burn(address,uint256)'](user, remainingBurnLimit + 1n),
+            ).to.be.revertedWith('IXERC20_NotHighEnoughLimits')
+          }
         })
       })
     })
