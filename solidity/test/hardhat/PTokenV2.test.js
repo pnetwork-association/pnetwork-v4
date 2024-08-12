@@ -14,7 +14,7 @@ import { validateUpgrade } from './utils/validate-upgrade.cjs'
 const ERC1820 = '0x1820a4B7618BdE71Dce8cdc73aAB6C95905faD24'
 const deployERC1820 = () => helpers.setCode(ERC1820, ERC1820BYTES)
 
-;['XERC20', 'PTokenV2', 'PTokenV2NoGSN'].map(_tokenKind => {
+;['XERC20', 'PTokenV2NoGSN', 'PTokenV2'].map(_tokenKind => {
   describe(`${_tokenKind}`, () => {
     const _useGSN = _tokenKind.includes('NoGSN') ? 'NoGSN' : ''
 
@@ -65,7 +65,7 @@ const deployERC1820 = () => helpers.setCode(ERC1820, ERC1820BYTES)
       })
     }
 
-    describe('Tests units', () => {
+    describe.only('Tests units', () => {
       const setup = async () => {
         const [owner, minter, recipient, user, evil, bridge] =
           await hre.ethers.getSigners()
@@ -137,8 +137,11 @@ const deployERC1820 = () => helpers.setCode(ERC1820, ERC1820BYTES)
           pTokenV2,
           feesManagerTest
 
-        const mintingLimit = 300
-        const burningLimit = 200
+        const oneDay = 60n * 60n * 24n
+        const mintingRatePerSecond = 3n
+        const burningRatePerSecond = 2n
+        const mintingLimit = mintingRatePerSecond * oneDay
+        const burningLimit = burningRatePerSecond * oneDay
 
         before(async () => {
           const env = await loadFixture(setup)
@@ -160,7 +163,7 @@ const deployERC1820 = () => helpers.setCode(ERC1820, ERC1820BYTES)
           expect(await pTokenV2.owner()).to.be.equal(owner.address)
         })
 
-        it.only('Anyone can set the fee manager the first time', async () => {
+        it('Anyone can set the fee manager the first time', async () => {
           feesManagerTest = await deploy(hre, 'FeesManagerTest')
 
           await expect(pTokenV2.connect(user).setFeesManager(feesManagerTest))
@@ -170,7 +173,7 @@ const deployERC1820 = () => helpers.setCode(ERC1820, ERC1820BYTES)
           expect(await pTokenV2.getFeesManager()).to.be.equal(feesManagerTest)
         })
 
-        it.only('Only the fees manager can set the fee manager after the first time', async () => {
+        it('Only the fees manager can set the fee manager after the first time', async () => {
           const oldFeesManager = feesManagerTest
 
           feesManagerTest = await deploy(hre, 'FeesManagerTest')
@@ -195,7 +198,7 @@ const deployERC1820 = () => helpers.setCode(ERC1820, ERC1820BYTES)
           expect(await pTokenV2.getFeesManager()).to.be.equal(feesManagerTest)
         })
 
-        it.only('Only the owner can set limits', async () => {
+        it('Only the owner can set limits', async () => {
           const tx = pTokenV2
             .connect(evil)
             .setLimits(bridge, mintingLimit, burningLimit)
@@ -227,45 +230,53 @@ const deployERC1820 = () => helpers.setCode(ERC1820, ERC1820BYTES)
           )
         })
 
-        it.only('Only the allowed bridge can mint and burn', async () => {
-          const value = 100
+        it('Bridge parameters should be set correctly', async () => {
+          const bridgeParams = await pTokenV2.bridges(bridge)
+          const bridgeMintingParams = bridgeParams[0]
+          const bridgeBurningParams = bridgeParams[1]
 
-          let tx = pTokenV2.connect(evil).mint(recipient, value)
+          expect(bridgeMintingParams).to.include.members([
+            mintingRatePerSecond,
+            mintingLimit,
+            mintingLimit,
+          ])
 
-          if (_tokenKind === 'XERC20') {
-            await expect(tx).to.be.revertedWithCustomError(
-              pTokenV2,
-              'IXERC20_NotHighEnoughLimits',
-            )
-          } else {
-            await expect(tx).to.be.revertedWith('IXERC20_NotHighEnoughLimits')
-          }
-
-          // Sent to evil in order to make the next assertion
-          await expect(pTokenV2.connect(bridge).mint(evil, value))
-            .to.emit(pTokenV2, 'Transfer')
-            .withArgs(ZeroAddress, evil.address, value)
-
-          tx = pTokenV2.connect(evil)['burn(address,uint256)'](evil, value)
-
-          if (_tokenKind === 'XERC20') {
-            await expect(tx).to.be.revertedWithCustomError(
-              pTokenV2,
-              'IXERC20_NotHighEnoughLimits',
-            )
-          } else {
-            await expect(tx).to.be.revertedWith('IXERC20_NotHighEnoughLimits')
-          }
-
-          await pTokenV2.connect(evil).approve(bridge, value)
-          await expect(
-            pTokenV2.connect(bridge)['burn(address,uint256)'](evil, value),
-          )
-            .to.emit(pTokenV2, 'Transfer')
-            .withArgs(evil, ZeroAddress, value)
+          expect(bridgeBurningParams).to.include.members([
+            burningRatePerSecond,
+            burningLimit,
+            burningLimit,
+          ])
         })
 
-        it.only('Only the owner can set the PAM address', async () => {
+        it('Should get the correct bridge params after minting and burning', async () => {
+          const amount = 100n
+          await pTokenV2.connect(bridge).mint(user, amount)
+
+          await pTokenV2.connect(user).approve(bridge, amount)
+
+          if (_tokenKind === 'XERC20') {
+            await pTokenV2.connect(bridge).burn(user, amount)
+          } else {
+            await pTokenV2
+              .connect(bridge)
+              ['burn(address,uint256)'](user, amount)
+          }
+
+          const bridgeParams = await pTokenV2.bridges(bridge)
+
+          expect(bridgeParams[0]).to.include.members([
+            mintingRatePerSecond,
+            mintingLimit,
+            mintingLimit - amount,
+          ])
+          expect(bridgeParams[1]).to.include.members([
+            burningRatePerSecond,
+            burningLimit,
+            burningLimit - amount,
+          ])
+        })
+
+        it('Only the owner can set the PAM address', async () => {
           PAM = await deploy(hre, 'PAM')
 
           const tx = pTokenV2.connect(evil).setPAM(bridge, PAM)
@@ -286,11 +297,11 @@ const deployERC1820 = () => helpers.setCode(ERC1820, ERC1820BYTES)
             .withArgs(PAM)
         })
 
-        it.only('Should return false when the lockbox is not set', async () => {
+        it('Should return false when the lockbox is not set', async () => {
           expect(await pTokenV2.isLocal()).to.be.equal(false)
         })
 
-        it.only('Only owner can set the lockbox', async () => {
+        it('Only owner can set the lockbox', async () => {
           const isNative = false
           const erc20 = ZeroAddress
           const xerc20 = pTokenV2
@@ -317,59 +328,54 @@ const deployERC1820 = () => helpers.setCode(ERC1820, ERC1820BYTES)
             .withArgs(lockbox)
         })
 
-        it.only('Should return true when the lockbox is set', async () => {
+        it('Should return true when the lockbox is set', async () => {
           expect(await pTokenV2.isLocal()).to.be.equal(true)
         })
 
-        it.only('Should read storage correctly', async () => {
+        it('Should read storage correctly', async () => {
           expect(await pTokenV2.getLockbox()).to.be.equal(lockbox)
           expect(await pTokenV2.getPAM(bridge.address)).to.be.equal(PAM)
           expect(await pTokenV2.getFeesManager()).to.be.equal(feesManagerTest)
         })
 
-        it.only('Should revert when going over the minting/burning limits', async () => {
-          // Verify the bridge is allowed to mint/burn
-          await expect(pTokenV2.connect(bridge).mint(user, 1))
-            .to.emit(pTokenV2, 'Transfer')
-            .withArgs(ZeroAddress, user, 1)
+        it('Should revert when going over the max minting/burning limits', async () => {
+          const seconds = 100n
+          const bridgeParams = await pTokenV2.bridges(bridge)
+          const [lastMintBlockTs, , , currentMintingLimit] = bridgeParams[0]
 
-          await pTokenV2.connect(user).approve(bridge, 1)
-
-          await expect(
-            pTokenV2.connect(bridge)['burn(address,uint256)'](user, 1),
-          )
-            .to.emit(pTokenV2, 'Transfer')
-            .withArgs(user, ZeroAddress, 1)
+          await helpers.time.increaseTo(lastMintBlockTs + seconds)
 
           const remainingMintAmount =
-            await pTokenV2.mintingCurrentLimitOf(bridge)
+            currentMintingLimit + seconds * mintingRatePerSecond + 1n
 
           if (_tokenKind === 'XERC20') {
             await expect(
-              pTokenV2.connect(bridge).mint(user, remainingMintAmount + 1n),
+              pTokenV2.connect(bridge).mint(user, remainingMintAmount),
             ).to.be.revertedWithCustomError(
               pTokenV2,
               'IXERC20_NotHighEnoughLimits',
             )
           } else {
             await expect(
-              pTokenV2.connect(bridge).mint(user, remainingMintAmount + 1n),
+              pTokenV2.connect(bridge).mint(user, remainingMintAmount),
             ).to.be.revertedWith('IXERC20_NotHighEnoughLimits')
           }
 
           // Transfer the whole amount in order to burn
-          await pTokenV2.connect(bridge).mint(user, remainingMintAmount)
+          await pTokenV2.connect(bridge).mint(user, mintingLimit)
+
+          const [, , , currentBurningLimit] = bridgeParams[1]
 
           const remainingBurnLimit =
-            await pTokenV2.burningCurrentLimitOf(bridge)
+            currentBurningLimit + seconds * burningRatePerSecond + 1n
 
-          await pTokenV2.connect(user).approve(bridge, remainingBurnLimit + 1n)
+          await pTokenV2.connect(user).approve(bridge, remainingBurnLimit)
 
           if (_tokenKind === 'XERC20') {
             await expect(
               pTokenV2
                 .connect(bridge)
-                ['burn(address,uint256)'](user, remainingBurnLimit + 1n),
+                ['burn(address,uint256)'](user, remainingBurnLimit),
             ).to.be.revertedWithCustomError(
               pTokenV2,
               'IXERC20_NotHighEnoughLimits',
@@ -378,8 +384,139 @@ const deployERC1820 = () => helpers.setCode(ERC1820, ERC1820BYTES)
             await expect(
               pTokenV2
                 .connect(bridge)
-                ['burn(address,uint256)'](user, remainingBurnLimit + 1n),
+                ['burn(address,uint256)'](user, remainingBurnLimit),
             ).to.be.revertedWith('IXERC20_NotHighEnoughLimits')
+          }
+        })
+
+        it('Should lower the limit successfully', async () => {
+          const snapshot = await helpers.takeSnapshot()
+          const bridge2 = (await hre.ethers.getSigners())[10]
+          await pTokenV2
+            .connect(owner)
+            .setLimits(bridge2, mintingLimit, burningLimit)
+
+          const amount = 100n
+
+          // Mint and burn some tokens
+          await pTokenV2.connect(bridge2).mint(user, amount)
+          await pTokenV2.connect(user).approve(bridge2, amount)
+
+          await pTokenV2.connect(bridge2)['burn(address,uint256)'](user, amount)
+
+          let bridgeParams = await pTokenV2.bridges(bridge2)
+
+          expect(bridgeParams[0]).to.include.members([
+            mintingRatePerSecond,
+            mintingLimit,
+            mintingLimit - amount,
+          ])
+
+          expect(bridgeParams[1]).to.include.members([
+            burningRatePerSecond,
+            burningLimit,
+            burningLimit - amount,
+          ])
+
+          const newMintingLimit = mintingLimit - amount
+          const newMintingRate = newMintingLimit / oneDay
+          const newBurningLimit = burningLimit - amount
+          const newBurningRate = newBurningLimit / oneDay
+
+          await expect(
+            pTokenV2
+              .connect(owner)
+              .setLimits(bridge2, newMintingLimit, newBurningLimit),
+          )
+            .to.emit(pTokenV2, 'BridgeLimitsSet')
+            .withArgs(newMintingLimit, newBurningLimit, bridge2)
+
+          bridgeParams = await pTokenV2.bridges(bridge2)
+
+          expect(bridgeParams[0]).to.include.members([
+            newMintingRate,
+            newMintingLimit,
+            newMintingLimit,
+          ])
+
+          expect(bridgeParams[1]).to.include.members([
+            newBurningRate,
+            newBurningLimit,
+            newBurningLimit,
+          ])
+
+          await snapshot.restore()
+        })
+
+        it('Should raise the limit successfully', async () => {
+          const snapshot = await helpers.takeSnapshot()
+          const bridge2 = (await hre.ethers.getSigners())[10]
+          await pTokenV2
+            .connect(owner)
+            .setLimits(bridge2, mintingLimit, burningLimit)
+
+          const amount = 100n
+
+          // Mint and burn some tokens
+          await pTokenV2.connect(bridge2).mint(user, amount)
+          await pTokenV2.connect(user).approve(bridge2, amount)
+          await pTokenV2.connect(bridge2)['burn(address,uint256)'](user, amount)
+
+          let bridgeParams = await pTokenV2.bridges(bridge2)
+
+          expect(bridgeParams[0]).to.include.members([
+            mintingRatePerSecond,
+            mintingLimit,
+            mintingLimit - amount,
+          ])
+
+          expect(bridgeParams[1]).to.include.members([
+            burningRatePerSecond,
+            burningLimit,
+            burningLimit - amount,
+          ])
+
+          const newMintingLimit = mintingLimit + amount
+          const newMintingRate = newMintingLimit / oneDay
+          const newBurningLimit = burningLimit + amount
+          const newBurningRate = newBurningLimit / oneDay
+
+          await expect(
+            pTokenV2
+              .connect(owner)
+              .setLimits(bridge2, newMintingLimit, newBurningLimit),
+          )
+            .to.emit(pTokenV2, 'BridgeLimitsSet')
+            .withArgs(newMintingLimit, newBurningLimit, bridge2)
+
+          bridgeParams = await pTokenV2.bridges(bridge2)
+
+          expect(bridgeParams[0]).to.include.members([
+            newMintingRate,
+            newMintingLimit,
+            newMintingLimit,
+          ])
+
+          expect(bridgeParams[1]).to.include.members([
+            newBurningRate,
+            newBurningLimit,
+            newBurningLimit,
+          ])
+
+          await snapshot.restore()
+        })
+
+        it('Should revert with `No implemented`', async () => {
+          await helpers.time.increase(oneDay)
+
+          if (_tokenKind === 'PTokenV2') {
+            const amount = 100n
+            await pTokenV2.connect(bridge).mint(user, amount)
+            await pTokenV2.connect(user).approve(bridge, amount)
+
+            await expect(
+              pTokenV2.connect(bridge)['burn(uint256,bytes)'](amount, '0x'),
+            ).to.revertedWith('Not implemented')
           }
         })
       })

@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.6.2;
+pragma experimental ABIEncoderV2;
 
 import {IXERC20_solc_0_6 as IXERC20} from "./IXERC20-solc-0.6.sol";
 import {IFeesManager_solc_0_6 as IFeesManager} from "./IFeesManager-solc-0.6.sol";
@@ -34,7 +35,7 @@ contract PTokenV2NoGSN is
     // V2
     uint256 private constant _DURATION = 1 days;
     address public lockbox;
-    mapping(address => Bridge) bridges;
+    mapping(address => Bridge) public bridges;
     address public feesManager;
     mapping(address => address) public adapterToPAM;
 
