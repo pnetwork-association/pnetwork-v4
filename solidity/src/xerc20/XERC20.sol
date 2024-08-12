@@ -6,6 +6,7 @@ import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {ERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {IFeesManager} from "../interfaces/IFeesManager.sol";
+import {IPTokenV2} from "../interfaces/IPTokenV2.sol";
 
 contract XERC20 is ERC20, Ownable, IXERC20, ERC20Permit {
     /**
@@ -28,8 +29,8 @@ contract XERC20 is ERC20, Ownable, IXERC20, ERC20Permit {
      */
     mapping(address => Bridge) public bridges;
 
-    address public feesManager;
     mapping(address => address) public adapterToPAM;
+    address public feesManager;
 
     error OnlyFeesManager();
     error InsufficientAmount();
@@ -63,22 +64,16 @@ contract XERC20 is ERC20, Ownable, IXERC20, ERC20Permit {
         _;
     }
 
-    /// @inheritdoc IXERC20
+    /// @inheritdoc IPTokenV2
     function setFeesManager(
         address newAddress
-    ) public onlyFeesManager onlyContractAddress(newAddress) {
+    ) external onlyFeesManager onlyContractAddress(newAddress) {
         feesManager = newAddress;
 
         emit FeesManagerChanged(newAddress);
     }
 
-    /**
-     * @notice Set the new PAM address
-     * @dev Be sure the API called by the adapter is respected
-     *
-     * @param adapterAddress  the adapter address
-     * @param pamAddress  the new PAM address
-     */
+    /// @inheritdoc IPTokenV2
     function setPAM(
         address adapterAddress,
         address pamAddress
@@ -87,22 +82,22 @@ contract XERC20 is ERC20, Ownable, IXERC20, ERC20Permit {
         emit PAMChanged(pamAddress);
     }
 
-    /// @inheritdoc IXERC20
+    /// @inheritdoc IPTokenV2
     function isLocal() external view returns (bool) {
         return (lockbox != address(0));
     }
 
-    /// @inheritdoc IXERC20
+    /// @inheritdoc IPTokenV2
     function getPAM(address adapter) external view returns (address) {
         return adapterToPAM[adapter];
     }
 
-    /// @inheritdoc IXERC20
+    /// @inheritdoc IPTokenV2
     function getFeesManager() external view returns (address) {
         return feesManager;
     }
 
-    /// @inheritdoc IXERC20
+    /// @inheritdoc IPTokenV2
     function getLockbox() external view returns (address) {
         return lockbox;
     }
@@ -139,7 +134,7 @@ contract XERC20 is ERC20, Ownable, IXERC20, ERC20Permit {
      * @param _lockbox The address of the lockbox
      */
 
-    function setLockbox(address _lockbox) public onlyOwner {
+    function setLockbox(address _lockbox) external onlyOwner {
         // if (msg.sender != FACTORY) revert IXERC20_NotFactory();
         lockbox = _lockbox;
 

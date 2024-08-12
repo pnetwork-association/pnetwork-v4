@@ -21,7 +21,7 @@ const deployERC1820 = () => helpers.setCode(ERC1820, ERC1820BYTES)
   describe(`Adapter ${_useGSN} Test Units`, () => {
     ;['', 'Native'].map(_isNative => {
       const setup = async () => {
-        const [owner, minter, recipient, user, evil] =
+        const [owner, admin, minter, recipient, user, evil] =
           await hre.ethers.getSigners()
         const name = 'Token A'
         const symbol = 'TKN A'
@@ -34,7 +34,7 @@ const deployERC1820 = () => helpers.setCode(ERC1820, ERC1820BYTES)
 
         await deployERC1820()
 
-        const pToken = await deployProxy(hre, `PToken${_useGSN}`, [
+        const pToken = await deployProxy(hre, `PToken${_useGSN}`, admin, [
           `p${name}`,
           `p${symbol}`,
           owner.address,
@@ -47,8 +47,8 @@ const deployERC1820 = () => helpers.setCode(ERC1820, ERC1820BYTES)
           pToken,
           `PTokenV2${_useGSN}`,
           opts,
+          admin,
         )
-
         const isNative = _isNative == 'Native'
         const firstEpoch = 0
         const nodes = []
@@ -93,9 +93,11 @@ const deployERC1820 = () => helpers.setCode(ERC1820, ERC1820BYTES)
         )
         await feesManager.setFee(pTokenV2, minFee, basisPoints)
         await pTokenV2.setFeesManager(feesManager)
-        await pTokenV2.setLockbox(lockbox)
-        await pTokenV2.setLimits(adapter, mintingLimit, burningLimit)
-        await pTokenV2.setPAM(adapter, PAM)
+        await pTokenV2.connect(owner).setLockbox(lockbox)
+        await pTokenV2
+          .connect(owner)
+          .setLimits(adapter, mintingLimit, burningLimit)
+        await pTokenV2.connect(owner).setPAM(adapter, PAM)
 
         if (!_isNative) await erc20.connect(owner).transfer(user, 10000)
 

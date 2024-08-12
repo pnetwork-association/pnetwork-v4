@@ -1,5 +1,4 @@
 import helpers, { loadFixture } from '@nomicfoundation/hardhat-network-helpers'
-import assert from 'assert'
 import { expect } from 'chai'
 import { ZeroAddress } from 'ethers/constants'
 import hre from 'hardhat'
@@ -14,60 +13,32 @@ import { validateUpgrade } from './utils/validate-upgrade.cjs'
 const ERC1820 = '0x1820a4B7618BdE71Dce8cdc73aAB6C95905faD24'
 const deployERC1820 = () => helpers.setCode(ERC1820, ERC1820BYTES)
 
-;['XERC20', 'PTokenV2NoGSN', 'PTokenV2'].map(_tokenKind => {
-  describe(`${_tokenKind}`, () => {
-    const _useGSN = _tokenKind.includes('NoGSN') ? 'NoGSN' : ''
+;['', 'NoGSN'].map(_useGSN => {
+  describe(`Testing upgrade from 'PToken${_useGSN}'`, () => {
+    describe('Storage Layout invariance checks', () => {
+      const name = 'pToken A'
+      const symbol = 'pTKN A'
+      const originChainId = '0x10000000'
 
-    if (_tokenKind.includes('PToken')) {
-      describe('Storage Layout invariance checks', () => {
-        const name = 'pToken A'
-        const symbol = 'pTKN A'
-        const originChainId = '0x10000000'
+      it('Should not detect any storage violation', async () => {
+        // Set the registry
+        await deployERC1820()
 
-        it('Should not detect any storage violation', async () => {
-          // Set the registry
-          await deployERC1820()
+        const [_, admin] = await hre.ethers.getSigners()
+        const pToken = await deployProxy(hre, `PToken${_useGSN}`, admin, [
+          name,
+          symbol,
+          admin.address,
+          originChainId,
+        ])
 
-          const [_, admin] = await hre.ethers.getSigners()
-          const pToken = await deployProxy(hre, `PToken${_useGSN}`, [
-            name,
-            symbol,
-            admin.address,
-            originChainId,
-          ])
-
-          expect(
-            await validateUpgrade(hre, `PTokenV2${_useGSN}`, pToken.target),
-          )
-        })
-
-        it('Should not be possible to upgrade from GSN to non-GSN and viceversa', async () => {
-          // Set the registry
-          await deployERC1820()
-
-          const [_, admin] = await hre.ethers.getSigners()
-          const pToken = await deployProxy(hre, `PToken${_useGSN}`, [
-            name,
-            symbol,
-            admin.address,
-            originChainId,
-          ])
-
-          const notUseGSN = _useGSN === '' ? 'NoGSN' : ''
-
-          try {
-            await validateUpgrade(hre, `PTokenV2${notUseGSN}`, pToken.target),
-              assert.fail('Should never reach here')
-          } catch (e) {
-            expect(e.message).to.include('New storage layout is incompatible')
-          }
-        })
+        expect(await validateUpgrade(hre, `PTokenV2${_useGSN}`, pToken.target))
       })
-    }
+    })
 
-    describe.only('Tests units', () => {
+    describe('Tests units', () => {
       const setup = async () => {
-        const [owner, minter, recipient, user, evil, bridge] =
+        const [owner, admin, minter, recipient, user, evil, bridge] =
           await hre.ethers.getSigners()
         const name = 'pToken A'
         const symbol = 'pTKN A'
@@ -75,60 +46,56 @@ const deployERC1820 = () => helpers.setCode(ERC1820, ERC1820BYTES)
 
         await deployERC1820()
 
-        const pToken =
-          _tokenKind == 'XERC20'
-            ? await deploy(hre, 'XERC20', [name, symbol, ZeroAddress])
-            : await deployProxy(hre, `PToken${_useGSN}`, [
-                name,
-                symbol,
-                owner.address,
-                originChainId,
-              ])
+        const pToken = await deployProxy(hre, `PToken${_useGSN}`, admin, [
+          name,
+          symbol,
+          owner.address,
+          originChainId,
+        ])
 
-        return { owner, minter, recipient, user, evil, bridge, pToken }
+        return { owner, admin, minter, recipient, user, evil, bridge, pToken }
       }
 
-      if (_tokenKind.includes('PToken')) {
-        it('Should mint some pTokens before upgrade', async () => {
-          const { owner, minter, recipient, pToken } = await loadFixture(setup)
+      it('Should mint some pTokens before upgrade', async () => {
+        const { owner, minter, recipient, pToken } = await loadFixture(setup)
 
-          const value = 100
-          await expect(pToken.connect(owner).grantMinterRole(minter)).to.emit(
-            pToken,
-            'RoleGranted',
-          )
-          await expect(pToken.connect(minter).mint(recipient, value))
-            .to.emit(pToken, 'Transfer')
-            .withArgs(ZeroAddress, recipient.address, value)
+        const value = 100
+        await expect(pToken.connect(owner).grantMinterRole(minter)).to.emit(
+          pToken,
+          'RoleGranted',
+        )
+        await expect(pToken.connect(minter).mint(recipient, value))
+          .to.emit(pToken, 'Transfer')
+          .withArgs(ZeroAddress, recipient.address, value)
 
-          expect(await pToken.balanceOf(recipient)).to.be.equal(value)
-        })
+        expect(await pToken.balanceOf(recipient)).to.be.equal(value)
+      })
 
-        it('Should upgrade the ptoken correctly', async () => {
-          const { owner, minter, recipient, pToken } = await loadFixture(setup)
-          const value = 100
-          await pToken.connect(owner).grantMinterRole(minter)
-          await pToken.connect(minter).mint(recipient, value)
+      it('Should upgrade the ptoken correctly', async () => {
+        const { owner, admin, minter, recipient, pToken } =
+          await loadFixture(setup)
+        const value = 100
+        await pToken.connect(owner).grantMinterRole(minter)
+        await pToken.connect(minter).mint(recipient, value)
 
-          const opts = getUpgradeOpts(owner, _useGSN)
+        expect(await pToken.balanceOf(recipient)).to.be.equal(value)
 
-          const pTokenV2 = await upgradeProxy(
-            hre,
-            pToken,
-            `PTokenV2${_useGSN}`,
-            opts,
-          )
+        const opts = getUpgradeOpts(owner)
+        const pTokenV2 = await upgradeProxy(
+          hre,
+          pToken,
+          `PTokenV2${_useGSN}`,
+          opts,
+          admin,
+        )
 
-          expect(await pTokenV2.balanceOf(recipient)).to.be.equal(100)
-        })
-      }
+        expect(await pTokenV2.balanceOf(recipient)).to.be.equal(value)
+      })
 
-      describe('Cumulative tests after pToken contract upgrade or when using XERC20', () => {
+      describe('Cumulative tests after pToken contract upgrade', () => {
         let owner,
           admin,
           user,
-          minter,
-          recipient,
           evil,
           PAM,
           bridge,
@@ -147,20 +114,53 @@ const deployERC1820 = () => helpers.setCode(ERC1820, ERC1820BYTES)
           const env = await loadFixture(setup)
           owner = env.owner
           admin = env.admin
-          minter = env.minter
-          recipient = env.recipient
           user = env.user
           evil = env.evil
           bridge = env.bridge
           pToken = env.pToken
 
-          const opts = getUpgradeOpts(owner, _useGSN)
-
-          pTokenV2 = _tokenKind.includes('PToken')
-            ? await upgradeProxy(hre, pToken, `PTokenV2${_useGSN}`, opts)
-            : pToken
+          const opts = getUpgradeOpts(owner)
+          pTokenV2 = await upgradeProxy(
+            hre,
+            pToken,
+            `PTokenV2${_useGSN}`,
+            opts,
+            admin,
+          )
 
           expect(await pTokenV2.owner()).to.be.equal(owner.address)
+        })
+
+        it('Should revert when trying to call initializeV2', async () => {
+          const initError = 'Initializable: contract is already initialized'
+          await expect(
+            pTokenV2.connect(admin).initializeV2(evil),
+          ).to.be.revertedWith(initError)
+
+          await expect(
+            pTokenV2.connect(owner).initializeV2(evil),
+          ).to.be.revertedWith(initError)
+
+          await expect(
+            pTokenV2.connect(evil).initializeV2(evil),
+          ).to.be.revertedWith(initError)
+        })
+
+        it('Only the admin can upgrade the contract', async () => {
+          const snapshot = await helpers.takeSnapshot()
+          const opts = {}
+          await expect(
+            upgradeProxy(hre, pTokenV2, `PTokenV2${_useGSN}`, opts, owner),
+          ).to.be.reverted
+
+          await expect(
+            upgradeProxy(hre, pTokenV2, `PTokenV2${_useGSN}`, opts, evil),
+          ).to.be.reverted
+
+          await expect(
+            upgradeProxy(hre, pTokenV2, `PTokenV2${_useGSN}`, opts, admin),
+          ).to.not.be.reverted
+          await snapshot.restore()
         })
 
         it('Anyone can set the fee manager the first time', async () => {
@@ -180,14 +180,10 @@ const deployERC1820 = () => helpers.setCode(ERC1820, ERC1820BYTES)
 
           const tx = pTokenV2.connect(owner).setFeesManager(feesManagerTest)
 
-          if (_tokenKind === 'XERC20') {
-            await expect(tx).to.be.revertedWithCustomError(
-              pTokenV2,
-              'OnlyFeesManager',
-            )
-          } else {
-            await expect(tx).to.be.revertedWith('OnlyFeesManager')
-          }
+          await expect(tx).to.be.revertedWithCustomError(
+            pTokenV2,
+            'OnlyFeesManager',
+          )
 
           await expect(
             oldFeesManager.setFeesManagerForXERC20(pTokenV2, feesManagerTest),
@@ -203,16 +199,9 @@ const deployERC1820 = () => helpers.setCode(ERC1820, ERC1820BYTES)
             .connect(evil)
             .setLimits(bridge, mintingLimit, burningLimit)
 
-          if (_tokenKind === 'XERC20') {
-            await expect(tx).to.be.revertedWithCustomError(
-              pTokenV2,
-              'OwnableUnauthorizedAccount',
-            )
-          } else {
-            await expect(tx).to.be.revertedWith(
-              'Ownable: caller is not the owner',
-            )
-          }
+          await expect(tx).to.be.revertedWith(
+            'Ownable: caller is not the owner',
+          )
 
           await expect(
             pTokenV2
@@ -251,16 +240,8 @@ const deployERC1820 = () => helpers.setCode(ERC1820, ERC1820BYTES)
         it('Should get the correct bridge params after minting and burning', async () => {
           const amount = 100n
           await pTokenV2.connect(bridge).mint(user, amount)
-
           await pTokenV2.connect(user).approve(bridge, amount)
-
-          if (_tokenKind === 'XERC20') {
-            await pTokenV2.connect(bridge).burn(user, amount)
-          } else {
-            await pTokenV2
-              .connect(bridge)
-              ['burn(address,uint256)'](user, amount)
-          }
+          await pTokenV2.connect(bridge).burn(user, amount)
 
           const bridgeParams = await pTokenV2.bridges(bridge)
 
@@ -279,18 +260,9 @@ const deployERC1820 = () => helpers.setCode(ERC1820, ERC1820BYTES)
         it('Only the owner can set the PAM address', async () => {
           PAM = await deploy(hre, 'PAM')
 
-          const tx = pTokenV2.connect(evil).setPAM(bridge, PAM)
-
-          if (_tokenKind === 'XERC20') {
-            await expect(tx).to.be.revertedWithCustomError(
-              pTokenV2,
-              'OwnableUnauthorizedAccount',
-            )
-          } else {
-            await expect(tx).to.be.revertedWith(
-              'Ownable: caller is not the owner',
-            )
-          }
+          await expect(
+            pTokenV2.connect(evil).setPAM(bridge, PAM),
+          ).to.be.revertedWith('Ownable: caller is not the owner')
 
           await expect(pTokenV2.connect(owner).setPAM(bridge, PAM))
             .to.emit(pTokenV2, 'PAMChanged')
@@ -312,16 +284,9 @@ const deployERC1820 = () => helpers.setCode(ERC1820, ERC1820BYTES)
           ])
 
           const tx = pTokenV2.connect(evil).setLockbox(lockbox)
-          if (_tokenKind === 'XERC20') {
-            await expect(tx).to.be.revertedWithCustomError(
-              pTokenV2,
-              'OwnableUnauthorizedAccount',
-            )
-          } else {
-            await expect(tx).to.be.revertedWith(
-              'Ownable: caller is not the owner',
-            )
-          }
+          await expect(tx).to.be.revertedWith(
+            'Ownable: caller is not the owner',
+          )
 
           await expect(pTokenV2.connect(owner).setLockbox(lockbox))
             .to.emit(pTokenV2, 'LockboxSet')
@@ -348,18 +313,12 @@ const deployERC1820 = () => helpers.setCode(ERC1820, ERC1820BYTES)
           const remainingMintAmount =
             currentMintingLimit + seconds * mintingRatePerSecond + 1n
 
-          if (_tokenKind === 'XERC20') {
-            await expect(
-              pTokenV2.connect(bridge).mint(user, remainingMintAmount),
-            ).to.be.revertedWithCustomError(
-              pTokenV2,
-              'IXERC20_NotHighEnoughLimits',
-            )
-          } else {
-            await expect(
-              pTokenV2.connect(bridge).mint(user, remainingMintAmount),
-            ).to.be.revertedWith('IXERC20_NotHighEnoughLimits')
-          }
+          await expect(
+            pTokenV2.connect(bridge).mint(user, remainingMintAmount),
+          ).to.be.revertedWithCustomError(
+            pTokenV2,
+            'IXERC20_NotHighEnoughLimits',
+          )
 
           // Transfer the whole amount in order to burn
           await pTokenV2.connect(bridge).mint(user, mintingLimit)
@@ -371,22 +330,14 @@ const deployERC1820 = () => helpers.setCode(ERC1820, ERC1820BYTES)
 
           await pTokenV2.connect(user).approve(bridge, remainingBurnLimit)
 
-          if (_tokenKind === 'XERC20') {
-            await expect(
-              pTokenV2
-                .connect(bridge)
-                ['burn(address,uint256)'](user, remainingBurnLimit),
-            ).to.be.revertedWithCustomError(
-              pTokenV2,
-              'IXERC20_NotHighEnoughLimits',
-            )
-          } else {
-            await expect(
-              pTokenV2
-                .connect(bridge)
-                ['burn(address,uint256)'](user, remainingBurnLimit),
-            ).to.be.revertedWith('IXERC20_NotHighEnoughLimits')
-          }
+          await expect(
+            pTokenV2
+              .connect(bridge)
+              ['burn(address,uint256)'](user, remainingBurnLimit),
+          ).to.be.revertedWithCustomError(
+            pTokenV2,
+            'IXERC20_NotHighEnoughLimits',
+          )
         })
 
         it('Should lower the limit successfully', async () => {
@@ -504,20 +455,6 @@ const deployERC1820 = () => helpers.setCode(ERC1820, ERC1820BYTES)
           ])
 
           await snapshot.restore()
-        })
-
-        it('Should revert with `No implemented`', async () => {
-          await helpers.time.increase(oneDay)
-
-          if (_tokenKind === 'PTokenV2') {
-            const amount = 100n
-            await pTokenV2.connect(bridge).mint(user, amount)
-            await pTokenV2.connect(user).approve(bridge, amount)
-
-            await expect(
-              pTokenV2.connect(bridge)['burn(uint256,bytes)'](amount, '0x'),
-            ).to.revertedWith('Not implemented')
-          }
         })
       })
     })

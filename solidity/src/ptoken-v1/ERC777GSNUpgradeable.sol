@@ -1,9 +1,9 @@
 pragma solidity ^0.6.2;
 
-import "@openzeppelin/contracts-upgradeable/proxy/Initializable.sol";
-import "@openzeppelin/contracts-upgradeable/cryptography/ECDSAUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/GSN/GSNRecipientUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable-v3.4.2/proxy/Initializable.sol";
+import "@openzeppelin/contracts-upgradeable-v3.4.2/cryptography/ECDSAUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable-v3.4.2/GSN/GSNRecipientUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable-v3.4.2/access/OwnableUpgradeable.sol";
 import "./ERC777Upgradeable.sol";
 
 contract ERC777GSNUpgradeable is

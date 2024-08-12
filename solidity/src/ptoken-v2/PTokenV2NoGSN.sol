@@ -8,14 +8,14 @@ import {IERC20PermitUpgradeable} from "@openzeppelin/contracts-upgradeable/token
 import {IOwnable} from "../interfaces/IOwnable.sol";
 import {IFeesManager} from "../interfaces/IFeesManager.sol";
 import {IPTokenV2} from "../interfaces/IPTokenV2.sol";
-import {PTokenV1Storage} from "./PTokenV1Storage.sol";
+import {PTokenV1NoGSNStorage} from "./PTokenV1NoGSNStorage.sol";
 
 import "@openzeppelin/contracts-upgradeable/utils/cryptography/ECDSAUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/cryptography/EIP712Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/CountersUpgradeable.sol";
 
-contract PTokenV2 is
-    PTokenV1Storage,
+contract PTokenV2NoGSN is
+    PTokenV1NoGSNStorage,
     IERC20Upgradeable,
     IOwnable,
     IXERC20,

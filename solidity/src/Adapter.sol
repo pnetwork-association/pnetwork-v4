@@ -8,6 +8,7 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IPAM} from "./interfaces/IPAM.sol";
 import {IPAM} from "./interfaces/IPAM.sol";
 import {IXERC20} from "./interfaces/IXERC20.sol";
+import {IPTokenV2} from "./interfaces/IPTokenV2.sol";
 import {IAdapter} from "./interfaces/IAdapter.sol";
 import {IPReceiver} from "./interfaces/IPReceiver.sol";
 import {IFeesManager} from "./interfaces/IFeesManager.sol";
