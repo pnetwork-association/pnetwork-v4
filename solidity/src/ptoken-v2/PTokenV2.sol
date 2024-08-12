@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.6.2;
+pragma experimental ABIEncoderV2;
 
 import {IXERC20_solc_0_6 as IXERC20} from "./IXERC20-solc-0.6.sol";
 import {IFeesManager_solc_0_6 as IFeesManager} from "./IFeesManager-solc-0.6.sol";
@@ -23,7 +24,7 @@ contract PTokenV2 is
     // V2
     uint256 private constant _DURATION = 1 days;
     address public lockbox;
-    mapping(address => Bridge) bridges;
+    mapping(address => Bridge) public bridges;
     address public feesManager;
     mapping(address => address) public adapterToPAM;
 
@@ -49,9 +50,6 @@ contract PTokenV2 is
     function setFeesManager(address newAddress) external override {
         address msgSender = _msgSender();
 
-        if (feesManager == address(0) && msgSender != owner())
-            // First time
-            revert("OnlyOwner");
         if (feesManager != address(0) && msgSender != feesManager)
             revert("OnlyFeesManager");
 
@@ -115,6 +113,10 @@ contract PTokenV2 is
         }
 
         _burnWithCaller(msg.sender, _user, _amount);
+    }
+
+    function burn(uint256, bytes memory) public override {
+        revert("Not implemented");
     }
 
     /**

@@ -23,8 +23,8 @@ contract Adapter is IAdapter, Ownable {
 
     uint256 _nonce;
 
-    address public erc20;
-    address public xerc20;
+    address public immutable erc20;
+    address public immutable xerc20;
     mapping(bytes32 => bool) public pastEvents;
 
     error NotAllowed();

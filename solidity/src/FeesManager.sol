@@ -132,11 +132,9 @@ contract FeesManager is IFeesManager, Ownable {
         if (!info.defined) return 0;
 
         uint256 fee = (amount * info.basisPoints) / 1000000;
+        uint256 minFee = feeInfoByAsset[xerc20].minFee;
 
-        return
-            fee < feeInfoByAsset[xerc20].minFee
-                ? feeInfoByAsset[xerc20].minFee
-                : fee;
+        return fee < minFee ? minFee : fee;
     }
 
     /// @inheritdoc IFeesManager
