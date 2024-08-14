@@ -56,6 +56,22 @@ abstract contract Helper is Test {
         vm.stopPrank();
     }
 
+    function _getFeesManagerNodesAndStakedAmounts(
+        uint size
+    )
+        internal
+        pure
+        returns (address[] memory nodes, uint256[] memory stakedAmounts)
+    {
+        nodes = new address[](size);
+        stakedAmounts = new uint256[](size);
+
+        for (uint i = 0; i < size; i++) {
+            nodes[i] = vm.addr(100 + i);
+            stakedAmounts[i] = (i + 1) * 1 ether;
+        }
+    }
+
     function _setupChain(
         uint256 chain,
         address owner,
@@ -85,10 +101,11 @@ abstract contract Helper is Test {
                 notNative
             );
 
-            address[] memory nodes = new address[](1);
-            nodes[0] = vm.addr(111);
-            uint256[] memory stakedAmounts = new uint256[](1);
-            stakedAmounts[0] = 1 ether;
+            (
+                address[] memory nodes,
+                uint256[] memory stakedAmounts
+            ) = _getFeesManagerNodesAndStakedAmounts(1);
+
             feesManager = new FeesManager(0, nodes, stakedAmounts);
             feesManager.setFee(address(xerc20), 0, 2000);
             xerc20.setLockbox(address(lockbox));

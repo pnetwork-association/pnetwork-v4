@@ -55,15 +55,29 @@ fi
 
 shift 2
 
+
+
 # Perform a dry-run execution
-# add --broadcast to parameters if you 
-# want to broadcast the tx 
+# add --broadcast to parameters if you
+# want to broadcast the tx
 source ../.env
+chain_name=$(echo "${CHAIN_NAME:-sepolia}" | tr '[:lower:]' '[:upper:]')
+eval "rpc_url=\$${chain_name}_RPC_URL"
+echo
+echo "+ Executing script, config:"
+echo "|"
+echo "|   FORGE_ACCOUNT: $FORGE_ACCOUNT"
+echo "|"
+echo "|   RPC_URL: $rpc_url"
+echo "|"
+echo "|   CHAIN_NAME: $chain_name"
+echo "+"
+echo
 forge script \
     -vvvvv \
-    --chain "${CHAIN_NAME:-sepolia}" \
+    --rpc-url "$rpc_url" \
     --password "$FORGE_KEYSTORE_PASSWORD" \
-    --rpc-url "$RPC_URL" \
+    --account "$FORGE_ACCOUNT" \
     --sig "$sig" \
     "$contract" \
     "$@"
