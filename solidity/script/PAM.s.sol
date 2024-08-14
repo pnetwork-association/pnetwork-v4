@@ -15,4 +15,14 @@ contract PAMScript is Script {
         PAM(pam).setTeeSigner(pubKey, attestation);
         vm.stopBroadcast();
     }
+
+    function setEmitter(
+        address pam,
+        uint256 chainid,
+        address emitter
+    ) external {
+        vm.startBroadcast();
+        PAM(pam).setEmitter(bytes32(chainid), bytes32(abi.encode(emitter)));
+        vm.stopBroadcast();
+    }
 }
