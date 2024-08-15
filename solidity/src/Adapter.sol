@@ -2,8 +2,9 @@
 pragma solidity ^0.8.25;
 
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
-import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 import {IPAM} from "./interfaces/IPAM.sol";
 import {IPAM} from "./interfaces/IPAM.sol";
@@ -16,7 +17,7 @@ import {IXERC20Registry} from "./interfaces/IXERC20Registry.sol";
 import {IXERC20Lockbox} from "./interfaces/IXERC20Lockbox.sol";
 import {ExcessivelySafeCall} from "./libraries/ExcessivelySafeCall.sol";
 
-contract Adapter is IAdapter, Ownable {
+contract Adapter is IAdapter, Ownable, ReentrancyGuard {
     using ExcessivelySafeCall for address;
 
     bytes32 public constant SWAP_EVENT_TOPIC =
@@ -52,11 +53,10 @@ contract Adapter is IAdapter, Ownable {
     }
 
     /// @inheritdoc IAdapter
-    // TODO: check reentrancy here
     function settle(
         Operation memory operation,
         IPAM.Metadata calldata metadata
-    ) external {
+    ) external nonReentrant {
         if (operation.erc20 != bytes32(abi.encode(erc20)))
             revert InvalidOperation();
 
