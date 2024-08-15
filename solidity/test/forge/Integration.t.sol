@@ -426,4 +426,44 @@ contract IntegrationTest is Test, Helper {
 
         adapter_B.settle(operation, metadata);
     }
+
+    function test_settle_e2e_RevertWhen_ReplayAttack() public {
+        uint256 amount = 10000;
+
+        bytes memory data = vm.parseBytes("0x");
+
+        vm.recordLogs();
+        _performERC20Swap(
+            CHAIN_A,
+            address(erc20_A),
+            user,
+            address(adapter_A),
+            CHAIN_B,
+            address(recipient),
+            amount,
+            data
+        );
+
+        Vm.Log[] memory logs = vm.getRecordedLogs();
+        operation = _getOperationFromLogs(logs, SWAP_TOPIC);
+        metadata = _getMetadataFromLogs(
+            logs,
+            SWAP_TOPIC,
+            operation,
+            attestatorPrivateKey
+        );
+
+        bytes32 eventId = _getEventId(metadata.preimage);
+
+        vm.chainId(CHAIN_B);
+
+        vm.expectEmit(address(adapter_B));
+        emit IAdapter.Settled(eventId);
+        adapter_B.settle(operation, metadata);
+
+        vm.expectRevert(
+            abi.encodeWithSelector(Adapter.AlreadyProcessed.selector, eventId)
+        );
+        adapter_B.settle(operation, metadata);
+    }
 }
