@@ -4,7 +4,10 @@ pragma solidity >=0.8.4 <0.9.0;
 /**
  * @title PToken.sol storage layout
  * @author pNetwork Team
- * @notice Should be the first to inherit from on the v2 pToken contract version.
+ *
+ * @dev Provides the same storage layout of the PToken.sol
+ * contract. This way we are able to keep the new version
+ * upgrades clean concise.
  */
 contract PTokenV1Storage {
     struct Set {
