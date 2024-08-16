@@ -99,6 +99,9 @@ contract IntegrationTest is Test, Helper {
             bytes32(CHAIN_A),
             bytes32(abi.encode(address(adapter_A)))
         );
+
+        pam_A.setTopicZero(bytes32(CHAIN_B), IAdapter.Swap.selector);
+        pam_B.setTopicZero(bytes32(CHAIN_A), IAdapter.Swap.selector);
         vm.stopPrank();
     }
 

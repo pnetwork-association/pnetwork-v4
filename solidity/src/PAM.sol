@@ -14,7 +14,7 @@ contract PAM is Ownable, IPAM {
     address public teeAddressNew;
     uint256 public teeAddressChangeGraceThreshold;
     mapping(bytes32 => bytes32) public emitters;
-    mapping(bytes32 => bool) public pastEvents;
+    mapping(bytes32 => bytes32) public chainIdToTopicZero;
 
     event EmitterSet(bytes32 chainid, bytes32 emitter);
     event EmitterUnset(bytes32 chainId);
@@ -69,6 +69,10 @@ contract PAM is Ownable, IPAM {
         }
     }
 
+    function setTopicZero(bytes32 chainid, bytes32 topic0) external onlyOwner {
+        chainIdToTopicZero[chainid] = topic0;
+    }
+
     function setEmitter(bytes32 chainid, bytes32 emitter) external onlyOwner {
         emitters[chainid] = emitter;
 
@@ -109,8 +113,8 @@ contract PAM is Ownable, IPAM {
             return (false, eventId);
 
         // Event payload format
-        // |  emitter  |  sha256(topics)  |  eventBytes  |
-        // |    32B    |        32B       |    varlen    |
+        // |  emitter  |    topic-0     |    topics-1     |    topics-2     |    topics-3     |  eventBytes  |
+        // |    32B    |      32B       |       32B       |       32B       |       32B       |    varlen    |
         bytes32 originChainId = bytes32(metadata.preimage[2:34]);
 
         uint256 offset = 32;
@@ -121,7 +125,12 @@ contract PAM is Ownable, IPAM {
         if ((expectedEmitter == bytes32(0)) || (emitter != expectedEmitter))
             return (false, eventId);
 
-        offset += 32; // skip sha256(topics) part
+        bytes32 topic0 = bytes32(eventPayload[offset:offset += 32]);
+
+        if (topic0 != chainIdToTopicZero[originChainId])
+            return (false, eventId);
+
+        offset += 32 * 3; // skip other topics
         IAdapter.EventBytes memory eventBytes = abi.decode(
             eventPayload[offset:],
             (IAdapter.EventBytes)

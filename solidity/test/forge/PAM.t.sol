@@ -235,6 +235,7 @@ contract PAMTest is Test, Helper {
         pam = new PAM();
         pam.setEmitter(bytes32(originChainId), bytes32(abi.encode(adapter)));
         pam.setTeeSigner(vm.parseBytes(attestatorPublicKey), attestation);
+        pam.setTopicZero(bytes32(originChainId), IAdapter.Swap.selector);
 
         (bool authorized, ) = pam.isAuthorized(operation, metadata);
 

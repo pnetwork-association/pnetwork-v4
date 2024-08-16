@@ -63,7 +63,10 @@ export class ProofcastEventAttestator {
     // required to change logic based on version and protocolID
     return hexConcat([
       hexZeroPad(event.address, 32),
-      sha256(hexConcat(event.topics)),
+      event.topics[0],
+      event.topics[1],
+      hexZeroPad('0x00', 32),
+      hexZeroPad('0x00', 32),
       event.data,
     ])
   }

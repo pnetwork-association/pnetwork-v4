@@ -35,6 +35,7 @@ conditionalDescribe(
     const mintingLimit = hre.ethers.parseEther('500000')
     const burningLimit = hre.ethers.parseEther('500000')
     const swapAmount = hre.ethers.parseEther('10000')
+    const userdata = '0x'
 
     let erc20,
       adapterEth,
@@ -116,7 +117,13 @@ conditionalDescribe(
 
         const tx = await adapterBsc
           .connect(user)
-          .swap(ptokenv2, swapAmount, destinationChainId, recipient.address)
+          .swap(
+            ptokenv2,
+            swapAmount,
+            destinationChainId,
+            recipient.address,
+            userdata,
+          )
 
         const swapEvent = await getSwapEvent(tx)
 
@@ -198,6 +205,10 @@ conditionalDescribe(
         await pam.setEmitter(
           padLeft32(Chains.Bsc),
           padLeft32(adapterBsc.target),
+        )
+        await pam.setTopicZero(
+          padLeft32(Chains.Bsc),
+          adapterEth.getEvent('Swap').fragment.topicHash,
         )
 
         await xerc20.setPAM(adapterEth, pam)

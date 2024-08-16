@@ -20,9 +20,6 @@ import {ExcessivelySafeCall} from "./libraries/ExcessivelySafeCall.sol";
 contract Adapter is IAdapter, Ownable, ReentrancyGuard {
     using ExcessivelySafeCall for address;
 
-    bytes32 public constant SWAP_EVENT_TOPIC =
-        0x26d9f1fabb4e0554841202b52d725e2426dda2be4cafcb362eb73f9fb813d609;
-
     uint256 _nonce;
 
     address public immutable erc20;
@@ -121,7 +118,21 @@ contract Adapter is IAdapter, Ownable, ReentrancyGuard {
         uint256 destinationChainId,
         string memory recipient,
         bytes memory data
-    ) public {
+    ) external payable {
+        if (erc20 == address(0)) {
+            _swapNative(destinationChainId, recipient, data);
+        } else {
+            _swapToken(token, amount, destinationChainId, recipient, data);
+        }
+    }
+
+    function _swapToken(
+        address token,
+        uint256 amount,
+        uint256 destinationChainId,
+        string memory recipient,
+        bytes memory data
+    ) internal {
         if (token == address(0)) revert InvalidTokenAddress(token);
         if ((token != erc20) && (token != xerc20)) revert NotAllowed();
         if (amount <= 0) revert InvalidAmount();
@@ -152,22 +163,11 @@ contract Adapter is IAdapter, Ownable, ReentrancyGuard {
         _finalizeSwap(amount, destinationChainId, recipient, data);
     }
 
-    /// @inheritdoc IAdapter
-    function swap(
-        address token,
-        uint256 amount,
-        uint256 destinationChainId,
-        string calldata recipient
-    ) public {
-        swap(token, amount, destinationChainId, recipient, "");
-    }
-
-    /// @inheritdoc IAdapter
-    function swapNative(
+    function _swapNative(
         uint256 destinationChainId,
         string memory recipient,
         bytes memory data
-    ) public payable {
+    ) internal {
         uint256 amount = msg.value;
         if (erc20 != address(0)) revert NotAllowed();
         if (amount == 0) revert InvalidAmount();
@@ -186,14 +186,6 @@ contract Adapter is IAdapter, Ownable, ReentrancyGuard {
             );
 
         _finalizeSwap(amount, destinationChainId, recipient, data);
-    }
-
-    /// @inheritdoc IAdapter
-    function swapNative(
-        uint256 destinationChainId,
-        string memory recipient
-    ) public payable {
-        swapNative(destinationChainId, recipient, "");
     }
 
     function _finalizeSwap(
