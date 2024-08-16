@@ -69,10 +69,16 @@ contract PTokenV2 is
     /**
      * @notice This is for re-initialize the contract with the new owner
      * @param owner_ new owner of the contract
+     *
+     * @dev The reinitializer here belongs to the EIP712Upgradeable's
+     * Initializable parent contract. The latter would create a new
+     * storage variable called _initialized(uint256) which won't conflict
+     * with the one already declared in PTokenV1Storage.
      */
     // solhint-disable-next-line
     function initializeV2(address owner_) public reinitializer(2) {
-        // Check XERC20 call
+        // This is what is being performed by the ERC20Permit
+        // contract inherited by the XERC20 immutable version
         __EIP712_init(_name, "1");
         _owner = owner_;
     }

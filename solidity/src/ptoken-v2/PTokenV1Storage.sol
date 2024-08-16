@@ -23,29 +23,37 @@ contract PTokenV1Storage {
         bytes32 adminRole;
     }
 
-    bool internal _initialized;
-    bool internal _initializing;
+    ////////////// Initializable (dropped)
+    bool private _initialized;
+    bool private _initializing;
     uint256[50] private __gap0;
+    //////////////////// AccessControlUpgradeable (dropped)
     mapping(bytes32 => RoleData) private _roles;
     uint256[49] private __gap1;
+    /////// ERC777GSNUpgradeable -> OwnableUpgradeable (reused)
     address internal _owner;
     uint256[49] private __gap2;
+    /////// ERC777GSNUpgradeable -> GSNRecipientUpgradeable (dropped)
     address private _relayHub;
     uint256[49] private __gap3;
-    mapping(address => uint256) internal _balances;
-    uint256 internal _totalSupply;
-    string internal _name;
-    string internal _symbol;
-    address[] private _defaultOperatorsArray;
-    mapping(address => bool) private _defaultOperators;
-    mapping(address => mapping(address => bool)) private _operators;
-    mapping(address => mapping(address => bool))
-        private _revokedDefaultOperators;
-    mapping(address => mapping(address => uint256)) internal _allowances;
-    uint256[41] private __gap4;
+    /////// ERC777GSNUpgradeable -> ERC777Upgradeable
+    mapping(address => uint256) internal _balances; // reused
+    uint256 internal _totalSupply; // reused
+    string internal _name; // reused
+    string internal _symbol; // reused
+    address[] private _defaultOperatorsArray; // dropped
+    mapping(address => bool) private _defaultOperators; // dropped
+    mapping(address => mapping(address => bool)) private _operators; // dropped
+    mapping(address => mapping(address => bool)) // dropped
+        private _revokedDefaultOperators; // dropped
+    mapping(address => mapping(address => uint256)) internal _allowances; // dropped
+    uint256[41] private __gap4; // dropped
+    /////// ERC777GSNUpgradeable -> GSNRecipientUpgradeable (dropped)
     address private gsnTrustedSigner;
     address private gsnFeeTarget;
     uint256 private gsnExtraGas;
+    /////// ERC777WithAdminOperatorUpgradeable (dropped)
     address private adminOperator;
+    /////// PToken (dropped)
     bytes4 private ORIGIN_CHAIN_ID;
 }

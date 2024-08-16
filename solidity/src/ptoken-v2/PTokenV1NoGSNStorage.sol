@@ -23,11 +23,14 @@ contract PTokenV1NoGSNStorage {
         bytes32 adminRole;
     }
 
-    bool internal _initialized;
-    bool internal _initializing;
+    ////////////// Initializable (dropped)
+    bool private _initialized;
+    bool private _initializing;
     uint256[50] private __gap0;
+    //////////////////// AccessControlUpgradeable (dropped)
     mapping(bytes32 => RoleData) private _roles;
     uint256[49] private __gap1;
+    /////// ERC777WithAdminOperatorUpgradeable
     mapping(address => uint256) internal _balances;
     uint256 internal _totalSupply;
     string internal _name;
@@ -40,9 +43,10 @@ contract PTokenV1NoGSNStorage {
     mapping(address => mapping(address => uint256)) internal _allowances;
     uint256[41] private __gap4;
     address private adminOperator;
+    /////// PToken (dropped)
     bytes4 private ORIGIN_CHAIN_ID;
-    // This wasn't on the origin NoGSN. We expect to
-    // initialize this value properly in the initializeV2
-    // function
+    // This wasn't on the original PTokenNoGSN version.
+    // We expect to initialize this value properly in
+    // the initializeV2 function
     address internal _owner;
 }
