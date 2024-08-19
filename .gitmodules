@@ -13,3 +13,6 @@
 [submodule "solidity/lib/openzeppelin-contracts-upgradeable-v3.4.2"]
 	path = solidity/lib/openzeppelin-contracts-upgradeable-v3.4.2
 	url = https://github.com/OpenZeppelin/openzeppelin-contracts-upgradeable
+[submodule "solidity/lib/openzeppelin-foundry-upgrades"]
+	path = solidity/lib/openzeppelin-foundry-upgrades
+	url = https://github.com/OpenZeppelin/openzeppelin-foundry-upgrades
