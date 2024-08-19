@@ -98,5 +98,5 @@ Same logic applies for the following commands.
 # Switch chain on the .env file
 
 # Host chain
-./PAM.sh 'setEmitter(address,uint256,address)' <origin-pam-address> <origin-chain-id> <origin-emitter-address>
+./PAM.sh 'setEmitter(address,uint256,address)' <host-pam-address> <origin-chain-id> <origin-emitter-address>
 ```
