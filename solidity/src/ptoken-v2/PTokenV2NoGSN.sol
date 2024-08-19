@@ -14,6 +14,7 @@ import "@openzeppelin/contracts-upgradeable/utils/cryptography/ECDSAUpgradeable.
 import "@openzeppelin/contracts-upgradeable/utils/cryptography/EIP712Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/CountersUpgradeable.sol";
 
+/// @custom:oz-upgrades-from PTokenNoGSN
 contract PTokenV2NoGSN is
     PTokenV1NoGSNStorage,
     IERC20Upgradeable,
