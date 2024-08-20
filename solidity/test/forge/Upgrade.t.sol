@@ -17,8 +17,6 @@ interface IERC777GSNUpgradeable {
 }
 
 contract Upgrade is Test {
-    string MAINNET_RPC_URL = vm.rpcUrl("mainnet");
-    string BSC_RPC_URL = vm.rpcUrl("bsc");
     uint256 bsc;
     uint256 eth;
     address proxy =
@@ -40,7 +38,7 @@ contract Upgrade is Test {
         } catch {
             return;
         }
-        bsc = vm.createFork(BSC_RPC_URL, 40_729_521);
+        bsc = vm.createFork(vm.rpcUrl("bsc"), 40_729_521);
     }
 
     function test_upgrade_StorageInvariance_check() public {
