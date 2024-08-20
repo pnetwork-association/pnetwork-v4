@@ -276,7 +276,10 @@ abstract contract Helper is Test {
 
         bytes memory eventPayload = bytes.concat(
             bytes32(abi.encode(log.emitter)),
-            sha256(bytes.concat(log.topics[0], log.topics[1])),
+            log.topics[0],
+            log.topics[1],
+            bytes32(0),
+            bytes32(0),
             log.data
         );
 

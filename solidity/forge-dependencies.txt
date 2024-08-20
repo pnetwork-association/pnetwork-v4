@@ -1,3 +1,6 @@
-forge-std@1.8.2
-openzeppelin-solidity@5.0.2
-openzeppelin-solidity@3.4.2
+forge-std.git@1.9.2
+openzeppelin-contracts.git@5.0.2
+openzeppelin-contracts-upgradeable.git@4.9.6
+openzeppelin-contracts.git@3.4.2
+git@git@0.8.2
+solidity-bytes-utils.git@0.8.2

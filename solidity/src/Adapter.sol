@@ -2,12 +2,14 @@
 pragma solidity ^0.8.25;
 
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
-import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 import {IPAM} from "./interfaces/IPAM.sol";
 import {IPAM} from "./interfaces/IPAM.sol";
 import {IXERC20} from "./interfaces/IXERC20.sol";
+import {IPTokenV2} from "./interfaces/IPTokenV2.sol";
 import {IAdapter} from "./interfaces/IAdapter.sol";
 import {IPReceiver} from "./interfaces/IPReceiver.sol";
 import {IFeesManager} from "./interfaces/IFeesManager.sol";
@@ -15,11 +17,8 @@ import {IXERC20Registry} from "./interfaces/IXERC20Registry.sol";
 import {IXERC20Lockbox} from "./interfaces/IXERC20Lockbox.sol";
 import {ExcessivelySafeCall} from "./libraries/ExcessivelySafeCall.sol";
 
-contract Adapter is IAdapter, Ownable {
+contract Adapter is IAdapter, Ownable, ReentrancyGuard {
     using ExcessivelySafeCall for address;
-
-    bytes32 public constant SWAP_EVENT_TOPIC =
-        0x26d9f1fabb4e0554841202b52d725e2426dda2be4cafcb362eb73f9fb813d609;
 
     uint256 _nonce;
 
@@ -51,11 +50,10 @@ contract Adapter is IAdapter, Ownable {
     }
 
     /// @inheritdoc IAdapter
-    // TODO: check reentrancy here
     function settle(
         Operation memory operation,
         IPAM.Metadata calldata metadata
-    ) external {
+    ) external nonReentrant {
         if (operation.erc20 != bytes32(abi.encode(erc20)))
             revert InvalidOperation();
 
@@ -120,7 +118,21 @@ contract Adapter is IAdapter, Ownable {
         uint256 destinationChainId,
         string memory recipient,
         bytes memory data
-    ) public {
+    ) external payable {
+        if (erc20 == address(0)) {
+            _swapNative(destinationChainId, recipient, data);
+        } else {
+            _swapToken(token, amount, destinationChainId, recipient, data);
+        }
+    }
+
+    function _swapToken(
+        address token,
+        uint256 amount,
+        uint256 destinationChainId,
+        string memory recipient,
+        bytes memory data
+    ) internal {
         if (token == address(0)) revert InvalidTokenAddress(token);
         if ((token != erc20) && (token != xerc20)) revert NotAllowed();
         if (amount <= 0) revert InvalidAmount();
@@ -151,22 +163,11 @@ contract Adapter is IAdapter, Ownable {
         _finalizeSwap(amount, destinationChainId, recipient, data);
     }
 
-    /// @inheritdoc IAdapter
-    function swap(
-        address token,
-        uint256 amount,
-        uint256 destinationChainId,
-        string calldata recipient
-    ) public {
-        swap(token, amount, destinationChainId, recipient, "");
-    }
-
-    /// @inheritdoc IAdapter
-    function swapNative(
+    function _swapNative(
         uint256 destinationChainId,
         string memory recipient,
         bytes memory data
-    ) public payable {
+    ) internal {
         uint256 amount = msg.value;
         if (erc20 != address(0)) revert NotAllowed();
         if (amount == 0) revert InvalidAmount();
@@ -185,14 +186,6 @@ contract Adapter is IAdapter, Ownable {
             );
 
         _finalizeSwap(amount, destinationChainId, recipient, data);
-    }
-
-    /// @inheritdoc IAdapter
-    function swapNative(
-        uint256 destinationChainId,
-        string memory recipient
-    ) public payable {
-        swapNative(destinationChainId, recipient, "");
     }
 
     function _finalizeSwap(

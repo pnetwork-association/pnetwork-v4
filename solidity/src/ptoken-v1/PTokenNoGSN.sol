@@ -2,8 +2,8 @@
 pragma solidity ^0.6.2;
 
 import "./ERC777WithAdminOperatorUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/proxy/Initializable.sol";
-import "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable-v3.4.2/proxy/Initializable.sol";
+import "@openzeppelin/contracts-upgradeable-v3.4.2/access/AccessControlUpgradeable.sol";
 
 /**
  * @dev Note: Unfortunately we can't just refactor the original pToken to inherit most of this

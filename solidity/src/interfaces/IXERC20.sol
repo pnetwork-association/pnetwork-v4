@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.8.4 <0.9.0;
 
-interface IXERC20 {
+import {IPTokenV2} from "../interfaces/IPTokenV2.sol";
+
+interface IXERC20 is IPTokenV2 {
     /**
      * @notice Emits when a lockbox is set
      *
@@ -55,7 +57,6 @@ interface IXERC20 {
      * @param maxLimit The max limit of the bridge
      * @param currentLimit The current limit of the bridge
      */
-    // solhint-disable-next-line
     struct BridgeParameters {
         uint256 timestamp;
         uint256 ratePerSecond;
@@ -144,33 +145,4 @@ interface IXERC20 {
      */
 
     function burn(address _user, uint256 _amount) external;
-
-    // TODO: for clarity, move everything below to an interface IPTokenv2
-    /**
-     * @notice Returns the fees manager address
-     */
-    function getLockbox() external returns (address);
-
-    /**
-     * @notice Returns the PAM address
-     *
-     * @param adapter the relative adapter
-     */
-    function getPAM(address adapter) external returns (address);
-
-    /**
-     * @notice Returns if this token is local or not
-     */
-    function isLocal() external returns (bool);
-
-    /**
-     * @notice Returns the fees manager address
-     */
-    function getFeesManager() external returns (address);
-
-    /**
-     * @notice Set the fees manager address
-     * @param newAddress new fees manager address
-     */
-    function setFeesManager(address newAddress) external;
 }

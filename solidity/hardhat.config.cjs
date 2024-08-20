@@ -4,6 +4,7 @@ require('@openzeppelin/hardhat-upgrades')
 require('@nomicfoundation/hardhat-toolbox')
 require('@nomicfoundation/hardhat-foundry')
 require('@nomicfoundation/hardhat-network-helpers')
+require('hardhat-storage-layout')
 require('hardhat-gas-reporter')
 require('solidity-coverage')
 require('hardhat-tracer')
@@ -32,7 +33,10 @@ module.exports = {
           },
         },
       },
-      { version: '0.8.25' },
+      {
+        version: '0.8.25',
+        settings: { evmVersion: 'cancun' },
+      },
     ],
   },
   paths: {
@@ -52,7 +56,7 @@ module.exports = {
       },
     },
     ethFork: {
-      url: getEnvironmentVariable('ETH_RPC_URL'),
+      url: getEnvironmentVariable('MAINNET_RPC_URL'),
     },
     bscFork: {
       url: getEnvironmentVariable('BSC_RPC_URL'),

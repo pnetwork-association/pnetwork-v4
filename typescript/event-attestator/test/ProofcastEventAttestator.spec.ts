@@ -8,10 +8,10 @@ describe('Proofcast Event Attestator Tests', () => {
     const privateKey =
       'dfcc79a57e91c42d7eea05f82a08bd1b7e77f30236bb7c56fe98d3366a1929c4'
     const blockHash =
-      '0xa880cb2ab67ec9140db0f6de238b34d4108f6fab99315772ee987ef9002e0e63'
+      '0x658d5ae6a577714c7507e7b5911d26429280d6a0922a2be3f4502d577985527a'
     const transactionHash =
-      '0x11365bbee18058f12c27236e891a66999c4325879865303f785854e9169c257a'
-    const address = '0x2946259E0334f33A064106302415aD3391BeD384'
+      '0x9b3b567ec90fc3a263f1784f57f942ac52ab4e609c23ba794de944fc1b512d34'
+    const address = '0x87415715056da7a5eb1a30e53c4f4d20b44db71d'
     const topics = [
       '0x9b706941b48091a1c675b439064f40b9d43c577d9c7134cce93179b9b0bf2a52',
       '0x0000000000000000000000000000000000000000000000000000000000000000',
@@ -22,7 +22,7 @@ describe('Proofcast Event Attestator Tests', () => {
     const ea = new ProofcastEventAttestator({
       version: 0x01,
       protocolId: 0x01,
-      chainId: Chains.Hardhat,
+      chainId: Chains.Mainnet,
       privateKey,
     })
 
@@ -35,7 +35,7 @@ describe('Proofcast Event Attestator Tests', () => {
     } as unknown as Event
 
     const expectedSignature =
-      '0x2b70d76c18ab0b3809b9c20db31bebfa157b5061825f2958e3ed93c3a40f51db156897096ae758644aae1fe8ee88c05db976437f4c76166dbe827cd887e0b2c21c'
+      '0x5b838b1283851a1fa35ba79ea39bb74b0bf7ec7d3c0bcb96d3879e28d291c8e348a74ff321b0e02fa3960fc1fec2ddc2e49738a77d0f9f1a596312b6bb03b8f01c'
 
     expect(ea.sign(event)).toStrictEqual(expectedSignature)
   })

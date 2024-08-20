@@ -19,9 +19,9 @@ const deployERC1820 = () => helpers.setCode(ERC1820, ERC1820BYTES)
 
 ;['', 'NoGSN'].map(_useGSN =>
   describe(`Adapter ${_useGSN} Test Units`, () => {
-    ;['', 'Native'].map(_isNative => {
+    ;[false, true].map(_isNative => {
       const setup = async () => {
-        const [owner, minter, recipient, user, evil] =
+        const [owner, admin, minter, recipient, user, evil] =
           await hre.ethers.getSigners()
         const name = 'Token A'
         const symbol = 'TKN A'
@@ -34,7 +34,7 @@ const deployERC1820 = () => helpers.setCode(ERC1820, ERC1820BYTES)
 
         await deployERC1820()
 
-        const pToken = await deployProxy(hre, `PToken${_useGSN}`, [
+        const pToken = await deployProxy(hre, `PToken${_useGSN}`, admin, [
           `p${name}`,
           `p${symbol}`,
           owner.address,
@@ -45,11 +45,11 @@ const deployERC1820 = () => helpers.setCode(ERC1820, ERC1820BYTES)
         const pTokenV2 = await upgradeProxy(
           hre,
           pToken,
-          `PTokenV2${_useGSN}`,
+          `XERC20PToken${_useGSN}Compat`,
           opts,
+          admin,
         )
 
-        const isNative = _isNative == 'Native'
         const firstEpoch = 0
         const nodes = []
         const stakedAmounts = []
@@ -58,14 +58,14 @@ const deployERC1820 = () => helpers.setCode(ERC1820, ERC1820BYTES)
           nodes,
           stakedAmounts,
         ])
-        const erc20 = isNative
+        const erc20 = _isNative
           ? { target: ZeroAddress }
           : await deploy(hre, 'ERC20Test', [name, symbol, supply])
 
         const lockbox = await deploy(hre, 'XERC20Lockbox', [
           pTokenV2.target,
           erc20.target,
-          isNative,
+          _isNative,
         ])
 
         const adapter = await deploy(hre, 'Adapter', [
@@ -86,16 +86,21 @@ const deployERC1820 = () => helpers.setCode(ERC1820, ERC1820BYTES)
           chainId,
         })
         const attestation = '0x'
+        const topic0 = adapter.getEvent('Swap').fragment.topicHash
+        await PAM.setTopicZero(padLeft32(originChainId), topic0)
         await PAM.setTeeSigner(eventAttestator.publicKey, attestation)
         await PAM.setEmitter(
           padLeft32(Chains.Hardhat),
           padLeft32(adapter.target),
         )
+
         await feesManager.setFee(pTokenV2, minFee, basisPoints)
         await pTokenV2.setFeesManager(feesManager)
-        await pTokenV2.setLockbox(lockbox)
-        await pTokenV2.setLimits(adapter, mintingLimit, burningLimit)
-        await pTokenV2.setPAM(adapter, PAM)
+        await pTokenV2.connect(owner).setLockbox(lockbox)
+        await pTokenV2
+          .connect(owner)
+          .setLimits(adapter, mintingLimit, burningLimit)
+        await pTokenV2.connect(owner).setPAM(adapter, PAM)
 
         if (!_isNative) await erc20.connect(owner).transfer(user, 10000)
 
@@ -116,7 +121,7 @@ const deployERC1820 = () => helpers.setCode(ERC1820, ERC1820BYTES)
         }
       }
 
-      describe(`swap${_isNative}`, () => {
+      describe(`swap (native = ${_isNative})`, () => {
         it('Should perform a swap successfully', async () => {
           let {
             user,
@@ -127,6 +132,7 @@ const deployERC1820 = () => helpers.setCode(ERC1820, ERC1820BYTES)
             lockbox,
             feesManager,
           } = await loadFixture(setup)
+          const data = '0x'
           const amount = 4000
           const fees = amount * 0.002
           const destinationChainId = padLeft32('0x01')
@@ -139,9 +145,12 @@ const deployERC1820 = () => helpers.setCode(ERC1820, ERC1820BYTES)
 
           let tx
           if (_isNative) {
-            tx = adapter['swapNative(uint256,string)'](
+            tx = adapter.swap(
+              erc20.target,
+              amount,
               destinationChainId,
               recipient.address,
+              data,
               {
                 value: amount,
               },
@@ -149,10 +158,11 @@ const deployERC1820 = () => helpers.setCode(ERC1820, ERC1820BYTES)
           } else {
             await erc20.connect(user).approve(adapter, amount)
             tx = adapter.swap(
-              erc20,
+              erc20.target,
               amount,
               destinationChainId,
               recipient.address,
+              data,
             )
           }
 
@@ -208,7 +218,7 @@ const deployERC1820 = () => helpers.setCode(ERC1820, ERC1820BYTES)
         )
       }
 
-      describe(`settle(${_isNative})`, () => {
+      describe(`settle (native = ${_isNative})`, () => {
         it('Should settle the operation correctly', async () => {
           const {
             owner,
@@ -257,6 +267,10 @@ const deployERC1820 = () => helpers.setCode(ERC1820, ERC1820BYTES)
             originChainId: Chains.Hardhat,
             eventContent,
           })
+
+          const topic0 = adapter.getEvent('Swap').fragment.topicHash
+
+          await PAM.setTopicZero(padLeft32(Chains.Hardhat), topic0)
 
           await PAM.setEmitter(
             padLeft32(Chains.Hardhat),

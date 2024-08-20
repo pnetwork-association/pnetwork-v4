@@ -1931,9 +1931,10 @@ __metadata:
     ethers: "npm:^6.13.1"
     hardhat: "npm:^2.22.6"
     hardhat-gas-reporter: "npm:^2.2.0"
+    hardhat-storage-layout: "npm:^0.1.7"
     hardhat-tracer: "npm:^3.0.1"
     ramda: "npm:^0.30.1"
-    solhint: "npm:^5.0.2"
+    solhint: "npm:^5.0.3"
     solidity-coverage: "npm:^0.8.1"
     ts-node: "npm:>=8.0.0"
     typechain: "npm:^8.3.0"
@@ -3783,6 +3784,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"console-table-printer@npm:^2.9.0":
+  version: 2.12.1
+  resolution: "console-table-printer@npm:2.12.1"
+  dependencies:
+    simple-wcswidth: "npm:^1.0.1"
+  checksum: 10c0/8f28e9c0ae5df77f5d60da3da002ecd95ebe1812b0b9e0a6d2795c81b5121b39774f32506bccf68830a838ca4d8fbb2ab8824e729dba2c5e30cdeb9df4dd5f2b
+  languageName: node
+  linkType: hard
+
 "convert-source-map@npm:^2.0.0":
   version: 2.0.0
   resolution: "convert-source-map@npm:2.0.0"
@@ -5417,6 +5427,17 @@ __metadata:
   peerDependencies:
     hardhat: ^2.16.0
   checksum: 10c0/50081277ab219b6c9748ef4f87b5a4bffc3e7b6293029e3c54ef105ec993204745b9eb86c6488afd321a8143c03210a7664a7206603fe8d229b5af42b0b492f7
+  languageName: node
+  linkType: hard
+
+"hardhat-storage-layout@npm:^0.1.7":
+  version: 0.1.7
+  resolution: "hardhat-storage-layout@npm:0.1.7"
+  dependencies:
+    console-table-printer: "npm:^2.9.0"
+  peerDependencies:
+    hardhat: ^2.0.3
+  checksum: 10c0/257b52a079183953d079ae221d05551391ff57adbad1ba033a3ccfa1b9df495ddd29285e67a7d03da484aa69f65850feb64a9bd7e37f53c549efd3833ed8b38c
   languageName: node
   linkType: hard
 
@@ -8560,6 +8581,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"simple-wcswidth@npm:^1.0.1":
+  version: 1.0.1
+  resolution: "simple-wcswidth@npm:1.0.1"
+  checksum: 10c0/2befead4c97134424aa3fba593a81daa9934fd61b9e4c65374b57ac5eecc2f2be1984b017bbdbc919923e19b77f2fcbdb94434789b9643fa8c3fde3a2a6a4b6f
+  languageName: node
+  linkType: hard
+
 "sisteransi@npm:^1.0.5":
   version: 1.0.5
   resolution: "sisteransi@npm:1.0.5"
@@ -8662,9 +8690,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"solhint@npm:^5.0.2":
-  version: 5.0.2
-  resolution: "solhint@npm:5.0.2"
+"solhint@npm:^5.0.3":
+  version: 5.0.3
+  resolution: "solhint@npm:5.0.3"
   dependencies:
     "@solidity-parser/parser": "npm:^0.18.0"
     ajv: "npm:^6.12.6"
@@ -8690,7 +8718,7 @@ __metadata:
       optional: true
   bin:
     solhint: solhint.js
-  checksum: 10c0/4fec845ec6b8bebc7bee5abef42b40474d0e162a31d21ee10d98e4cb7db1f1fcdd338b927a880d7659fd336cc738737709d86af174fb388a08bcc4f50e3a2623
+  checksum: 10c0/262e86a8932d7d4d6ebae2a9d7317749e5068092e7cdf4caf07ac39fc72bd2c94f3907daaedcad37592ec001b57caed6dc5ed7c3fd6cd18b6443182f38c1715e
   languageName: node
   linkType: hard
 

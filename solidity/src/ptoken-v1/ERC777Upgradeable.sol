@@ -2,15 +2,15 @@
 
 pragma solidity >=0.6.0 <0.8.0;
 
-import "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/token/ERC777/IERC777Upgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/token/ERC777/IERC777RecipientUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/token/ERC777/IERC777SenderUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/math/SafeMathUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/utils/AddressUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/introspection/IERC1820RegistryUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/proxy/Initializable.sol";
+import "@openzeppelin/contracts-upgradeable-v3.4.2/utils/ContextUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable-v3.4.2/token/ERC777/IERC777Upgradeable.sol";
+import "@openzeppelin/contracts-upgradeable-v3.4.2/token/ERC777/IERC777RecipientUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable-v3.4.2/token/ERC777/IERC777SenderUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable-v3.4.2/token/ERC20/IERC20Upgradeable.sol";
+import "@openzeppelin/contracts-upgradeable-v3.4.2/math/SafeMathUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable-v3.4.2/utils/AddressUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable-v3.4.2/introspection/IERC1820RegistryUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable-v3.4.2/proxy/Initializable.sol";
 
 /**
  * @dev Implementation of the {IERC777} interface.

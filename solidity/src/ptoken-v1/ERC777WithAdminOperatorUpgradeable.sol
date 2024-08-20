@@ -1,6 +1,6 @@
 pragma solidity ^0.6.2;
 
-import "@openzeppelin/contracts-upgradeable/proxy/Initializable.sol";
+import "@openzeppelin/contracts-upgradeable-v3.4.2/proxy/Initializable.sol";
 import "./ERC777Upgradeable.sol";
 
 contract ERC777WithAdminOperatorUpgradeable is

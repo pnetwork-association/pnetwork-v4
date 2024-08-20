@@ -5,8 +5,8 @@ module.exports.upgradeProxy = (
   _proxy,
   _contractFactoryName,
   _opts = {},
-  _owner = undefined,
+  _admin,
 ) =>
   _hre.ethers
-    .getContractFactory(_contractFactoryName, _owner)
+    .getContractFactory(_contractFactoryName, _admin)
     .then(_ethPNTv2 => _hre.upgrades.upgradeProxy(_proxy, _ethPNTv2, _opts))

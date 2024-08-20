@@ -61,11 +61,11 @@ export class ProofcastEventAttestator {
   getEventPayload(event: Event): string {
     // EVM event support only: for other chains may be
     // required to change logic based on version and protocolID
-    return hexConcat([
-      hexZeroPad(event.address, 32),
-      sha256(hexConcat(event.topics)),
-      event.data,
-    ])
+    const topics = [0, 1, 2, 3].map(
+      i => event.topics[i] || hexZeroPad('0x00', 32),
+    )
+
+    return hexConcat([hexZeroPad(event.address, 32), ...topics, event.data])
   }
 
   getEventContext(): string {

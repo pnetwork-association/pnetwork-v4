@@ -46,22 +46,6 @@ interface IAdapter {
      * @param amount token quantity to move across chains
      * @param recipient whom will receive the token
      * @param destinationChainId chain id where the wrapped version is destined to
-     * (it may be a sha256 hash of the relevant ID of the chain (i.e. sha256 of the chain id for EOS))
-     */
-    function swap(
-        address token,
-        uint256 amount,
-        uint256 destinationChainId,
-        string calldata recipient
-    ) external;
-
-    /**
-     * @notice Wraps a token to another chain
-     *
-     * @param token ERC20 or xERC20 to move across chains (it must be supported by the Adapter)
-     * @param amount token quantity to move across chains
-     * @param recipient whom will receive the token
-     * @param destinationChainId chain id where the wrapped version is destined to
      * @param data arbitrary message that would be sent at the end of the settle() function
      *
      * @dev If the destination chain id doesn't fit in 32 bytes or if there are collisions
@@ -77,35 +61,5 @@ interface IAdapter {
         uint256 destinationChainId,
         string memory recipient,
         bytes memory data
-    ) external;
-
-    /**
-     * Wraps the native currency to another chain
-     *
-     * @param destinationChainId chain id where the wrapped version is destined to
-     * @param recipient whom will receive the token
-     * @param data arbitrary message that would be sent at the end of the settle() function
-     *
-     * @dev The adapter must have the ERC20 address set to addres(0), since there's no ERC20
-     * token of reference for the native currency.
-     */
-    function swapNative(
-        uint256 destinationChainId,
-        string memory recipient,
-        bytes memory data
-    ) external payable;
-
-    /**
-     * Wraps the native currency to another chain
-     *
-     * @param destinationChainId chain id where the wrapped version is destined to
-     * @param recipient whom will receive the token
-     *
-     * @dev The adapter must have the ERC20 address set to addres(0), since there's no ERC20
-     * token of reference for the native currency.
-     */
-    function swapNative(
-        uint256 destinationChainId,
-        string memory recipient
     ) external payable;
 }
