@@ -49,20 +49,20 @@ First version of the PToken contract, which is not xERC20 based.
 
 First version of the PToken contract, which is not xERC20 based and does not include the Gas Station Network logic.
 
-### PTokenV1Storage
+### PTokenStorage
 
 Inherited by the `PTokenV2` contract in order to reflect the previous storage layout.
 
-### PTokenV1NoGSNStorage
+### PTokenNoGSNStorage
 
-Inherited by the `PTokenV2NoGSN` contract in order to reflect the previous storage layout.
+Inherited by the `XERC20PTokenNoGSNCompat` contract in order to reflect the previous storage layout.
 
-### PTokenV2
+### XERC20PTokenCompat
 
 Newer version of the PToken contract which implements the xERC20 interface (the slightly changed version described above).
 All the parents contracts inherited by the pToken V1 version have been removed, in order to have a version free from any
 problems caused by the ERC777 standard. The newer version (V2) presents the same inheritance structure of the XERC20 standard
-with the exception of the `PTokenV1Storage` contract defined as a first entry in the list of parents which resembles the
+with the exception of the `PTokenStorage` contract defined as a first entry in the list of parents which resembles the
 previous version storage layout.
 
 Also, in order to not have duplicate storage locations for the same variable name (i.e. `_balance` of the v1 version plus
@@ -70,9 +70,9 @@ Also, in order to not have duplicate storage locations for the same variable nam
 contracts, hence why all the parents are all interfaces implemented in the V2 contract itself. All the implementation
 has been mirrored from the official Openzeppelin v4.9.6 upgradeable contracts library.
 
-### PTokenV2NoGSN
+### XERC20PTokenNoGSNCompat
 
-Same as PTokenV2 but inheriting the `PTokenV1NoGSNStorage` contract storage layout.
+Same as PTokenV2 but inheriting the `PTokenNoGSNStorage` contract storage layout.
 
 ### Data flow diagram
 
