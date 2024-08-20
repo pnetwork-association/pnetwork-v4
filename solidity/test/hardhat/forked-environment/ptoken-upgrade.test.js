@@ -93,7 +93,7 @@ conditionalDescribe(
         ptokenv2 = await upgradeProxy(
           hre,
           ptoken,
-          `PTokenV2${useGSN}`,
+          `XERC20PToken${useGSN}Compat`,
           opts,
           proxyAdminOwner,
         )

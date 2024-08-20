@@ -6,8 +6,8 @@ import {Test} from "forge-std/Test.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {Options} from "openzeppelin-foundry-upgrades/Options.sol";
 import {Upgrades} from "openzeppelin-foundry-upgrades/LegacyUpgrades.sol"; // OpenZeppelin v4
-import {PTokenV2} from "../src/xerc20/PTokenV2.sol";
-import {PTokenV2NoGSN} from "../src/xerc20/PTokenV2NoGSN.sol";
+import {XERC20PTokenCompat} from "../src/xerc20/XERC20-PTokenCompat.sol";
+import {XERC20PTokenNoGSNCompat} from "../src/xerc20/XERC20-PTokenNoGSNCompat.sol";
 
 import "forge-std/console.sol";
 
@@ -22,10 +22,10 @@ contract UpgradeScript is Script, Test {
         address proxyAdminOwner = Ownable(proxyAdmin).owner();
 
         // bool useGSN = false;
-        string memory contractName = "PTokenV2.sol";
+        string memory contractName = "XERC20PTokenCompat.sol";
         try IERC777GSNUpgradeable(proxyAdmin).setTrustedSigner(vm.addr(1)) {
             // useGSN = true;
-            contractName = "PTokenV2NoGSN.sol";
+            contractName = "XERC20PTokenNoGSNCompat.sol";
         } catch {}
 
         console.log("proxyAdmin", proxyAdmin);
@@ -36,7 +36,10 @@ contract UpgradeScript is Script, Test {
         Options memory opts;
         Upgrades.validateUpgrade(contractName, opts);
 
-        bytes memory data = abi.encodeCall(PTokenV2.initializeV2, (owner));
+        bytes memory data = abi.encodeCall(
+            XERC20PTokenCompat.initializeV2,
+            (owner)
+        );
 
         vm.startPrank(proxyAdminOwner);
         Upgrades.upgradeProxy(proxy, contractName, data);

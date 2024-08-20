@@ -9,7 +9,7 @@ pragma solidity >=0.8.4 <0.9.0;
  * contract. This way we are able to keep the new version
  * upgrades clean concise.
  */
-contract PTokenV1Storage {
+contract PTokenStorage {
     struct Set {
         bytes32[] _values;
         mapping(bytes32 => uint256) _indexes;

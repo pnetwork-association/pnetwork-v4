@@ -45,7 +45,7 @@ const deployERC1820 = () => helpers.setCode(ERC1820, ERC1820BYTES)
         const pTokenV2 = await upgradeProxy(
           hre,
           pToken,
-          `PTokenV2${_useGSN}`,
+          `XERC20PToken${_useGSN}Compat`,
           opts,
           admin,
         )

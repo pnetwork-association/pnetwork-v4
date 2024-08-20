@@ -32,7 +32,13 @@ const deployERC1820 = () => helpers.setCode(ERC1820, ERC1820BYTES)
           originChainId,
         ])
 
-        expect(await validateUpgrade(hre, `PTokenV2${_useGSN}`, pToken.target))
+        expect(
+          await validateUpgrade(
+            hre,
+            `XERC20PToken${_useGSN}Compat`,
+            pToken.target,
+          ),
+        )
       })
     })
 
@@ -84,7 +90,7 @@ const deployERC1820 = () => helpers.setCode(ERC1820, ERC1820BYTES)
         const pTokenV2 = await upgradeProxy(
           hre,
           pToken,
-          `PTokenV2${_useGSN}`,
+          `XERC20PToken${_useGSN}Compat`,
           opts,
           admin,
         )
@@ -123,7 +129,7 @@ const deployERC1820 = () => helpers.setCode(ERC1820, ERC1820BYTES)
           pTokenV2 = await upgradeProxy(
             hre,
             pToken,
-            `PTokenV2${_useGSN}`,
+            `XERC20PToken${_useGSN}Compat`,
             opts,
             admin,
           )
@@ -150,15 +156,33 @@ const deployERC1820 = () => helpers.setCode(ERC1820, ERC1820BYTES)
           const snapshot = await helpers.takeSnapshot()
           const opts = {}
           await expect(
-            upgradeProxy(hre, pTokenV2, `PTokenV2${_useGSN}`, opts, owner),
+            upgradeProxy(
+              hre,
+              pTokenV2,
+              `XERC20PToken${_useGSN}Compat`,
+              opts,
+              owner,
+            ),
           ).to.be.reverted
 
           await expect(
-            upgradeProxy(hre, pTokenV2, `PTokenV2${_useGSN}`, opts, evil),
+            upgradeProxy(
+              hre,
+              pTokenV2,
+              `XERC20PToken${_useGSN}Compat`,
+              opts,
+              evil,
+            ),
           ).to.be.reverted
 
           await expect(
-            upgradeProxy(hre, pTokenV2, `PTokenV2${_useGSN}`, opts, admin),
+            upgradeProxy(
+              hre,
+              pTokenV2,
+              `XERC20PToken${_useGSN}Compat`,
+              opts,
+              admin,
+            ),
           ).to.not.be.reverted
           await snapshot.restore()
         })

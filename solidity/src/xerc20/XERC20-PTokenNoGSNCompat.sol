@@ -8,15 +8,15 @@ import {IERC20PermitUpgradeable} from "@openzeppelin/contracts-upgradeable/token
 import {IOwnable} from "../interfaces/IOwnable.sol";
 import {IFeesManager} from "../interfaces/IFeesManager.sol";
 import {IPTokenV2} from "../interfaces/IPTokenV2.sol";
-import {PTokenV1NoGSNStorage} from "./PTokenV1NoGSNStorage.sol";
+import {PTokenNoGSNStorage} from "./PTokenNoGSNStorage.sol";
 
 import "@openzeppelin/contracts-upgradeable/utils/cryptography/ECDSAUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/cryptography/EIP712Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/CountersUpgradeable.sol";
 
 /// @custom:oz-upgrades-from PToken
-contract PTokenV2NoGSN is
-    PTokenV1NoGSNStorage,
+contract XERC20PTokenNoGSNCompat is
+    PTokenNoGSNStorage,
     IERC20Upgradeable,
     IOwnable,
     IXERC20,
@@ -74,7 +74,7 @@ contract PTokenV2NoGSN is
      * @dev The reinitializer here belongs to the EIP712Upgradeable's
      * Initializable parent contract. The latter would create a new
      * storage variable called _initialized(uint256) which won't conflict
-     * with the one already declared in PTokenV1NoGSNStorage.
+     * with the one already declared in PTokenNoGSNStorage.
      */
     // solhint-disable-next-line
     function initializeV2(address owner_) public reinitializer(2) {
