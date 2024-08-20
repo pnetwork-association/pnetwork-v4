@@ -14,7 +14,7 @@ import "@openzeppelin/contracts-upgradeable/utils/cryptography/ECDSAUpgradeable.
 import "@openzeppelin/contracts-upgradeable/utils/cryptography/EIP712Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/CountersUpgradeable.sol";
 
-/// @custom:oz-upgrades-from PTokenNoGSN
+/// @custom:oz-upgrades-from PToken
 contract PTokenV2NoGSN is
     PTokenV1NoGSNStorage,
     IERC20Upgradeable,
@@ -74,7 +74,7 @@ contract PTokenV2NoGSN is
      * @dev The reinitializer here belongs to the EIP712Upgradeable's
      * Initializable parent contract. The latter would create a new
      * storage variable called _initialized(uint256) which won't conflict
-     * with the one already declared in PTokenV1Storage.
+     * with the one already declared in PTokenV1NoGSNStorage.
      */
     // solhint-disable-next-line
     function initializeV2(address owner_) public reinitializer(2) {
@@ -442,20 +442,27 @@ contract PTokenV2NoGSN is
 
     /* solhint-disable */
     /////////////////// Copied from ERC20Upgradable.sol - OpenZeppelin Upgradeable Contracts v4.9.6
-    function totalSupply() public view virtual override returns (uint256) {
+    function name() public view returns (string memory) {
+        return _name;
+    }
+
+    function symbol() public view returns (string memory) {
+        return _symbol;
+    }
+
+    function decimals() public view returns (uint8) {
+        return 18;
+    }
+
+    function totalSupply() public view returns (uint256) {
         return _totalSupply;
     }
 
-    function balanceOf(
-        address account
-    ) public view virtual override returns (uint256) {
+    function balanceOf(address account) public view returns (uint256) {
         return _balances[account];
     }
 
-    function transfer(
-        address to,
-        uint256 amount
-    ) public virtual override returns (bool) {
+    function transfer(address to, uint256 amount) public returns (bool) {
         address owner = _msgSender();
         _transfer(owner, to, amount);
         return true;
@@ -464,14 +471,11 @@ contract PTokenV2NoGSN is
     function allowance(
         address owner,
         address spender
-    ) public view virtual override returns (uint256) {
+    ) public view returns (uint256) {
         return _allowances[owner][spender];
     }
 
-    function approve(
-        address spender,
-        uint256 amount
-    ) public virtual override returns (bool) {
+    function approve(address spender, uint256 amount) public returns (bool) {
         address owner = _msgSender();
         _approve(owner, spender, amount);
         return true;
@@ -481,18 +485,40 @@ contract PTokenV2NoGSN is
         address from,
         address to,
         uint256 amount
-    ) public virtual override returns (bool) {
+    ) public returns (bool) {
         address spender = _msgSender();
         _spendAllowance(from, spender, amount);
         _transfer(from, to, amount);
         return true;
     }
 
-    function _transfer(
-        address from,
-        address to,
-        uint256 amount
-    ) internal virtual {
+    function increaseAllowance(
+        address spender,
+        uint256 addedValue
+    ) public returns (bool) {
+        address owner = _msgSender();
+        _approve(owner, spender, allowance(owner, spender) + addedValue);
+        return true;
+    }
+
+    function decreaseAllowance(
+        address spender,
+        uint256 subtractedValue
+    ) public returns (bool) {
+        address owner = _msgSender();
+        uint256 currentAllowance = allowance(owner, spender);
+        require(
+            currentAllowance >= subtractedValue,
+            "ERC20: decreased allowance below zero"
+        );
+        unchecked {
+            _approve(owner, spender, currentAllowance - subtractedValue);
+        }
+
+        return true;
+    }
+
+    function _transfer(address from, address to, uint256 amount) internal {
         require(from != address(0), "ERC20: transfer from the zero address");
         require(to != address(0), "ERC20: transfer to the zero address");
 
@@ -515,7 +541,7 @@ contract PTokenV2NoGSN is
         _afterTokenTransfer(from, to, amount);
     }
 
-    function _mint(address account, uint256 amount) internal virtual {
+    function _mint(address account, uint256 amount) internal {
         require(account != address(0), "ERC20: mint to the zero address");
 
         _beforeTokenTransfer(address(0), account, amount);
@@ -530,7 +556,7 @@ contract PTokenV2NoGSN is
         _afterTokenTransfer(address(0), account, amount);
     }
 
-    function _burn(address account, uint256 amount) internal virtual {
+    function _burn(address account, uint256 amount) internal {
         require(account != address(0), "ERC20: burn from the zero address");
 
         _beforeTokenTransfer(account, address(0), amount);
@@ -548,11 +574,7 @@ contract PTokenV2NoGSN is
         _afterTokenTransfer(account, address(0), amount);
     }
 
-    function _approve(
-        address owner,
-        address spender,
-        uint256 amount
-    ) internal virtual {
+    function _approve(address owner, address spender, uint256 amount) internal {
         require(owner != address(0), "ERC20: approve from the zero address");
         require(spender != address(0), "ERC20: approve to the zero address");
 
@@ -564,7 +586,7 @@ contract PTokenV2NoGSN is
         address owner,
         address spender,
         uint256 amount
-    ) internal virtual {
+    ) internal {
         uint256 currentAllowance = allowance(owner, spender);
         if (currentAllowance != type(uint256).max) {
             require(
@@ -581,13 +603,13 @@ contract PTokenV2NoGSN is
         address from,
         address to,
         uint256 amount
-    ) internal virtual {}
+    ) internal {}
 
     function _afterTokenTransfer(
         address from,
         address to,
         uint256 amount
-    ) internal virtual {}
+    ) internal {}
 
     /////////////////// Copied from ERC20PermitUpgradeable - OpenZeppelin v4.9.6
     function permit(
@@ -598,7 +620,7 @@ contract PTokenV2NoGSN is
         uint8 v,
         bytes32 r,
         bytes32 s
-    ) public virtual override {
+    ) public {
         require(block.timestamp <= deadline, "ERC20Permit: expired deadline");
 
         bytes32 structHash = keccak256(
@@ -620,19 +642,15 @@ contract PTokenV2NoGSN is
         _approve(owner, spender, value);
     }
 
-    function DOMAIN_SEPARATOR() external view override returns (bytes32) {
+    function DOMAIN_SEPARATOR() external view returns (bytes32) {
         return _domainSeparatorV4();
     }
 
-    function nonces(
-        address owner
-    ) public view virtual override returns (uint256) {
+    function nonces(address owner) public view returns (uint256) {
         return _nonces[owner].current();
     }
 
-    function _useNonce(
-        address owner
-    ) internal virtual returns (uint256 current) {
+    function _useNonce(address owner) internal returns (uint256 current) {
         CountersUpgradeable.Counter storage nonce = _nonces[owner];
         current = nonce.current();
         nonce.increment();
@@ -671,11 +689,11 @@ contract PTokenV2NoGSN is
     }
 
     /////////////////// Copied from ContextUpgradeable.sol - OpenZeppelin Upgradeable Contracts v4.9.6
-    function _msgSender() internal view virtual returns (address) {
+    function _msgSender() internal view returns (address) {
         return msg.sender;
     }
 
-    function _msgData() internal view virtual returns (bytes calldata) {
+    function _msgData() internal view returns (bytes calldata) {
         return msg.data;
     }
     /* solhint-enable */
