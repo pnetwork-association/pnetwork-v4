@@ -3,13 +3,12 @@ pragma solidity >=0.8.4 <0.9.0;
 
 import {IXERC20} from "../interfaces/IXERC20.sol";
 import {IERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
-import {IERC20PermitUpgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/IERC20PermitUpgradeable.sol";
-import {IERC20PermitUpgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/IERC20PermitUpgradeable.sol";
 import {IOwnable} from "../interfaces/IOwnable.sol";
 import {IFeesManager} from "../interfaces/IFeesManager.sol";
 import {IPTokenV2} from "../interfaces/IPTokenV2.sol";
 import {PTokenStorage} from "./PTokenStorage.sol";
 
+import "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/IERC20PermitUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/cryptography/ECDSAUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/cryptography/EIP712Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/CountersUpgradeable.sol";
