@@ -6,8 +6,8 @@ import {Test} from "forge-std/Test.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {Options} from "openzeppelin-foundry-upgrades/Options.sol";
 import {Upgrades} from "openzeppelin-foundry-upgrades/LegacyUpgrades.sol"; // OpenZeppelin v4
-import {PTokenV2} from "../src/ptoken-v2/PTokenV2.sol";
-import {PTokenV2NoGSN} from "../src/ptoken-v2/PTokenV2NoGSN.sol";
+import {PTokenV2} from "../src/xerc20/PTokenV2.sol";
+import {PTokenV2NoGSN} from "../src/xerc20/PTokenV2NoGSN.sol";
 
 import "forge-std/console.sol";
 
