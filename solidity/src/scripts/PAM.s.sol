@@ -25,4 +25,14 @@ contract PAMScript is Script {
         PAM(pam).setEmitter(bytes32(chainid), bytes32(abi.encode(emitter)));
         vm.stopBroadcast();
     }
+
+    function setTopicZero(
+        address pam,
+        uint256 chainid,
+        bytes32 topic
+    ) external {
+        vm.startBroadcast();
+        PAM(pam).setTopicZero(bytes32(chainid), topic);
+        vm.stopBroadcast();
+    }
 }
