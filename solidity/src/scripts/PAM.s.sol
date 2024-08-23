@@ -35,4 +35,12 @@ contract PAMScript is Script {
         PAM(pam).setTopicZero(bytes32(chainid), topic);
         vm.stopBroadcast();
     }
+
+    function applyNewTeeSigner(
+        address pam
+    ) external {
+        vm.startBroadcast();
+        PAM(pam).applyNewTeeSigner();
+        vm.stopBroadcast();
+    }
 }
