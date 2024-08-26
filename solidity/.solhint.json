@@ -2,6 +2,7 @@
   "extends": "solhint:default",
   "rules": {
     "ordering": "warn",
+    "no-unused-import": "error",
     "private-vars-leading-underscore": ["warn", { "strict": false }]
   }
 }

@@ -22,11 +22,31 @@ interface IAdapter {
         bytes content;
     }
 
+    event ReceiveUserDataFailed();
+    event PAMChanged(address pamAddress);
+    event Settled(bytes32 indexed eventId);
+    event FeesManagerChanged(address newAddress);
     event Swap(uint256 indexed nonce, EventBytes eventBytes);
 
-    event ReceiveUserDataFailed();
-
-    event Settled(bytes32 indexed eventId);
+    error NotAContract(address addr);
+    error OnlyFeesManager();
+    error NotAllowed();
+    error InvalidSwap();
+    error InvalidAmount();
+    error InvalidSender();
+    error RLPInputTooLong();
+    error InvalidOperation();
+    error InvalidFeesManager();
+    error Unauthorized(bytes32 eventId);
+    error InvalidTokenAddress(address token);
+    error UnsupportedChainId(uint256 chainId);
+    error UnexpectedEventTopic(bytes32 topic);
+    error AlreadyProcessed(bytes32 operationId);
+    error UnsupportedProtocolId(bytes1 protocolId);
+    error InvalidEventContentLength(uint256 length);
+    error InsufficientAmount(uint256 amount, uint256 fees);
+    error InvalidMessageId(uint256 actual, uint256 expected);
+    error InvalidDestinationChainId(uint256 destinationChainId);
 
     /**
      * Finalise the swap operation on the destination chain
@@ -62,4 +82,26 @@ interface IAdapter {
         string memory recipient,
         bytes memory data
     ) external payable;
+
+    /**
+     * @notice Should set the new PAM for this Adapter
+     *
+     * @param pam PAM address
+     */
+    function setPAM(address pam) external;
+
+    /**
+     * @notice Set the new fees manager for this adapter
+     *
+     * @dev Only the fees manager can set the new address
+     * @param feesManager_ New fees manager address
+     */
+    function setFeesManager(address feesManager_) external;
+
+    /**
+     * @notice Calculate the amount of fees to substract from the given amount
+     *
+     * @param amount The amount from which the fees will be calculated
+     */
+    function calculateFee(uint256 amount) external returns (uint256);
 }

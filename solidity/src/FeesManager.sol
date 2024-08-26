@@ -6,160 +6,120 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {IERC20} from "@openzeppelin/contracts/interfaces/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
-import {IXERC20} from "./interfaces/IXERC20.sol";
-import {IFeesManager} from "./interfaces/IFeesManager.sol";
-
-contract FeesManager is IFeesManager, Ownable {
+contract FeesManager is Ownable {
     using SafeERC20 for IERC20;
-    uint16 public currentEpoch;
 
-    mapping(uint16 => mapping(address => uint256))
-        public depositedAmountByEpoch;
-    mapping(uint16 => mapping(address => mapping(address => uint256)))
-        public claimedAmountByEpoch;
-    mapping(uint16 => mapping(address => uint256)) public stakedAmountByEpoch;
-    mapping(uint16 => uint256) public totalStakedAmountByEpoch;
-    mapping(address => Fee) public feeInfoByAsset;
+    /// @dev node =>token => balance
+    mapping(address => mapping(address => uint256)) public allowances;
 
-    event FeeUpdated(address token, uint256 minFee, uint16 basisPoints);
-    event NewEpochStarted(uint16 epoch);
+    event UnsufficientBalance(address token);
+    event UnsufficientAllowance(address token);
+    event AllowanceSet(address node, address token, uint256 amount);
+    event AllowanceIncreased(address node, address token, uint256 amount);
 
-    error InvalidToken();
-    error InvalidFromAddress();
-    error InvalidEpoch();
-    error NothingToClaim();
-    error TooEarly();
-    error AlreadyClaimed();
-    error NotLocal(address xerc20);
-    error UnsupportedToken(address xerc20);
-    error DifferentLength(uint256 len1, uint256 len2);
+    constructor(address securityCouncil) Ownable(securityCouncil) {}
 
-    constructor(
-        uint16 firstEpoch,
-        address[] memory nodes,
-        uint256[] memory stakedAmounts
-    ) Ownable(msg.sender) {
-        if (nodes.length != stakedAmounts.length)
-            revert DifferentLength(nodes.length, stakedAmounts.length);
+    /**
+     * @notice Increase the withdrawal allowance for the given node
+     * in order to claim the accrued fees.
+     * @param node    node for which the allowance will be increased
+     * @param token   token for which the allowance will be increased
+     * @param amount  amount of allowance to increase
+     */
+    function increaseAllowance(
+        address node,
+        address token,
+        uint256 amount
+    ) external onlyOwner {
+        allowances[node][token] += amount;
+        emit AllowanceIncreased(node, token, amount);
+    }
 
-        currentEpoch = firstEpoch;
-        for (uint i = 0; i < nodes.length; i++) {
-            stakedAmountByEpoch[currentEpoch][nodes[i]] = stakedAmounts[i];
-            totalStakedAmountByEpoch[currentEpoch] += stakedAmounts[i];
+    /**
+     * @notice Set the withdrawal allowance for the given node
+     * in order to claim the accrued fees.
+     * @param node    node for which the allowance will be set
+     * @param token   token for which the allowance will be set
+     * @param amount  amount of allowance to set
+     */
+    function setAllowance(
+        address node,
+        address token,
+        uint256 amount
+    ) external onlyOwner {
+        allowances[node][token] = amount;
+        emit AllowanceSet(node, token, amount);
+    }
+
+    /**
+     * @notice Withdraws the specified ERC20 token (or native currency if the zero address)
+     * is given. The withdrawal will be performed only if the sender has sufficient
+     * allowance otherwise it will revert.
+     *
+     * @param token  token to transfer
+     */
+    function withdraw(address token) external {
+        withdrawTo(payable(msg.sender), token);
+    }
+
+    /**
+     * @notice Withdraws the specified set of ERC20 tokens (including the native currency
+     * if the zero address is included in the given set). The withdrawal will be performed
+     * only if the sender has sufficient allowance otherwise it will revert.
+     *
+     * @param tokens  tokens to transfer to the specified address
+     */
+    function withdraw(address[] memory tokens) external {
+        withdrawTo(payable(msg.sender), tokens);
+    }
+
+    /**
+     * @notice Withdraws the specified ERC20 token or native currency if the zero address
+     * is given. The withdrawal will be performed only if the sender has sufficient
+     * allowance otherwise it will revert.
+     *
+     * @param to     address to sends the funds to
+     * @param token  token to transfer
+     */
+    function withdrawTo(address payable to, address token) public {
+        if (
+            (token == address(0) && address(this).balance == 0) ||
+            (token != address(0) && IERC20(token).balanceOf(address(this)) == 0)
+        ) {
+            emit UnsufficientBalance(token);
+            return;
+        }
+
+        uint256 senderAllowance = allowances[msg.sender][token];
+        if (senderAllowance == 0) {
+            emit UnsufficientAllowance(token);
+            return;
+        }
+
+        allowances[msg.sender][token] = 0;
+
+        if (token == address(0)) {
+            (bool success, ) = to.call{value: senderAllowance}("");
+            require(success, "Failed to send Ether");
+        } else {
+            IERC20(token).transfer(to, senderAllowance);
         }
     }
 
-    function setFeesManagerForXERC20(
-        address xerc20,
-        address newFeesManager
-    ) external onlyOwner {
-        IXERC20(xerc20).setFeesManager(newFeesManager);
-    }
-
-    /// @inheritdoc IFeesManager
-    function claimFeeByEpoch(address token, uint16 epoch) external {
-        if (token == address(0) || !feeInfoByAsset[token].defined)
-            revert InvalidToken();
-        if (epoch >= currentEpoch) revert TooEarly();
-        if (claimedAmountByEpoch[epoch][token][msg.sender] > 0)
-            revert AlreadyClaimed();
-
-        uint256 amount = (depositedAmountByEpoch[epoch][token] *
-            stakedAmountByEpoch[epoch][msg.sender]) /
-            totalStakedAmountByEpoch[epoch];
-
-        if (amount == 0) revert NothingToClaim();
-
-        claimedAmountByEpoch[epoch][token][msg.sender] += amount;
-
-        IERC20(token).safeTransfer(msg.sender, amount);
-    }
-
-    function registerAndAdvanceEpoch(
-        address[] calldata nodes,
-        uint256[] calldata amounts
-    ) external onlyOwner {
-        if (nodes.length != amounts.length)
-            revert DifferentLength(nodes.length, amounts.length);
-
-        currentEpoch += 1;
-        for (uint i = 0; i < nodes.length; i++) {
-            stakedAmountByEpoch[currentEpoch][nodes[i]] = amounts[i];
-            totalStakedAmountByEpoch[currentEpoch] += amounts[i];
+    /**
+     * @notice Withdraws the specified set of ERC20 tokens (including the native currency
+     * if the zero address is included in the given set). The withdrawal will be performed
+     * only if the sender has sufficient allowance otherwise it will revert.
+     *
+     * @param to      address to sends the funds to
+     * @param tokens  tokens to transfer to the specified address
+     */
+    function withdrawTo(address payable to, address[] memory tokens) public {
+        for (uint256 i = 0; i < tokens.length; ) {
+            withdrawTo(to, tokens[i]);
+            unchecked {
+                ++i;
+            }
         }
-
-        emit NewEpochStarted(currentEpoch);
-    }
-
-    /// @inheritdoc IFeesManager
-    function depositFee(address xerc20, uint256 amount) external {
-        depositFeeForEpoch(xerc20, amount, currentEpoch);
-    }
-
-    /// @inheritdoc IFeesManager
-    function depositFeeFrom(
-        address from,
-        address xerc20,
-        uint256 amount
-    ) external {
-        depositFeeForEpochFrom(from, xerc20, amount, currentEpoch);
-    }
-
-    /// @inheritdoc IFeesManager
-    function setFee(
-        address xerc20,
-        uint256 minAmount,
-        uint16 basisPoints
-    ) external onlyOwner {
-        if (xerc20 == address(0)) revert InvalidToken();
-        feeInfoByAsset[xerc20] = Fee(minAmount, basisPoints, true);
-        emit FeeUpdated(xerc20, minAmount, basisPoints);
-    }
-
-    /// @inheritdoc IFeesManager
-    function calculateFee(
-        address xerc20,
-        uint256 amount
-    ) external returns (uint256) {
-        // We take the fees only when wrapping/unwrapping
-        // the token. Host2host pegouts won't take any
-        // fees, otherwise this logic would taken them twice when
-        // pegging-out
-        if (!IXERC20(xerc20).isLocal()) return 0;
-
-        Fee memory info = feeInfoByAsset[xerc20];
-
-        if (!info.defined) return 0;
-
-        uint256 fee = (amount * info.basisPoints) / 1000000;
-        uint256 minFee = feeInfoByAsset[xerc20].minFee;
-
-        return fee < minFee ? minFee : fee;
-    }
-
-    /// @inheritdoc IFeesManager
-    function depositFeeForEpoch(
-        address xerc20,
-        uint256 amount,
-        uint16 epoch
-    ) public {
-        depositFeeForEpochFrom(msg.sender, xerc20, amount, epoch);
-    }
-
-    /// @inheritdoc IFeesManager
-    function depositFeeForEpochFrom(
-        address from,
-        address xerc20,
-        uint256 amount,
-        uint16 epoch
-    ) public {
-        if (from == address(0)) revert InvalidFromAddress();
-
-        if (epoch < currentEpoch) revert InvalidEpoch();
-
-        if (!feeInfoByAsset[xerc20].defined) revert UnsupportedToken(xerc20);
-
-        depositedAmountByEpoch[epoch][xerc20] += amount;
-        IERC20(xerc20).safeTransferFrom(from, address(this), amount);
     }
 }

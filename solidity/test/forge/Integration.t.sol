@@ -465,7 +465,7 @@ contract IntegrationTest is Test, Helper {
         adapter_B.settle(operation, metadata);
 
         vm.expectRevert(
-            abi.encodeWithSelector(Adapter.AlreadyProcessed.selector, eventId)
+            abi.encodeWithSelector(IAdapter.AlreadyProcessed.selector, eventId)
         );
         adapter_B.settle(operation, metadata);
     }

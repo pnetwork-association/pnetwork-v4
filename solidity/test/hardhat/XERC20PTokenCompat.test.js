@@ -187,37 +187,6 @@ const deployERC1820 = () => helpers.setCode(ERC1820, ERC1820BYTES)
           await snapshot.restore()
         })
 
-        it('Anyone can set the fee manager the first time', async () => {
-          feesManagerTest = await deploy(hre, 'FeesManagerTest')
-
-          await expect(pTokenV2.connect(user).setFeesManager(feesManagerTest))
-            .to.emit(pTokenV2, 'FeesManagerChanged')
-            .withArgs(feesManagerTest)
-
-          expect(await pTokenV2.getFeesManager()).to.be.equal(feesManagerTest)
-        })
-
-        it('Only the fees manager can set the fee manager after the first time', async () => {
-          const oldFeesManager = feesManagerTest
-
-          feesManagerTest = await deploy(hre, 'FeesManagerTest')
-
-          const tx = pTokenV2.connect(owner).setFeesManager(feesManagerTest)
-
-          await expect(tx).to.be.revertedWithCustomError(
-            pTokenV2,
-            'OnlyFeesManager',
-          )
-
-          await expect(
-            oldFeesManager.setFeesManagerForXERC20(pTokenV2, feesManagerTest),
-          )
-            .to.emit(pTokenV2, 'FeesManagerChanged')
-            .withArgs(feesManagerTest)
-
-          expect(await pTokenV2.getFeesManager()).to.be.equal(feesManagerTest)
-        })
-
         it('Only the owner can set limits', async () => {
           const tx = pTokenV2
             .connect(evil)
@@ -281,22 +250,6 @@ const deployERC1820 = () => helpers.setCode(ERC1820, ERC1820BYTES)
           ])
         })
 
-        it('Only the owner can set the PAM address', async () => {
-          PAM = await deploy(hre, 'PAM')
-
-          await expect(
-            pTokenV2.connect(evil).setPAM(bridge, PAM),
-          ).to.be.revertedWith('Ownable: caller is not the owner')
-
-          await expect(pTokenV2.connect(owner).setPAM(bridge, PAM))
-            .to.emit(pTokenV2, 'PAMChanged')
-            .withArgs(PAM)
-        })
-
-        it('Should return false when the lockbox is not set', async () => {
-          expect(await pTokenV2.isLocal()).to.be.equal(false)
-        })
-
         it('Only owner can set the lockbox', async () => {
           const isNative = false
           const erc20 = ZeroAddress
@@ -315,16 +268,6 @@ const deployERC1820 = () => helpers.setCode(ERC1820, ERC1820BYTES)
           await expect(pTokenV2.connect(owner).setLockbox(lockbox))
             .to.emit(pTokenV2, 'LockboxSet')
             .withArgs(lockbox)
-        })
-
-        it('Should return true when the lockbox is set', async () => {
-          expect(await pTokenV2.isLocal()).to.be.equal(true)
-        })
-
-        it('Should read storage correctly', async () => {
-          expect(await pTokenV2.getLockbox()).to.be.equal(lockbox)
-          expect(await pTokenV2.getPAM(bridge.address)).to.be.equal(PAM)
-          expect(await pTokenV2.getFeesManager()).to.be.equal(feesManagerTest)
         })
 
         it('Should revert when going over the max minting/burning limits', async () => {

@@ -28,4 +28,10 @@ contract AdapterScript is Script {
         );
         vm.stopBroadcast();
     }
+
+    function setPAM(address adapter, address pam) external {
+        vm.startBroadcast();
+        IAdapter(adapter).setPAM(pam);
+        vm.stopBroadcast();
+    }
 }

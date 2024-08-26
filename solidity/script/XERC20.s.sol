@@ -21,10 +21,4 @@ contract XERC20Script is Script {
         XERC20(xerc20).setLockbox(lockbox);
         vm.stopBroadcast();
     }
-
-    function setPAM(address xerc20, address adapter, address pam) external {
-        vm.startBroadcast();
-        XERC20(xerc20).setPAM(adapter, pam);
-        vm.stopBroadcast();
-    }
 }

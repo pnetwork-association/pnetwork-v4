@@ -5,8 +5,6 @@ import {IXERC20} from "../interfaces/IXERC20.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {ERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
-import {IFeesManager} from "../interfaces/IFeesManager.sol";
-import {IPTokenV2} from "../interfaces/IPTokenV2.sol";
 
 contract XERC20 is ERC20, Ownable, IXERC20, ERC20Permit {
     /**
@@ -29,16 +27,6 @@ contract XERC20 is ERC20, Ownable, IXERC20, ERC20Permit {
      */
     mapping(address => Bridge) public bridges;
 
-    mapping(address => address) public adapterToPAM;
-    address public feesManager;
-
-    error OnlyFeesManager();
-    error InsufficientAmount();
-    error NotAContract(address addr);
-
-    event FeesManagerChanged(address newAddress);
-    event PAMChanged(address pamAddress);
-
     /**
      * @notice Constructs the initial config of the XERC20
      *
@@ -51,55 +39,9 @@ contract XERC20 is ERC20, Ownable, IXERC20, ERC20Permit {
         string memory _name,
         string memory _symbol,
         address _factory
-    ) ERC20(_name, _symbol) ERC20Permit(_name) Ownable(msg.sender) {}
-
-    modifier onlyContractAddress(address anAddress) {
-        if (anAddress.code.length == 0) revert NotAContract(anAddress);
-        _;
-    }
-
-    modifier onlyFeesManager() {
-        if (feesManager != address(0) && msg.sender != feesManager)
-            revert OnlyFeesManager();
-        _;
-    }
-
-    /// @inheritdoc IPTokenV2
-    function setFeesManager(
-        address newAddress
-    ) external onlyFeesManager onlyContractAddress(newAddress) {
-        feesManager = newAddress;
-
-        emit FeesManagerChanged(newAddress);
-    }
-
-    /// @inheritdoc IPTokenV2
-    function setPAM(
-        address adapterAddress,
-        address pamAddress
-    ) external onlyOwner onlyContractAddress(pamAddress) {
-        adapterToPAM[adapterAddress] = pamAddress;
-        emit PAMChanged(pamAddress);
-    }
-
-    /// @inheritdoc IPTokenV2
-    function isLocal() external view returns (bool) {
-        return (lockbox != address(0));
-    }
-
-    /// @inheritdoc IPTokenV2
-    function getPAM(address adapter) external view returns (address) {
-        return adapterToPAM[adapter];
-    }
-
-    /// @inheritdoc IPTokenV2
-    function getFeesManager() external view returns (address) {
-        return feesManager;
-    }
-
-    /// @inheritdoc IPTokenV2
-    function getLockbox() external view returns (address) {
-        return lockbox;
+    ) ERC20(_name, _symbol) ERC20Permit(_name) {
+        _transferOwnership(_factory);
+        FACTORY = _factory;
     }
 
     /**
@@ -109,7 +51,7 @@ contract XERC20 is ERC20, Ownable, IXERC20, ERC20Permit {
      * @param _amount The amount of tokens being minted
      */
 
-    function mint(address _user, uint256 _amount) external {
+    function mint(address _user, uint256 _amount) public {
         _mintWithCaller(msg.sender, _user, _amount);
     }
 
@@ -120,7 +62,7 @@ contract XERC20 is ERC20, Ownable, IXERC20, ERC20Permit {
      * @param _amount The amount of tokens being burned
      */
 
-    function burn(address _user, uint256 _amount) external {
+    function burn(address _user, uint256 _amount) public {
         if (msg.sender != _user) {
             _spendAllowance(_user, msg.sender, _amount);
         }
@@ -134,8 +76,8 @@ contract XERC20 is ERC20, Ownable, IXERC20, ERC20Permit {
      * @param _lockbox The address of the lockbox
      */
 
-    function setLockbox(address _lockbox) external onlyOwner {
-        // if (msg.sender != FACTORY) revert IXERC20_NotFactory();
+    function setLockbox(address _lockbox) public {
+        if (msg.sender != FACTORY) revert IXERC20_NotFactory();
         lockbox = _lockbox;
 
         emit LockboxSet(_lockbox);
@@ -358,34 +300,12 @@ contract XERC20 is ERC20, Ownable, IXERC20, ERC20Permit {
         address _user,
         uint256 _amount
     ) internal {
-        uint256 fees;
-        // We don't make an internal call to isLocal() in order to save gas
-        if (lockbox != address(0) && feesManager != address(0)) {
-            fees = IFeesManager(feesManager).calculateFee(
-                address(this),
-                _amount
-            );
-        }
-
-        if (fees > _amount) revert InsufficientAmount();
-
-        uint256 netAmount = _amount - fees;
-
         if (_caller != lockbox) {
             uint256 _currentLimit = burningCurrentLimitOf(_caller);
-            if (_currentLimit < netAmount) revert IXERC20_NotHighEnoughLimits();
-            _useBurnerLimits(_caller, netAmount);
+            if (_currentLimit < _amount) revert IXERC20_NotHighEnoughLimits();
+            _useBurnerLimits(_caller, _amount);
         }
-
-        if (fees > 0) {
-            IFeesManager(feesManager).depositFeeFrom(
-                msg.sender,
-                address(this),
-                fees
-            );
-        }
-
-        _burn(_user, netAmount);
+        _burn(_user, _amount);
     }
 
     /**

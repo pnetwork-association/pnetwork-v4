@@ -17,8 +17,8 @@ import { upgradeProxy } from './utils/upgrade-proxy.cjs'
 const ERC1820 = '0x1820a4B7618BdE71Dce8cdc73aAB6C95905faD24'
 const deployERC1820 = () => helpers.setCode(ERC1820, ERC1820BYTES)
 
-;['', 'NoGSN'].map(_useGSN =>
-  describe(`Adapter ${_useGSN} Test Units`, () => {
+describe(`Adapter Test Units`, () => {
+  ;['', 'NoGSN'].map(_useGSN => {
     ;[false, true].map(_isNative => {
       const setup = async () => {
         const [owner, admin, minter, recipient, user, evil] =
@@ -303,5 +303,5 @@ const deployERC1820 = () => helpers.setCode(ERC1820, ERC1820BYTES)
         })
       })
     })
-  }),
-)
+  })
+})

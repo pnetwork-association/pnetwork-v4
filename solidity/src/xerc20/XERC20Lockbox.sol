@@ -1,12 +1,10 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity >=0.8.4 <0.9.0;
 
+import {IXERC20} from "../interfaces/IXERC20.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
-
-import {IXERC20} from "../interfaces/IXERC20.sol";
-import {IFeesManager} from "../interfaces/IFeesManager.sol";
 import {IXERC20Lockbox} from "../interfaces/IXERC20Lockbox.sol";
 
 contract XERC20Lockbox is IXERC20Lockbox {
@@ -121,35 +119,13 @@ contract XERC20Lockbox is IXERC20Lockbox {
     function _withdraw(address _to, uint256 _amount) internal {
         emit Withdraw(_to, _amount);
 
-        IERC20(address(XERC20)).safeTransferFrom(
-            msg.sender,
-            address(this),
-            _amount
-        );
-
-        // We need to recalculate the net amount here
-        // otherwise we would burn more than our current
-        // balance
-        uint256 fees;
-        address feesManager = XERC20.getFeesManager();
-        if (feesManager != address(0)) {
-            fees = IFeesManager(feesManager).calculateFee(
-                address(XERC20),
-                _amount
-            );
-            IERC20(address(XERC20)).approve(feesManager, fees);
-        }
-
-        // Fees are taken inside the burn function
-        XERC20.burn(address(this), _amount);
-
-        uint256 netAmount = _amount - fees;
+        XERC20.burn(msg.sender, _amount);
 
         if (IS_NATIVE) {
-            (bool _success, ) = payable(_to).call{value: netAmount}("");
+            (bool _success, ) = payable(_to).call{value: _amount}("");
             if (!_success) revert IXERC20Lockbox_WithdrawFailed();
         } else {
-            ERC20.safeTransfer(_to, netAmount);
+            ERC20.safeTransfer(_to, _amount);
         }
     }
 

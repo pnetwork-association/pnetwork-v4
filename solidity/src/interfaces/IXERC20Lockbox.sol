@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: UNLICENSED
 pragma solidity >=0.8.4 <0.9.0;
 
 interface IXERC20Lockbox {
@@ -79,6 +79,4 @@ interface IXERC20Lockbox {
      */
 
     function withdrawTo(address _user, uint256 _amount) external;
-
-    function IS_NATIVE() external view returns (bool);
 }

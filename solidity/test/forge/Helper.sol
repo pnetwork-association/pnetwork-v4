@@ -25,13 +25,16 @@ abstract contract Helper is Test {
             "0x0480472f799469d9af8790307a022802785c2b1e2f9c0930bdf9bafe193245e7a37cf43c720edc0892a2a97050005207e412f2227b1d92a78b8ee366fe4fea5ac9"
         );
     bytes signerAttestation = vm.parseBytes("0x");
-    address factoryAddress = address(0);
+    address securityCouncil = vm.addr(201);
     uint256 erc20Supply = 1000000;
     uint256 mintingLimit = 2000000;
     uint256 burningLimit = 2000000;
 
     bool native = true;
     bool notNative = false;
+
+    XERC20Factory factory =
+        XERC20Factory(0xb913bE186110B1119d5B9582F316f142c908fc25);
 
     function _transferToken(
         address token,
@@ -56,20 +59,39 @@ abstract contract Helper is Test {
         vm.stopPrank();
     }
 
-    function _getFeesManagerNodesAndStakedAmounts(
-        uint size
-    )
-        internal
-        pure
-        returns (address[] memory nodes, uint256[] memory stakedAmounts)
-    {
-        nodes = new address[](size);
-        stakedAmounts = new uint256[](size);
+    function _setupXERC20(
+        string memory name,
+        string memory symbol,
+        uint256 supply,
+        address underlyingERC20
+    ) internal returns (XERC20, ERC20, XERC20Lockbox) {
+        address[] memory emptyBridges;
+        uint256[] memory emptyMintingLimits;
+        uint256[] memory emptyBurningLimits;
+        bytes32 _salt = keccak256(abi.encodePacked(SALT, msg.sender));
+        XERC20Factory factory = new XERC20Factory{salt: _salt}();
+        XERC20 xerc20 = XERC20(
+            factory.deployXERC20(
+                string.concat("p", name),
+                string.concat("P", symbol),
+                emptyMintingLimits,
+                emptyBurningLimits,
+                emptyBridges
+            )
+        );
 
-        for (uint i = 0; i < size; i++) {
-            nodes[i] = vm.addr(100 + i);
-            stakedAmounts[i] = (i + 1) * 1 ether;
+        ERC20 erc20;
+        XERC20Lockbox lockbox;
+        if (underlyingERC20 == address(0)) {
+            erc20 = ERC20(new ERC20Test(name, symbol, supply));
+            lockbox = XERC20Lockbox(
+                factory.deployLockbox(address(xerc20), address(erc20), false)
+            );
+        } else {
+            erc20 = ERC20(underlyingERC20);
         }
+
+        return (xerc20, erc20, lockbox);
     }
 
     function _setupChain(
@@ -91,32 +113,23 @@ abstract contract Helper is Test {
         vm.chainId(chain);
         vm.startPrank(owner);
 
-        xerc20 = new XERC20("pToken A", "pTKA", factoryAddress);
+        (xerc20, erc20, lockbox) = _setupXERC20(
+            "Token A",
+            "TKNA",
+            erc20Supply,
+            erc20Native
+        );
 
-        if (erc20Native == address(0)) {
-            erc20 = ERC20(new ERC20Test("Token A", "TKA", erc20Supply));
-            lockbox = new XERC20Lockbox(
-                address(xerc20),
-                address(erc20),
-                notNative
-            );
-
-            (
-                address[] memory nodes,
-                uint256[] memory stakedAmounts
-            ) = _getFeesManagerNodesAndStakedAmounts(1);
-
-            feesManager = new FeesManager(0, nodes, stakedAmounts);
-            feesManager.setFee(address(xerc20), 0, 2000);
-            xerc20.setLockbox(address(lockbox));
-            xerc20.setFeesManager(address(feesManager));
-        } else {
-            erc20 = ERC20(erc20Native);
-        }
         pam = new PAM();
         pam.setTeeSigner(signerPublicKey, signerAttestation);
-        adapter = new Adapter(address(xerc20), address(erc20));
-        xerc20.setPAM(address(adapter), address(pam));
+        feesManager = new FeesManager(securityCouncil);
+        adapter = new Adapter(
+            address(xerc20),
+            address(erc20),
+            address(feesManager),
+            address(pam)
+        );
+        adapter.setPAM(address(pam));
         xerc20.setLimits(address(adapter), mintingLimit, burningLimit);
 
         vm.stopPrank();

@@ -9,44 +9,47 @@ import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol
 import {IPAM} from "./interfaces/IPAM.sol";
 import {IPAM} from "./interfaces/IPAM.sol";
 import {IXERC20} from "./interfaces/IXERC20.sol";
-import {IPTokenV2} from "./interfaces/IPTokenV2.sol";
 import {IAdapter} from "./interfaces/IAdapter.sol";
 import {IPReceiver} from "./interfaces/IPReceiver.sol";
 import {IFeesManager} from "./interfaces/IFeesManager.sol";
-import {IXERC20Registry} from "./interfaces/IXERC20Registry.sol";
 import {IXERC20Lockbox} from "./interfaces/IXERC20Lockbox.sol";
 import {ExcessivelySafeCall} from "./libraries/ExcessivelySafeCall.sol";
 
 contract Adapter is IAdapter, Ownable, ReentrancyGuard {
     using ExcessivelySafeCall for address;
 
-    uint256 _nonce;
+    uint256 public constant FEE_BASIS_POINTS = 1750;
+    uint256 public constant FEE_DIVISOR = 1000000; // 4 decimals for basis point * 2 decimals for percentage
 
+    uint256 public nonce;
     address public immutable erc20;
     address public immutable xerc20;
+    address public feesManager;
+    address public pam;
+    uint256 public minFee;
     mapping(bytes32 => bool) public pastEvents;
 
-    error NotAllowed();
-    error InvalidSwap();
-    error InvalidAmount();
-    error InvalidSender();
-    error RLPInputTooLong();
-    error InvalidOperation();
-    error InvalidFeesManager();
-    error Unauthorized(bytes32 eventId);
-    error InvalidTokenAddress(address token);
-    error UnsupportedChainId(uint256 chainId);
-    error UnexpectedEventTopic(bytes32 topic);
-    error AlreadyProcessed(bytes32 operationId);
-    error UnsupportedProtocolId(bytes1 protocolId);
-    error InvalidEventContentLength(uint256 length);
-    error InsufficientAmount(uint256 amount, uint256 fees);
-    error InvalidMessageId(uint256 actual, uint256 expected);
-    error InvalidDestinationChainId(uint256 destinationChainId);
+    constructor(
+        address xerc20_,
+        address erc20_,
+        address feesManager_,
+        address pam_
+    ) Ownable(msg.sender) {
+        erc20 = erc20_;
+        xerc20 = xerc20_;
+        feesManager = feesManager_;
+        pam = pam_;
+    }
 
-    constructor(address _xerc20, address _erc20) Ownable(msg.sender) {
-        erc20 = _erc20;
-        xerc20 = _xerc20;
+    function setFeesManager(address feesManager_) external onlyOwner {
+        feesManager = feesManager_;
+
+        emit FeesManagerChanged(feesManager_);
+    }
+
+    function setPAM(address pam_) external onlyOwner {
+        pam = pam_;
+        emit PAMChanged(pam_);
     }
 
     /// @inheritdoc IAdapter
@@ -57,12 +60,11 @@ contract Adapter is IAdapter, Ownable, ReentrancyGuard {
         if (operation.erc20 != bytes32(abi.encode(erc20)))
             revert InvalidOperation();
 
-        address pam = IXERC20(xerc20).getPAM(address(this));
-
         (bool isAuthorized, bytes32 eventId) = IPAM(pam).isAuthorized(
             operation,
             metadata
         );
+
         if (!isAuthorized) revert Unauthorized(eventId);
 
         if (pastEvents[eventId]) revert AlreadyProcessed(eventId);
@@ -72,7 +74,8 @@ contract Adapter is IAdapter, Ownable, ReentrancyGuard {
         address lockbox = IXERC20(xerc20).getLockbox();
 
         if (operation.amount > 0) {
-            if (IXERC20(xerc20).isLocal()) {
+            if (lockbox != address(0)) {
+                // Local chain only
                 IXERC20(xerc20).mint(address(this), operation.amount);
 
                 IERC20(xerc20).approve(lockbox, operation.amount);
@@ -195,29 +198,20 @@ contract Adapter is IAdapter, Ownable, ReentrancyGuard {
         bytes memory data
     ) internal {
         // At this point we control the xERC20 funds
-        address feesManager = IXERC20(xerc20).getFeesManager();
+        uint256 fees = IFeesManager(feesManager).calculateFee(xerc20, amount);
+        IERC20(xerc20).transfer(feesManager, fees);
 
-        uint256 fees;
-        if (feesManager != address(0)) {
-            // Entering here means we are on the local chain, since
-            // it's there where the fee manager is deployed
-            // Some of the funds will go to the fees manager within the burn() fn,
-            // so we approve the correct quantity here
-            fees = IFeesManager(feesManager).calculateFee(xerc20, amount);
-            IERC20(xerc20).approve(feesManager, fees);
-        }
-
-        // No need to substract the fees here, see the burn fn
-        IXERC20(xerc20).burn(address(this), amount);
+        uint256 netAmount = amount - fees;
+        IXERC20(xerc20).burn(address(this), netAmount);
 
         emit Swap(
-            _nonce,
+            nonce,
             EventBytes(
                 bytes.concat(
-                    bytes32(_nonce),
+                    bytes32(nonce),
                     bytes32(abi.encode(erc20)),
                     bytes32(destinationChainId),
-                    bytes32(amount - fees),
+                    bytes32(netAmount),
                     bytes32(uint256(uint160(msg.sender))),
                     bytes32(bytes(recipient).length),
                     bytes(recipient),
@@ -227,7 +221,14 @@ contract Adapter is IAdapter, Ownable, ReentrancyGuard {
         );
 
         unchecked {
-            ++_nonce;
+            ++nonce;
         }
+    }
+
+    /// @inheritdoc IAdapter
+    function calculateFee(uint256 amount) external view returns (uint256) {
+        uint256 fee = (amount * FEE_BASIS_POINTS) / FEE_DIVISOR;
+
+        return fee < minFee ? minFee : fee;
     }
 }
