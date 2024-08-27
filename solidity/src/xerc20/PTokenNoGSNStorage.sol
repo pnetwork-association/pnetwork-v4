@@ -23,6 +23,7 @@ contract PTokenNoGSNStorage {
         bytes32 adminRole;
     }
 
+    /* solhint-disable private-vars-leading-underscore */
     ////////////// Initializable (dropped)
     bool private _initialized;
     bool private _initializing;
@@ -49,4 +50,5 @@ contract PTokenNoGSNStorage {
     // We expect to initialize this value properly in
     // the initializeV2 function
     address internal _owner;
+    /* solhint-enable private-vars-leading-underscore */
 }

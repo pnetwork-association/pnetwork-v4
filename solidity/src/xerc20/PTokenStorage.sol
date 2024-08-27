@@ -23,6 +23,7 @@ contract PTokenStorage {
         bytes32 adminRole;
     }
 
+    /* solhint-disable private-vars-leading-underscore */
     ////////////// Initializable (dropped)
     bool private _initialized;
     bool private _initializing;
@@ -56,4 +57,5 @@ contract PTokenStorage {
     address private adminOperator;
     /////// PToken (dropped)
     bytes4 private ORIGIN_CHAIN_ID;
+    /* solhint-enable private-vars-leading-underscore */
 }
