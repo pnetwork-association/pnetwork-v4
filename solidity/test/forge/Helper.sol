@@ -15,11 +15,14 @@ import {IPAM} from "../../src/interfaces/IPAM.sol";
 import {ERC20Test} from "../../src/test/ERC20Test.sol";
 import {IAdapter} from "../../src/interfaces/IAdapter.sol";
 import {XERC20Lockbox} from "../../src/xerc20/XERC20Lockbox.sol";
+import {XERC20Factory} from "../../src/xerc20/XERC20Factory.sol";
 import {BytesLib} from "solidity-bytes-utils/contracts/BytesLib.sol";
 
 import "forge-std/console.sol";
 
 abstract contract Helper is Test {
+    string public constant SALT = "xERC20-v1.5";
+
     bytes signerPublicKey =
         vm.parseBytes(
             "0x0480472f799469d9af8790307a022802785c2b1e2f9c0930bdf9bafe193245e7a37cf43c720edc0892a2a97050005207e412f2227b1d92a78b8ee366fe4fea5ac9"
@@ -29,12 +32,12 @@ abstract contract Helper is Test {
     uint256 erc20Supply = 1000000;
     uint256 mintingLimit = 2000000;
     uint256 burningLimit = 2000000;
+    uint256[] emptyMintingLimits;
+    uint256[] emptyBurningLimits;
+    address[] emptyBridges;
 
     bool native = true;
     bool notNative = false;
-
-    XERC20Factory factory =
-        XERC20Factory(0xb913bE186110B1119d5B9582F316f142c908fc25);
 
     function _transferToken(
         address token,
@@ -129,7 +132,6 @@ abstract contract Helper is Test {
             address(feesManager),
             address(pam)
         );
-        adapter.setPAM(address(pam));
         xerc20.setLimits(address(adapter), mintingLimit, burningLimit);
 
         vm.stopPrank();

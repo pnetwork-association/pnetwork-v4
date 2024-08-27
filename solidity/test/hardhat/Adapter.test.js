@@ -21,7 +21,7 @@ describe(`Adapter Test Units`, () => {
   ;['', 'NoGSN'].map(_useGSN => {
     ;[false, true].map(_isNative => {
       const setup = async () => {
-        const [owner, admin, minter, recipient, user, evil] =
+        const [owner, admin, minter, recipient, user, evil, securityCouncil] =
           await hre.ethers.getSigners()
         const name = 'Token A'
         const symbol = 'TKN A'
@@ -50,14 +50,6 @@ describe(`Adapter Test Units`, () => {
           admin,
         )
 
-        const firstEpoch = 0
-        const nodes = []
-        const stakedAmounts = []
-        const feesManager = await deploy(hre, 'FeesManager', [
-          firstEpoch,
-          nodes,
-          stakedAmounts,
-        ])
         const erc20 = _isNative
           ? { target: ZeroAddress }
           : await deploy(hre, 'ERC20Test', [name, symbol, supply])
@@ -67,13 +59,6 @@ describe(`Adapter Test Units`, () => {
           erc20.target,
           _isNative,
         ])
-
-        const adapter = await deploy(hre, 'Adapter', [
-          pTokenV2.target,
-          erc20.target,
-        ])
-
-        const PAM = await deploy(hre, 'PAM', [])
 
         const erc20Bytes = padLeft32(erc20.target)
 
@@ -85,6 +70,18 @@ describe(`Adapter Test Units`, () => {
           protocolId,
           chainId,
         })
+
+        if (!_isNative) await erc20.connect(owner).transfer(user, 10000)
+
+        const feesManager = await deploy(hre, 'FeesManager', [securityCouncil])
+        const PAM = await deploy(hre, 'PAM', [])
+        const adapter = await deploy(hre, 'Adapter', [
+          pTokenV2.target,
+          erc20.target,
+          feesManager,
+          PAM,
+        ])
+
         const attestation = '0x'
         const topic0 = adapter.getEvent('Swap').fragment.topicHash
         await PAM.setTopicZero(padLeft32(originChainId), topic0)
@@ -94,15 +91,10 @@ describe(`Adapter Test Units`, () => {
           padLeft32(adapter.target),
         )
 
-        await feesManager.setFee(pTokenV2, minFee, basisPoints)
-        await pTokenV2.setFeesManager(feesManager)
         await pTokenV2.connect(owner).setLockbox(lockbox)
         await pTokenV2
           .connect(owner)
           .setLimits(adapter, mintingLimit, burningLimit)
-        await pTokenV2.connect(owner).setPAM(adapter, PAM)
-
-        if (!_isNative) await erc20.connect(owner).transfer(user, 10000)
 
         return {
           owner,
@@ -133,8 +125,10 @@ describe(`Adapter Test Units`, () => {
             feesManager,
           } = await loadFixture(setup)
           const data = '0x'
-          const amount = 4000
-          const fees = amount * 0.002
+          const amount = 4000n
+          const FEE_DIVISOR = await adapter.FEE_DIVISOR()
+          const FEE_BASIS_POINTS = await adapter.FEE_BASIS_POINTS()
+          const fees = (amount * FEE_BASIS_POINTS) / FEE_DIVISOR
           const destinationChainId = padLeft32('0x01')
           const balancePre = _isNative
             ? await hre.ethers.provider.getBalance(user)
@@ -235,7 +229,7 @@ describe(`Adapter Test Units`, () => {
 
           const nonce = 0
           const data = '0x'
-          const amount = 4000
+          const amount = 4000n
 
           const adapterTest = await deploy(hre, 'AdapterTest', [])
           const event = await generateSwapEvent(
@@ -269,9 +263,7 @@ describe(`Adapter Test Units`, () => {
           })
 
           const topic0 = adapter.getEvent('Swap').fragment.topicHash
-
           await PAM.setTopicZero(padLeft32(Chains.Hardhat), topic0)
-
           await PAM.setEmitter(
             padLeft32(Chains.Hardhat),
             padLeft32(adapterTest.target),
@@ -279,26 +271,23 @@ describe(`Adapter Test Units`, () => {
 
           // Fees are taken since we are unwrapping the token
           const tx = adapter.settle(operation.serialize(), metadata)
-          const fees = BigInt(amount * 0.002)
-          const netAmount = BigInt(amount) - fees
+
           await expect(tx)
             .to.emit(lockbox, 'Withdraw')
             .withArgs(recipient, amount)
           if (!_isNative)
             await expect(tx)
               .to.emit(erc20, 'Transfer')
-              .withArgs(lockbox, recipient, netAmount)
+              .withArgs(lockbox, recipient, amount)
           const eventId = eventAttestator.getEventId(event)
           await expect(tx).to.emit(adapter, 'Settled').withArgs(eventId)
 
           if (_isNative) {
-            await expect(tx).to.changeEtherBalance(lockbox, -netAmount)
-            await expect(tx).to.changeTokenBalance(pTokenV2, feesManager, fees)
-            await expect(tx).to.changeEtherBalance(recipient, netAmount)
+            await expect(tx).to.changeEtherBalance(lockbox, -amount)
+            await expect(tx).to.changeEtherBalance(recipient, amount)
           } else {
-            await expect(tx).to.changeTokenBalance(erc20, lockbox, -netAmount)
-            await expect(tx).to.changeTokenBalance(pTokenV2, feesManager, fees)
-            await expect(tx).to.changeTokenBalance(erc20, recipient, netAmount)
+            await expect(tx).to.changeTokenBalance(erc20, lockbox, -amount)
+            await expect(tx).to.changeTokenBalance(erc20, recipient, amount)
           }
         })
       })

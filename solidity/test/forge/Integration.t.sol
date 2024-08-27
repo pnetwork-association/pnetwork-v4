@@ -18,6 +18,7 @@ import {XERC20} from "../../src/xerc20/XERC20.sol";
 import {ERC20Test} from "../../src/test/ERC20Test.sol";
 import {DataReceiver} from "../../src/test/DataReceiver.sol";
 import {XERC20Lockbox} from "../../src/xerc20/XERC20Lockbox.sol";
+import {IXERC20Lockbox} from "../../src/interfaces/IXERC20Lockbox.sol";
 import {DataReceiverReentrancy} from "../../src/test/DataReceiverReentrancy.sol";
 
 import "forge-std/console.sol";
@@ -25,6 +26,9 @@ import "forge-std/console.sol";
 contract IntegrationTest is Test, Helper {
     uint256 constant CHAIN_A = 31337;
     uint256 constant CHAIN_B = 31338;
+    uint256 constant FEES_BASIS_POINTS = 1750;
+    uint256 constant FEES_DIVISOR = 1000000;
+
     string attestatorPrivateKey =
         "0xdfcc79a57e91c42d7eea05f82a08bd1b7e77f30236bb7c56fe98d3366a1929c4";
     string attestatorPublicKey =
@@ -34,7 +38,8 @@ contract IntegrationTest is Test, Helper {
 
     /// @dev Signers
     address user;
-    address owner;
+    address owner_A;
+    address owner_B;
     address recipient;
 
     /// @dev Contracts
@@ -60,9 +65,10 @@ contract IntegrationTest is Test, Helper {
     IPAM.Metadata metadata;
 
     constructor() {
-        owner = vm.addr(1);
+        owner_A = vm.addr(1);
         user = vm.addr(2);
         recipient = vm.addr(3);
+        owner_B = vm.addr(4);
         userBalance = 50000;
     }
 
@@ -74,7 +80,7 @@ contract IntegrationTest is Test, Helper {
             lockbox_A,
             feesManager_A,
             pam_A
-        ) = _setupChain(CHAIN_A, owner, address(0));
+        ) = _setupChain(CHAIN_A, owner_A, address(0));
 
         (
             adapter_B,
@@ -83,25 +89,29 @@ contract IntegrationTest is Test, Helper {
             lockbox_B,
             feesManager_B,
             pam_B
-        ) = _setupChain(CHAIN_B, owner, address(erc20_A));
+        ) = _setupChain(CHAIN_B, owner_B, address(erc20_A));
 
-        _transferToken(address(erc20_A), owner, user, userBalance);
+        _transferToken(address(erc20_A), owner_A, user, userBalance);
 
         erc20Bytes_A = bytes32(abi.encode(address(erc20_A)));
         erc20Bytes_B = bytes32(abi.encode(address(erc20_B)));
 
-        vm.startPrank(owner);
-        pam_A.setEmitter(
-            bytes32(CHAIN_B),
-            bytes32(abi.encode(address(adapter_B)))
-        );
+        vm.chainId(CHAIN_B);
+        vm.startPrank(owner_B);
         pam_B.setEmitter(
             bytes32(CHAIN_A),
             bytes32(abi.encode(address(adapter_A)))
         );
-
-        pam_A.setTopicZero(bytes32(CHAIN_B), IAdapter.Swap.selector);
         pam_B.setTopicZero(bytes32(CHAIN_A), IAdapter.Swap.selector);
+        vm.stopPrank();
+
+        vm.chainId(CHAIN_A);
+        vm.startPrank(owner_A);
+        pam_A.setEmitter(
+            bytes32(CHAIN_B),
+            bytes32(abi.encode(address(adapter_B)))
+        );
+        pam_A.setTopicZero(bytes32(CHAIN_B), IAdapter.Swap.selector);
         vm.stopPrank();
     }
 
@@ -113,11 +123,11 @@ contract IntegrationTest is Test, Helper {
 
         erc20_A.approve(address(adapter_A), amount);
 
-        vm.expectEmit(address(adapter_A));
-
-        uint256 fees = (amount * 20) / 10000;
+        uint256 fees = (amount * FEES_BASIS_POINTS) / FEES_DIVISOR;
+        uint256 netAmount = amount - fees;
         uint256 nonce = 0;
 
+        vm.expectEmit(address(adapter_A));
         emit IAdapter.Swap(
             nonce,
             IAdapter.EventBytes(
@@ -125,7 +135,7 @@ contract IntegrationTest is Test, Helper {
                     bytes32(nonce),
                     erc20Bytes_A,
                     bytes32(CHAIN_B),
-                    bytes32(amount - fees),
+                    bytes32(netAmount),
                     bytes32(uint256(uint160(user))),
                     bytes32(bytes(recipientStr).length),
                     bytes(recipientStr),
@@ -158,8 +168,8 @@ contract IntegrationTest is Test, Helper {
         // they have been wrapped already by the user
         // so we just transfer the collateral here to
         // reflect that
-        _transferToken(address(erc20_A), owner, address(lockbox_A), amount);
-        _sendXERC20To(owner, address(xerc20_A), user, userBalance);
+        _transferToken(address(erc20_A), owner_A, address(lockbox_A), amount);
+        _sendXERC20To(owner_A, address(xerc20_A), user, userBalance);
 
         vm.startPrank(user);
 
@@ -168,7 +178,7 @@ contract IntegrationTest is Test, Helper {
         vm.expectEmit(address(adapter_A));
 
         uint256 nonce = 0;
-        uint256 fees = (amount * 20) / 10000;
+        uint256 fees = (amount * FEES_BASIS_POINTS) / FEES_DIVISOR;
 
         emit IAdapter.Swap(
             nonce,
@@ -231,7 +241,7 @@ contract IntegrationTest is Test, Helper {
         vm.chainId(CHAIN_B);
 
         vm.expectEmit(address(xerc20_B));
-        uint256 fees = (amount * 20) / 10000;
+        uint256 fees = (amount * FEES_BASIS_POINTS) / FEES_DIVISOR;
         emit IERC20.Transfer(address(0), recipient, amount - fees);
         vm.expectEmit(address(adapter_B));
         emit IAdapter.Settled(eventId);
@@ -276,7 +286,7 @@ contract IntegrationTest is Test, Helper {
 
         // Pegout
         uint256 pegoutAmount = 5000;
-        uint256 fees = (pegoutAmount * 20) / 10000;
+        uint256 fees = (pegoutAmount * FEES_BASIS_POINTS) / FEES_DIVISOR;
         uint256 netAmount = pegoutAmount - fees;
         uint256 prevBalanceLockbox_A = erc20_A.balanceOf(address(lockbox_A));
         uint256 prevBalanceFeesManager_A = xerc20_A.balanceOf(
@@ -309,7 +319,13 @@ contract IntegrationTest is Test, Helper {
         bytes32 eventId = _getEventId(metadata.preimage);
 
         vm.expectEmit(address(xerc20_A));
-        emit IERC20.Transfer(address(lockbox_A), address(0), netAmount);
+        emit IERC20.Transfer(address(0), address(adapter_A), netAmount); // mint
+        vm.expectEmit(address(xerc20_A));
+        emit IERC20.Approval(address(adapter_A), address(lockbox_A), netAmount);
+        vm.expectEmit(address(lockbox_A));
+        emit IXERC20Lockbox.Withdraw(address(recipient), netAmount);
+        vm.expectEmit(address(xerc20_A));
+        emit IERC20.Transfer(address(adapter_A), address(0), netAmount); // burn
         vm.expectEmit(address(erc20_A));
         emit IERC20.Transfer(address(lockbox_A), recipient, netAmount);
         vm.expectEmit(address(adapter_A));
@@ -331,7 +347,7 @@ contract IntegrationTest is Test, Helper {
 
         assertEq(
             xerc20_A.balanceOf(address(feesManager_A)),
-            prevBalanceFeesManager_A + fees
+            prevBalanceFeesManager_A
         );
     }
 
@@ -366,7 +382,7 @@ contract IntegrationTest is Test, Helper {
         vm.chainId(CHAIN_B);
 
         vm.expectEmit(address(xerc20_B));
-        uint256 fees = (amount * 20) / 10000;
+        uint256 fees = (amount * FEES_BASIS_POINTS) / FEES_DIVISOR;
         emit IERC20.Transfer(address(0), address(receiver), amount - fees);
         vm.expectEmit(address(receiver));
         emit DataReceiver.DataReceived(data);

@@ -7,12 +7,11 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 import {IPAM} from "./interfaces/IPAM.sol";
-import {IPAM} from "./interfaces/IPAM.sol";
-import {IXERC20} from "./interfaces/IXERC20.sol";
 import {IAdapter} from "./interfaces/IAdapter.sol";
 import {IPReceiver} from "./interfaces/IPReceiver.sol";
 import {IFeesManager} from "./interfaces/IFeesManager.sol";
-import {IXERC20Lockbox} from "./interfaces/IXERC20Lockbox.sol";
+import {XERC20} from "./xerc20/XERC20.sol";
+import {XERC20Lockbox} from "./xerc20/XERC20Lockbox.sol";
 import {ExcessivelySafeCall} from "./libraries/ExcessivelySafeCall.sol";
 
 contract Adapter is IAdapter, Ownable, ReentrancyGuard {
@@ -71,20 +70,20 @@ contract Adapter is IAdapter, Ownable, ReentrancyGuard {
 
         pastEvents[eventId] = true;
 
-        address lockbox = IXERC20(xerc20).getLockbox();
+        address payable lockbox = payable(XERC20(xerc20).lockbox());
 
         if (operation.amount > 0) {
             if (lockbox != address(0)) {
                 // Local chain only
-                IXERC20(xerc20).mint(address(this), operation.amount);
+                XERC20(xerc20).mint(address(this), operation.amount);
 
                 IERC20(xerc20).approve(lockbox, operation.amount);
-                IXERC20Lockbox(lockbox).withdrawTo(
+                XERC20Lockbox(lockbox).withdrawTo(
                     operation.recipient,
                     operation.amount
                 );
             } else {
-                IXERC20(xerc20).mint(operation.recipient, operation.amount);
+                XERC20(xerc20).mint(operation.recipient, operation.amount);
             }
         }
 
@@ -129,6 +128,13 @@ contract Adapter is IAdapter, Ownable, ReentrancyGuard {
         }
     }
 
+    /// @inheritdoc IAdapter
+    function calculateFee(uint256 amount) public view returns (uint256) {
+        uint256 fee = (amount * FEE_BASIS_POINTS) / FEE_DIVISOR;
+
+        return fee < minFee ? minFee : fee;
+    }
+
     function _swapToken(
         address token,
         uint256 amount,
@@ -140,11 +146,11 @@ contract Adapter is IAdapter, Ownable, ReentrancyGuard {
         if ((token != erc20) && (token != xerc20)) revert NotAllowed();
         if (amount <= 0) revert InvalidAmount();
 
-        address lockbox = IXERC20(xerc20).getLockbox();
+        address payable lockbox = payable(XERC20(xerc20).lockbox());
 
         // Native swaps are not allowed within this fn,
         // use the swapNative one
-        if (lockbox != address(0) && IXERC20Lockbox(lockbox).IS_NATIVE())
+        if (lockbox != address(0) && XERC20Lockbox(lockbox).IS_NATIVE())
             revert InvalidSwap();
 
         // We transfer the token (xERC20 or ERC20) to
@@ -160,7 +166,7 @@ contract Adapter is IAdapter, Ownable, ReentrancyGuard {
             // We are on the home chain: then we wrap the ERC20
             // to the relative xERC20
             IERC20(token).approve(lockbox, amount);
-            IXERC20Lockbox(lockbox).deposit(amount);
+            XERC20Lockbox(lockbox).deposit(amount);
         }
 
         _finalizeSwap(amount, destinationChainId, recipient, data);
@@ -175,16 +181,16 @@ contract Adapter is IAdapter, Ownable, ReentrancyGuard {
         if (erc20 != address(0)) revert NotAllowed();
         if (amount == 0) revert InvalidAmount();
 
-        address lockbox = IXERC20(xerc20).getLockbox();
+        address payable lockbox = payable(XERC20(xerc20).lockbox());
 
         // Lockbox must be native here
-        if (lockbox != address(0) && !IXERC20Lockbox(lockbox).IS_NATIVE())
+        if (lockbox != address(0) && !XERC20Lockbox(lockbox).IS_NATIVE())
             revert InvalidSwap();
 
         if (lockbox != address(0))
             // User wants to wrap Ether: we deposit it to the lockbox and get the
             // relative xERC20
-            IXERC20Lockbox(lockbox).depositNativeTo{value: amount}(
+            XERC20Lockbox(lockbox).depositNativeTo{value: amount}(
                 address(this)
             );
 
@@ -198,11 +204,11 @@ contract Adapter is IAdapter, Ownable, ReentrancyGuard {
         bytes memory data
     ) internal {
         // At this point we control the xERC20 funds
-        uint256 fees = IFeesManager(feesManager).calculateFee(xerc20, amount);
+        uint256 fees = calculateFee(amount);
         IERC20(xerc20).transfer(feesManager, fees);
 
         uint256 netAmount = amount - fees;
-        IXERC20(xerc20).burn(address(this), netAmount);
+        XERC20(xerc20).burn(address(this), netAmount);
 
         emit Swap(
             nonce,
@@ -223,12 +229,5 @@ contract Adapter is IAdapter, Ownable, ReentrancyGuard {
         unchecked {
             ++nonce;
         }
-    }
-
-    /// @inheritdoc IAdapter
-    function calculateFee(uint256 amount) external view returns (uint256) {
-        uint256 fee = (amount * FEE_BASIS_POINTS) / FEE_DIVISOR;
-
-        return fee < minFee ? minFee : fee;
     }
 }
