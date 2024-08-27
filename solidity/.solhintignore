@@ -1,5 +1,8 @@
 **/XERC20.sol
 **/XERC20Lockbox.sol
+**/XERC20Factory.sol
+**/IXERC20.sol
+**/IXERC20Lockbox.sol
 **/ptoken-v1/*.sol
 **/XERC20Factory.sol
 **/IXERC20.sol
