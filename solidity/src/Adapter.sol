@@ -9,7 +9,6 @@ import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol
 import {IPAM} from "./interfaces/IPAM.sol";
 import {IAdapter} from "./interfaces/IAdapter.sol";
 import {IPReceiver} from "./interfaces/IPReceiver.sol";
-import {IFeesManager} from "./interfaces/IFeesManager.sol";
 import {XERC20} from "./xerc20/XERC20.sol";
 import {XERC20Lockbox} from "./xerc20/XERC20Lockbox.sol";
 import {ExcessivelySafeCall} from "./libraries/ExcessivelySafeCall.sol";
