@@ -13,6 +13,7 @@
         "XERC20-PTokenNoGSNCompat.sol": "noformatonsave",
     },
     "[noformatonsave]": {
+        "editor.tabSize": 2,
         "editor.formatOnSave": false,
         "editor.defaultFormatter": null
     },
