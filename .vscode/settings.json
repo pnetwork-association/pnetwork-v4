@@ -2,7 +2,19 @@
     "npm.packageManager": "yarn",
     "editor.formatOnSave": true,
     "editor.codeActionsOnSave": {
-        "source.organizeImports": "explicit"
+        "source.organizeImports": "explicit",
+        "source.removeUnusedImports": "explicit"
+    },
+    "files.associations": {
+        "XERC20.sol": "noformatonsave",
+        "XERC20Lockbox.sol": "noformatonsave",
+        "XERC20Factory.sol": "noformatonsave",
+        "XERC20-PTokenCompat.sol": "noformatonsave",
+        "XERC20-PTokenNoGSNCompat.sol": "noformatonsave",
+    },
+    "[noformatonsave]": {
+        "editor.formatOnSave": false,
+        "editor.defaultFormatter": null
     },
     "[json]": {
         "editor.defaultFormatter": "esbenp.prettier-vscode"

@@ -7,3 +7,10 @@
 
 *.Dockerfile
 Dockerfile
+
+XERC20.sol
+XERC20Lockbox.sol
+XERC20Factory.sol
+XERC20-PTokenCompat.sol
+XERC20-PTokenNoGSNCompat.sol
+**/ptoken-v1
