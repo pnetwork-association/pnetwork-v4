@@ -2,7 +2,7 @@
 pragma solidity ^0.8.13;
 
 import "forge-std/Script.sol";
-import {XERC20} from "../src/xerc20/XERC20.sol";
+import {XERC20} from "../contracts/XERC20.sol";
 
 contract XERC20Script is Script {
     function setLimits(

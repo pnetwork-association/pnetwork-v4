@@ -6,12 +6,12 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
-import {IPAM} from "./interfaces/IPAM.sol";
-import {IAdapter} from "./interfaces/IAdapter.sol";
-import {IPReceiver} from "./interfaces/IPReceiver.sol";
-import {XERC20} from "./xerc20/XERC20.sol";
-import {XERC20Lockbox} from "./xerc20/XERC20Lockbox.sol";
-import {ExcessivelySafeCall} from "./libraries/ExcessivelySafeCall.sol";
+import {IPAM} from "../interfaces/IPAM.sol";
+import {IAdapter} from "../interfaces/IAdapter.sol";
+import {IPReceiver} from "../interfaces/IPReceiver.sol";
+import {XERC20} from "./XERC20.sol";
+import {XERC20Lockbox} from "./XERC20Lockbox.sol";
+import {ExcessivelySafeCall} from "../libraries/ExcessivelySafeCall.sol";
 
 contract Adapter is IAdapter, Ownable, ReentrancyGuard {
     using ExcessivelySafeCall for address;

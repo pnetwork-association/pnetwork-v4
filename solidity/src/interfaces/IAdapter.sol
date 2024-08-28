@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import {IPAM} from "../interfaces/IPAM.sol";
+import {IPAM} from "./IPAM.sol";
 
 interface IAdapter {
     struct Operation {

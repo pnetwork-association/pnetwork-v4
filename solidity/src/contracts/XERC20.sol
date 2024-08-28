@@ -35,8 +35,7 @@ contract XERC20 is ERC20, Ownable, IXERC20, ERC20Permit {
    * @param _factory The factory which deployed this contract
    */
 
-  constructor(string memory _name, string memory _symbol, address _factory) ERC20(_name, _symbol) ERC20Permit(_name) {
-    _transferOwnership(_factory);
+  constructor(string memory _name, string memory _symbol, address _factory) ERC20(_name, _symbol) ERC20Permit(_name) Ownable(_factory) {
     FACTORY = _factory;
   }
 

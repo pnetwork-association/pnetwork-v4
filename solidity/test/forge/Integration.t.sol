@@ -7,19 +7,19 @@ import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IAccessControl} from "@openzeppelin/contracts/access/IAccessControl.sol";
 
-import {PAM} from "../../src/PAM.sol";
+import {PAM} from "../../src/contracts/PAM.sol";
 import {Helper} from "./Helper.sol";
-import {Adapter} from "../../src/Adapter.sol";
-import {FeesManager} from "../../src/FeesManager.sol";
+import {Adapter} from "../../src/contracts/Adapter.sol";
+import {FeesManager} from "../../src/contracts/FeesManager.sol";
 import {IPAM} from "../../src/interfaces/IPAM.sol";
 import {IAdapter} from "../../src/interfaces/IAdapter.sol";
 
-import {XERC20} from "../../src/xerc20/XERC20.sol";
-import {ERC20Test} from "../../src/test/ERC20Test.sol";
-import {DataReceiver} from "../../src/test/DataReceiver.sol";
-import {XERC20Lockbox} from "../../src/xerc20/XERC20Lockbox.sol";
+import {XERC20} from "../../src/contracts/XERC20.sol";
+import {ERC20Test} from "../../src/contracts/test/ERC20Test.sol";
+import {DataReceiver} from "../../src/contracts/test/DataReceiver.sol";
+import {XERC20Lockbox} from "../../src/contracts/XERC20Lockbox.sol";
 import {IXERC20Lockbox} from "../../src/interfaces/IXERC20Lockbox.sol";
-import {DataReceiverReentrancy} from "../../src/test/DataReceiverReentrancy.sol";
+import {DataReceiverReentrancy} from "../../src/contracts/test/DataReceiverReentrancy.sol";
 
 import "forge-std/console.sol";
 

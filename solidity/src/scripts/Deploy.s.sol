@@ -5,11 +5,11 @@
 
 // import "forge-std/Script.sol";
 // import "forge-std/console.sol";
-// import "../src/PAM.sol";
-// import "../src/Adapter.sol";
+// import "../contracts/PAM.sol";
+// import "../contracts/Adapter.sol";
 // import "../src/FeesManager.sol";
-// import "../src/xerc20/XERC20.sol";
-// import "../src/xerc20/XERC20Lockbox.sol";
+// import "../contracts/XERC20.sol";
+// import "../contracts/XERC20Lockbox.sol";
 
 // contract Deploy is Script {
 //     uint256 immutable mintingLimit = 100 ether;

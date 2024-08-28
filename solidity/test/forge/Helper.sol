@@ -6,16 +6,16 @@ import {Test} from "forge-std/Test.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
-import {PAM} from "../../src/PAM.sol";
-import {Adapter} from "../../src/Adapter.sol";
-import {XERC20} from "../../src/xerc20/XERC20.sol";
-import {FeesManager} from "../../src/FeesManager.sol";
+import {PAM} from "../../src/contracts/PAM.sol";
+import {Adapter} from "../../src/contracts/Adapter.sol";
+import {XERC20} from "../../src/contracts/XERC20.sol";
+import {FeesManager} from "../../src/contracts/FeesManager.sol";
 
 import {IPAM} from "../../src/interfaces/IPAM.sol";
-import {ERC20Test} from "../../src/test/ERC20Test.sol";
+import {ERC20Test} from "../../src/contracts/test/ERC20Test.sol";
 import {IAdapter} from "../../src/interfaces/IAdapter.sol";
-import {XERC20Lockbox} from "../../src/xerc20/XERC20Lockbox.sol";
-import {XERC20Factory} from "../../src/xerc20/XERC20Factory.sol";
+import {XERC20Lockbox} from "../../src/contracts/XERC20Lockbox.sol";
+import {XERC20Factory} from "../../src/contracts/XERC20Factory.sol";
 import {BytesLib} from "solidity-bytes-utils/contracts/BytesLib.sol";
 
 import "forge-std/console.sol";

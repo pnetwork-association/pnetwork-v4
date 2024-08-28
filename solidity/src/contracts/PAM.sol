@@ -4,8 +4,8 @@ pragma solidity ^0.8.20;
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 
-import {IPAM} from "./interfaces/IPAM.sol";
-import {IAdapter} from "./interfaces/IAdapter.sol";
+import {IPAM} from "../interfaces/IPAM.sol";
+import {IAdapter} from "../interfaces/IAdapter.sol";
 
 contract PAM is Ownable, IPAM {
     uint256 public constant TEE_ADDRESS_CHANGE_GRACE_PERIOD = 172800; // 48 hours

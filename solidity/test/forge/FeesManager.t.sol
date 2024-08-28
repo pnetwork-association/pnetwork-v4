@@ -10,9 +10,9 @@ import {Vm} from "forge-std/Vm.sol";
 import {Helper} from "./Helper.sol";
 import {Test, stdMath} from "forge-std/Test.sol";
 
-import {XERC20} from "../../src/xerc20/XERC20.sol";
-import {FeesManager} from "../../src/FeesManager.sol";
-import {ERC20Test} from "../../src/test/ERC20Test.sol";
+import {XERC20} from "../../src/contracts/XERC20.sol";
+import {FeesManager} from "../../src/contracts/FeesManager.sol";
+import {ERC20Test} from "../../src/contracts/test/ERC20Test.sol";
 
 import "forge-std/console.sol";
 

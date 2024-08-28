@@ -2,9 +2,9 @@
 pragma solidity ^0.8.0;
 
 import {Adapter} from "../Adapter.sol";
-import {IPAM} from "../interfaces/IPAM.sol";
-import {IAdapter} from "../interfaces/IAdapter.sol";
-import {IPReceiver} from "../interfaces/IPReceiver.sol";
+import {IPAM} from "../../interfaces/IPAM.sol";
+import {IAdapter} from "../../interfaces/IAdapter.sol";
+import {IPReceiver} from "../../interfaces/IPReceiver.sol";
 
 contract DataReceiverReentrancy is IPReceiver {
     event DataReceived(bytes userdata);

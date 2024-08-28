@@ -10,11 +10,11 @@ import {Vm} from "forge-std/Vm.sol";
 import {Helper} from "./Helper.sol";
 import {Test, stdMath} from "forge-std/Test.sol";
 
-import {PAM} from "../../src/PAM.sol";
-import {Adapter} from "../../src/Adapter.sol";
-import {XERC20} from "../../src/xerc20/XERC20.sol";
-import {XERC20} from "../../src/xerc20/XERC20.sol";
-import {FeesManager} from "../../src/FeesManager.sol";
+import {PAM} from "../../src/contracts/PAM.sol";
+import {Adapter} from "../../src/contracts/Adapter.sol";
+import {XERC20} from "../../src/contracts/XERC20.sol";
+import {XERC20} from "../../src/contracts/XERC20.sol";
+import {FeesManager} from "../../src/contracts/FeesManager.sol";
 
 import "forge-std/console.sol";
 
