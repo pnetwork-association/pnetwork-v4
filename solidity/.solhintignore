@@ -10,3 +10,4 @@
 **/XERC20-PTokenCompat.sol
 **/XERC20-PTokenNoGSNCompat.sol
 **/test/*.sol
+**/src/scripts/*.sol
