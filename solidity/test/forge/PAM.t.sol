@@ -36,11 +36,6 @@ contract PAMTest is Test, Helper {
         "0x04eb70384c33c68e77480302499cd30af9adc2dde7b9214bed46c5c17cefd7b49a345e8527a41a4dbf1f7b124d9c0a4393509e7d315c2ee85552b6586a39fe2421";
     address otherAttestatorAddress = 0xaeDa15984062138a3ABAa7FF1771E8167d529bec;
 
-    address user;
-    address owner;
-    address evil;
-    address recipient;
-
     PAM pam;
     ERC20 erc20;
     Adapter adapter;
@@ -53,11 +48,6 @@ contract PAMTest is Test, Helper {
     bytes data = "";
 
     function setUp() public {
-        user = vm.addr(1);
-        owner = vm.addr(2);
-        evil = vm.addr(3);
-        recipient = vm.addr(4);
-
         (adapter, erc20, , , , ) = _setupChain(
             originChainId,
             owner,

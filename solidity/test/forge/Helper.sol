@@ -23,6 +23,11 @@ import "forge-std/console.sol";
 abstract contract Helper is Test {
     string public constant SALT = "xERC20-v1.5";
 
+    address user = vm.addr(1);
+    address owner = vm.addr(2);
+    address evil = vm.addr(3);
+    address recipient = vm.addr(4);
+
     bytes signerPublicKey =
         vm.parseBytes(
             "0x0480472f799469d9af8790307a022802785c2b1e2f9c0930bdf9bafe193245e7a37cf43c720edc0892a2a97050005207e412f2227b1d92a78b8ee366fe4fea5ac9"
@@ -32,9 +37,6 @@ abstract contract Helper is Test {
     uint256 erc20Supply = 1000000;
     uint256 mintingLimit = 2000000;
     uint256 burningLimit = 2000000;
-    uint256[] emptyMintingLimits;
-    uint256[] emptyBurningLimits;
-    address[] emptyBridges;
 
     bool native = true;
     bool notNative = false;

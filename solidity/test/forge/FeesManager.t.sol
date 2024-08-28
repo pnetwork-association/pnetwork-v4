@@ -18,11 +18,6 @@ import "forge-std/console.sol";
 
 contract FeesManagerTest is Test, Helper {
     using EnumerableMap for EnumerableMap.AddressToUintMap;
-
-    address owner = vm.addr(1);
-    address user = vm.addr(2);
-    address evil = vm.addr(3);
-
     address node0 = vm.addr(4);
     address node1 = vm.addr(5);
     address node2 = vm.addr(6);

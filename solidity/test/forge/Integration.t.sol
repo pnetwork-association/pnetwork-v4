@@ -37,10 +37,8 @@ contract IntegrationTest is Test, Helper {
     bytes32 SWAP_TOPIC = IAdapter.Swap.selector;
 
     /// @dev Signers
-    address user;
     address owner_A;
     address owner_B;
-    address recipient;
 
     /// @dev Contracts
     XERC20 xerc20_A;

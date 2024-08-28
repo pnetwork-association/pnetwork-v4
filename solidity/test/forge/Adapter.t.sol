@@ -19,9 +19,6 @@ import {FeesManager} from "../../src/FeesManager.sol";
 import "forge-std/console.sol";
 
 contract AdapterTest is Test, Helper {
-    address owner = vm.addr(1);
-    address evil = vm.addr(2);
-
     Adapter adapter;
 
     function setUp() public {
