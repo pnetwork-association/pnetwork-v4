@@ -343,21 +343,21 @@ contract XERC20PTokenNoGSNCompat is
   }
 
   function transfer(address to, uint256 amount) public returns (bool) {
-      address owner = _msgSender();
-      _transfer(owner, to, amount);
+      address owner_ = _msgSender();
+      _transfer(owner_, to, amount);
       return true;
   }
 
   function allowance(
-      address owner,
+      address owner_,
       address spender
   ) public view returns (uint256) {
-      return _allowances[owner][spender];
+      return _allowances[owner_][spender];
   }
 
   function approve(address spender, uint256 amount) public returns (bool) {
-      address owner = _msgSender();
-      _approve(owner, spender, amount);
+      address owner_ = _msgSender();
+      _approve(owner_, spender, amount);
       return true;
   }
 
@@ -376,8 +376,8 @@ contract XERC20PTokenNoGSNCompat is
       address spender,
       uint256 addedValue
   ) public returns (bool) {
-      address owner = _msgSender();
-      _approve(owner, spender, allowance(owner, spender) + addedValue);
+      address owner_ = _msgSender();
+      _approve(owner_, spender, allowance(owner_, spender) + addedValue);
       return true;
   }
 
@@ -385,14 +385,14 @@ contract XERC20PTokenNoGSNCompat is
       address spender,
       uint256 subtractedValue
   ) public returns (bool) {
-      address owner = _msgSender();
-      uint256 currentAllowance = allowance(owner, spender);
+      address owner_ = _msgSender();
+      uint256 currentAllowance = allowance(owner_, spender);
       require(
           currentAllowance >= subtractedValue,
           "ERC20: decreased allowance below zero"
       );
       unchecked {
-          _approve(owner, spender, currentAllowance - subtractedValue);
+          _approve(owner_, spender, currentAllowance - subtractedValue);
       }
 
       return true;
@@ -454,27 +454,27 @@ contract XERC20PTokenNoGSNCompat is
       _afterTokenTransfer(account, address(0), amount);
   }
 
-  function _approve(address owner, address spender, uint256 amount) internal {
-      require(owner != address(0), "ERC20: approve from the zero address");
+  function _approve(address owner_, address spender, uint256 amount) internal {
+      require(owner_ != address(0), "ERC20: approve from the zero address");
       require(spender != address(0), "ERC20: approve to the zero address");
 
-      _allowances[owner][spender] = amount;
-      emit Approval(owner, spender, amount);
+      _allowances[owner_][spender] = amount;
+      emit Approval(owner_, spender, amount);
   }
 
   function _spendAllowance(
-      address owner,
+      address owner_,
       address spender,
       uint256 amount
   ) internal {
-      uint256 currentAllowance = allowance(owner, spender);
+      uint256 currentAllowance = allowance(owner_, spender);
       if (currentAllowance != type(uint256).max) {
           require(
               currentAllowance >= amount,
               "ERC20: insufficient allowance"
           );
           unchecked {
-              _approve(owner, spender, currentAllowance - amount);
+              _approve(owner_, spender, currentAllowance - amount);
           }
       }
   }
@@ -493,7 +493,7 @@ contract XERC20PTokenNoGSNCompat is
 
   /////////////////// Copied from ERC20PermitUpgradeable - OpenZeppelin v4.9.6
   function permit(
-      address owner,
+      address owner_,
       address spender,
       uint256 value,
       uint256 deadline,
@@ -506,10 +506,10 @@ contract XERC20PTokenNoGSNCompat is
       bytes32 structHash = keccak256(
           abi.encode(
               _PERMIT_TYPEHASH,
-              owner,
+              owner_,
               spender,
               value,
-              _useNonce(owner),
+              _useNonce(owner_),
               deadline
           )
       );
@@ -517,21 +517,21 @@ contract XERC20PTokenNoGSNCompat is
       bytes32 hash = _hashTypedDataV4(structHash);
 
       address signer = ECDSAUpgradeable.recover(hash, v, r, s);
-      require(signer == owner, "ERC20Permit: invalid signature");
+      require(signer == owner_, "ERC20Permit: invalid signature");
 
-      _approve(owner, spender, value);
+      _approve(owner_, spender, value);
   }
 
   function DOMAIN_SEPARATOR() external view returns (bytes32) {
       return _domainSeparatorV4();
   }
 
-  function nonces(address owner) public view returns (uint256) {
-      return _nonces[owner].current();
+  function nonces(address owner_) public view returns (uint256) {
+      return _nonces[owner_].current();
   }
 
-  function _useNonce(address owner) internal returns (uint256 current) {
-      CountersUpgradeable.Counter storage nonce = _nonces[owner];
+  function _useNonce(address owner_) internal returns (uint256 current) {
+      CountersUpgradeable.Counter storage nonce = _nonces[owner_];
       current = nonce.current();
       nonce.increment();
   }
