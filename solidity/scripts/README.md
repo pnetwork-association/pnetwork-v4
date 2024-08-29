@@ -81,13 +81,39 @@ Same logic applies for the following commands.
 
 ```bash
 # On the origin chain
-./Deploy.sh 'run(address,string,string,bool)' <erc20-address> <erc20-name> <erc20-symbol> true
+./Deploy.sh 'run(address,string,string,bool)' <erc20-address> <name> <symbol> true
 
 # Swich chain on the .env file
 
 # On the host chain
-./Deploy.sh 'run(address,string,string,bool)' <erc20-address> <erc20-name> <erc20-symbol> false
+./Deploy.sh 'run(address,string,string,bool)' <erc20-address> <name> <symbol> false
 ```
+
+**Note:**
+
+If you run against a CREATE2 collision error, it means the `XERC20Factory` contract has already been deployed
+on the selected chain. So you need to pass it over to the `Deploy` script like follows:
+
+```bash
+./Deploy.sh 'run(address,address,string,string,bool)' <factory-address> <erc20-address> <name> <symbol> true
+# or
+./Deploy.sh 'run(address,address,string,string,bool)' <factory-address> <erc20-address> <name> <symbol> false
+```
+
+The factory address is shown within the error:
+
+```
+  [1040429725] Deploy::run(0x4d8E02BBfCf205828A8352Af4376b165E123D7b0, "pHello", "pHHH", false)
+    ├─ [0] VM::startBroadcast()
+    │   └─ ← [Return]
+    ├─ [1040387095] Create2Deployer::create2()
+    │   ├─ [0] → new <unknown>@0x6E1b4fdc396FE8B832fCA002E7E71fe0A2D67024 <-------------------- here the factory address
+    │   │   └─ ← [CreateCollision] 0 bytes of code
+    │   └─ ← [Revert] EvmError: Revert
+    └─ ← [Revert] EvmError: Revert
+```
+
+---
 
 4. Set the emitter address on the PAMs for both chains:
 
