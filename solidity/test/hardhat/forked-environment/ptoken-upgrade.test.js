@@ -1,7 +1,6 @@
 import helpers from '@nomicfoundation/hardhat-network-helpers'
 import { Chains, ProofcastEventAttestator } from '@pnetwork/event-attestator'
 import { expect } from 'chai'
-import { ZeroAddress } from 'ethers/constants'
 import hre from 'hardhat'
 
 import Operation from '../utils/Operation.cjs'
@@ -10,6 +9,10 @@ import { getSwapEvent } from '../utils/get-swap-event.cjs'
 import { getUpgradeOpts } from '../utils/get-upgrade-opts.cjs'
 import { padLeft32 } from '../utils/pad-left-32.cjs'
 import { upgradeProxy } from '../utils/upgrade-proxy.cjs'
+import {
+  deployXERC20,
+  deployXERC20Lockbox,
+} from '../utils/xerc20-factory-deploy.cjs'
 import PTokenAbi from './abi/bsc/PToken.json' assert { type: 'json' }
 import Erc20Abi from './abi/eth/ERC20.json' assert { type: 'json' }
 import VaultAbi from './abi/eth/Vault.json' assert { type: 'json' }
@@ -41,14 +44,19 @@ conditionalDescribe(
       adapterEth,
       adapterBsc,
       owner,
+      securityCouncil,
       user,
+      pamBsc,
       recipient,
+      feesManagerBsc,
       eventAttestator,
       swapMetadata,
-      swapOperation
+      swapOperation,
+      fees
 
     before(async () => {
-      ;[owner, recipient] = await hre.ethers.getSigners()
+      ;[owner, recipient, securityCouncil, pamBsc, feesManagerBsc] =
+        await hre.ethers.getSigners()
 
       const version = 0x00
       const protocolId = 0x01
@@ -79,6 +87,8 @@ conditionalDescribe(
         adapterBsc = await deploy(hre, 'Adapter', [
           ptoken.target,
           ADDRESS_ERC20_TOKEN,
+          feesManagerBsc,
+          pamBsc,
         ])
 
         await helpers.setBalance(proxyAdminOwner.address, oneEth)
@@ -113,8 +123,8 @@ conditionalDescribe(
           .connect(ptokenOwner)
           .setLimits(adapterBsc, mintingLimit, burningLimit)
 
+        const userBalancePre = await ptokenv2.balanceOf(user)
         await ptokenv2.connect(user).approve(adapterBsc, swapAmount)
-
         const tx = await adapterBsc
           .connect(user)
           .swap(
@@ -139,12 +149,20 @@ conditionalDescribe(
           originChainId: Chains.Bsc,
           eventContent,
         })
+
+        const FEES_DIVISOR = await adapterBsc.FEE_DIVISOR()
+        const FEES_BP = await adapterBsc.FEE_BASIS_POINTS()
+        fees = (swapAmount * FEES_BP) / FEES_DIVISOR
+        expect(await ptokenv2.balanceOf(user)).to.be.equal(
+          userBalancePre - swapAmount,
+        )
+        expect(await ptokenv2.balanceOf(feesManagerBsc)).to.be.equal(fees)
       })
     })
 
     describe('Ethereum mainnet - collateral migration', () => {
-      let vault, pnetwork
-      let lockbox, xerc20, pam
+      let vault, pnetwork, collateral
+      let lockboxEth, xerc20, pamEth, feesManagerEth
       before(async () => {
         const rpc = hre.config.networks.ethFork.url
         const blockToForkFrom = 20369499 // 2024-07-23 15:22
@@ -152,11 +170,20 @@ conditionalDescribe(
 
         erc20 = await hre.ethers.getContractAt(Erc20Abi, ADDRESS_ERC20_TOKEN)
 
-        const name = await erc20.name()
-        const symbol = await erc20.symbol()
+        const name = `p${await erc20.name()}`
+        const symbol = `p${await erc20.symbol()}`
         const isNative = false
 
-        xerc20 = await deploy(hre, 'XERC20', [name, symbol, ZeroAddress])
+        const factory = await deploy(hre, 'XERC20Factory', [])
+        xerc20 = await deployXERC20(hre, factory, name, symbol)
+        lockboxEth = await deployXERC20Lockbox(
+          hre,
+          factory,
+          xerc20,
+          erc20,
+          isNative,
+        )
+
         vault = await hre.ethers.getContractAt(
           VaultAbi,
           ADDRESS_PTOKEN_V1_VAULT,
@@ -164,30 +191,26 @@ conditionalDescribe(
         pnetwork = await hre.ethers.getImpersonatedSigner(
           ADDRESS_PNETWORK_SIGNER,
         )
+        pamEth = await deploy(hre, 'PAM', [])
+        feesManagerEth = await deploy(hre, 'FeesManager', [securityCouncil])
+
         adapterEth = await deploy(hre, 'Adapter', [
           xerc20.target,
           ADDRESS_ERC20_TOKEN,
-        ])
-        lockbox = await deploy(hre, 'XERC20Lockbox', [
-          xerc20.target,
-          erc20.target,
-          isNative,
+          feesManagerEth,
+          pamEth,
         ])
 
-        pam = await deploy(hre, 'PAM', [])
-
-        await xerc20.setLockbox(lockbox)
         await xerc20.setLimits(adapterEth, mintingLimit, burningLimit)
-
         await helpers.setBalance(pnetwork.address, oneEth)
       })
 
       it('Should transfer all the funds to the lockbox', async () => {
-        const collateral = await erc20.balanceOf(vault)
-        await vault.connect(pnetwork).pegOut(lockbox, erc20, collateral)
+        collateral = await erc20.balanceOf(vault)
+        await vault.connect(pnetwork).pegOut(lockboxEth, erc20, collateral)
 
         expect(await erc20.balanceOf(vault)).to.be.equal(0)
-        expect(await erc20.balanceOf(lockbox)).to.be.equal(collateral)
+        expect(await erc20.balanceOf(lockboxEth)).to.be.equal(collateral)
       })
 
       it('Should remove the token for the supported token list', async () => {
@@ -201,23 +224,26 @@ conditionalDescribe(
       it('Should settle the pegout correctly', async () => {
         const attestation = '0x'
 
-        await pam.setTeeSigner(eventAttestator.publicKey, attestation)
-        await pam.setEmitter(
+        await pamEth.setTeeSigner(eventAttestator.publicKey, attestation)
+        await pamEth.setEmitter(
           padLeft32(Chains.Bsc),
           padLeft32(adapterBsc.target),
         )
-        await pam.setTopicZero(
+        await pamEth.setTopicZero(
           padLeft32(Chains.Bsc),
           adapterEth.getEvent('Swap').fragment.topicHash,
         )
-
-        await xerc20.setPAM(adapterEth, pam)
 
         await adapterEth
           .connect(recipient)
           .settle(swapOperation.serialize(), swapMetadata)
 
-        expect(await erc20.balanceOf(recipient)).to.be.equal(swapAmount)
+        const netAmount = swapAmount - fees
+
+        expect(await erc20.balanceOf(recipient)).to.be.equal(netAmount)
+        expect(await erc20.balanceOf(lockboxEth)).to.be.equal(
+          collateral - netAmount,
+        )
       })
     })
   },
