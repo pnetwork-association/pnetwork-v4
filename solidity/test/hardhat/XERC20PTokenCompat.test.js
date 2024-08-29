@@ -99,16 +99,7 @@ const deployERC1820 = () => helpers.setCode(ERC1820, ERC1820BYTES)
       })
 
       describe('Cumulative tests after pToken contract upgrade', () => {
-        let owner,
-          admin,
-          user,
-          evil,
-          PAM,
-          bridge,
-          lockbox,
-          pToken,
-          pTokenV2,
-          feesManagerTest
+        let owner, admin, user, evil, bridge, lockbox, pToken, pTokenV2
 
         const oneDay = 60n * 60n * 24n
         const mintingRatePerSecond = 3n

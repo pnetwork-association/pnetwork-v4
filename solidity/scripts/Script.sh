@@ -55,12 +55,13 @@ fi
 
 shift 2
 
-
+dir_name=$(dirname $(realpath $BASH_SOURCE))
+contract_path="$dir_name/../src/scripts/$contract"
 
 # Perform a dry-run execution
 # add --broadcast to parameters if you
 # want to broadcast the tx
-source ../.env
+source "$dir_name/../.env"
 chain_name=$(echo "${CHAIN_NAME:-sepolia}" | tr '[:lower:]' '[:upper:]')
 eval "rpc_url=\$${chain_name}_RPC_URL"
 echo
@@ -71,6 +72,8 @@ echo "|"
 echo "|   RPC_URL: $rpc_url"
 echo "|"
 echo "|   CHAIN_NAME: $chain_name"
+echo "|"
+echo "|   CONTRACT: $contract_path"
 echo "+"
 echo
 forge script \
@@ -79,5 +82,5 @@ forge script \
     --password "$FORGE_KEYSTORE_PASSWORD" \
     --account "$FORGE_ACCOUNT" \
     --sig "$sig" \
-    "$contract" \
+    "$contract_path" \
     "$@"

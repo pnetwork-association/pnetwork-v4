@@ -48,10 +48,14 @@ contract PAMTest is Test, Helper {
     bytes data = "";
 
     function setUp() public {
-        (adapter, erc20, , , , ) = _setupChain(
+        vm.prank(owner);
+        erc20 = ERC20(new ERC20Test(erc20Name, erc20Symbol, erc20Supply));
+
+        (, , adapter, , ) = _setupChain(
             originChainId,
             owner,
-            address(erc20)
+            address(erc20),
+            true
         );
 
         _transferToken(address(erc20), owner, user, 50000);

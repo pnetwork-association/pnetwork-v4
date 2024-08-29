@@ -1,3 +1,4 @@
 #!/bin/bash
 
-./Script.sh "XERC20.s.sol" "$@"
+dir_name=$(dirname $(realpath $BASH_SOURCE))
+$dir_name/Script.sh "XERC20.s.sol" "$@"

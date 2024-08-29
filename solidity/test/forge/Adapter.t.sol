@@ -14,6 +14,7 @@ import {PAM} from "../../src/contracts/PAM.sol";
 import {Adapter} from "../../src/contracts/Adapter.sol";
 import {XERC20} from "../../src/contracts/XERC20.sol";
 import {XERC20} from "../../src/contracts/XERC20.sol";
+import {ERC20Test} from "../../src/contracts/test/ERC20Test.sol";
 import {FeesManager} from "../../src/contracts/FeesManager.sol";
 
 import "forge-std/console.sol";
@@ -25,13 +26,15 @@ contract AdapterTest is Test, Helper {
         vm.startPrank(owner);
         string memory name = "Token A";
         string memory symbol = "TKNA";
-        address underlyingERC20 = address(0);
         uint256 supply = 100 ether;
-        (XERC20 xerc20, ERC20 erc20, ) = _setupXERC20(
-            name,
-            symbol,
-            supply,
-            underlyingERC20
+        bool local = true;
+        ERC20 erc20 = ERC20(new ERC20Test(name, symbol, supply));
+        (XERC20 xerc20, , ) = _setupXERC20(
+            address(0),
+            address(erc20),
+            string.concat("p", name),
+            string.concat("p", symbol),
+            local
         );
         FeesManager feesManager = new FeesManager(securityCouncil);
         PAM pam = new PAM();

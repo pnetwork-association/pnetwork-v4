@@ -10,6 +10,7 @@ import {PAM} from "../../src/contracts/PAM.sol";
 import {Adapter} from "../../src/contracts/Adapter.sol";
 import {XERC20} from "../../src/contracts/XERC20.sol";
 import {FeesManager} from "../../src/contracts/FeesManager.sol";
+import {DeployHelper} from "../../src/scripts/DeployHelper.sol";
 
 import {IPAM} from "../../src/interfaces/IPAM.sol";
 import {ERC20Test} from "../../src/contracts/test/ERC20Test.sol";
@@ -20,9 +21,7 @@ import {BytesLib} from "solidity-bytes-utils/contracts/BytesLib.sol";
 
 import "forge-std/console.sol";
 
-abstract contract Helper is Test {
-    string public constant SALT = "xERC20-v1.5";
-
+abstract contract Helper is Test, DeployHelper {
     address user = vm.addr(1);
     address owner = vm.addr(2);
     address evil = vm.addr(3);
@@ -34,6 +33,8 @@ abstract contract Helper is Test {
         );
     bytes signerAttestation = vm.parseBytes("0x");
     address securityCouncil = vm.addr(201);
+    string erc20Name = "Token A";
+    string erc20Symbol = "TKNA";
     uint256 erc20Supply = 1000000;
     uint256 mintingLimit = 2000000;
     uint256 burningLimit = 2000000;
@@ -53,76 +54,42 @@ abstract contract Helper is Test {
     }
 
     function _sendXERC20To(
-        address owner,
+        address owner_,
         address xerc20,
         address to,
         uint256 amount
     ) internal {
-        vm.startPrank(owner);
-        XERC20(xerc20).setLimits(owner, mintingLimit, burningLimit);
+        vm.startPrank(owner_);
+        XERC20(xerc20).setLimits(owner_, mintingLimit, burningLimit);
         XERC20(xerc20).mint(to, amount);
         vm.stopPrank();
     }
 
-    function _setupXERC20(
-        string memory name,
-        string memory symbol,
-        uint256 supply,
-        address underlyingERC20
-    ) internal returns (XERC20, ERC20, XERC20Lockbox) {
-        address[] memory emptyBridges;
-        uint256[] memory emptyMintingLimits;
-        uint256[] memory emptyBurningLimits;
-        bytes32 _salt = keccak256(abi.encodePacked(SALT, msg.sender));
-        XERC20Factory factory = new XERC20Factory{salt: _salt}();
-        XERC20 xerc20 = XERC20(
-            factory.deployXERC20(
-                string.concat("p", name),
-                string.concat("P", symbol),
-                emptyMintingLimits,
-                emptyBurningLimits,
-                emptyBridges
-            )
-        );
-
-        ERC20 erc20;
-        XERC20Lockbox lockbox;
-        if (underlyingERC20 == address(0)) {
-            erc20 = ERC20(new ERC20Test(name, symbol, supply));
-            lockbox = XERC20Lockbox(
-                factory.deployLockbox(address(xerc20), address(erc20), false)
-            );
-        } else {
-            erc20 = ERC20(underlyingERC20);
-        }
-
-        return (xerc20, erc20, lockbox);
-    }
-
     function _setupChain(
         uint256 chain,
-        address owner,
-        address erc20Native
+        address owner_,
+        address erc20,
+        bool local
     )
         internal
         returns (
-            Adapter adapter,
-            ERC20 erc20,
             XERC20 xerc20,
             XERC20Lockbox lockbox,
+            Adapter adapter,
             FeesManager feesManager,
             PAM pam
         )
     {
         uint256 prevChain = block.chainid;
         vm.chainId(chain);
-        vm.startPrank(owner);
+        vm.startPrank(owner_);
 
-        (xerc20, erc20, lockbox) = _setupXERC20(
-            "Token A",
-            "TKNA",
-            erc20Supply,
-            erc20Native
+        (xerc20, lockbox, ) = _setupXERC20(
+            address(0),
+            erc20,
+            string.concat("p", erc20Name),
+            string.concat("p", erc20Symbol),
+            local
         );
 
         pam = new PAM();
