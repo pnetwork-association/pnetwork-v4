@@ -29,6 +29,16 @@ contract AdapterScript is Script {
         vm.stopBroadcast();
     }
 
+    function settle(
+        address adapter,
+        IAdapter.Operation memory operation,
+        IPAM.Metadata calldata metadata
+    ) external {
+        vm.startBroadcast();
+        Adapter(adapter).settle(operation, metadata);
+        vm.stopBroadcast();
+    }
+
     function setPAM(address adapter, address pam) external {
         vm.startBroadcast();
         IAdapter(adapter).setPAM(pam);
