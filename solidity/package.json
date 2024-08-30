@@ -8,9 +8,10 @@
     "test": "test"
   },
   "files": [
-    "src"
+    "/src"
   ],
   "scripts": {
+    "clean": "clean.sh",
     "build": "forge build",
     "test": "yarn test:forge && yarn test:hh-no-fork",
     "test:forge": "forge test",
