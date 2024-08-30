@@ -3,12 +3,12 @@ pragma solidity ^0.8.13;
 
 import {Script} from "forge-std/Script.sol";
 import {Test} from "forge-std/Test.sol";
+import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {Options} from "openzeppelin-foundry-upgrades/Options.sol";
 import {Upgrades} from "openzeppelin-foundry-upgrades/LegacyUpgrades.sol"; // OpenZeppelin v4
-import {XERC20PTokenCompat} from "../../src/xerc20/XERC20-PTokenCompat.sol";
-import {XERC20PTokenNoGSNCompat} from "../../src/xerc20/XERC20-PTokenNoGSNCompat.sol";
-import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import {XERC20PTokenCompat} from "../../src/contracts/XERC20-PTokenCompat.sol";
+import {XERC20PTokenNoGSNCompat} from "../../src/contracts/XERC20-PTokenNoGSNCompat.sol";
 
 import "forge-std/console.sol";
 
@@ -49,10 +49,11 @@ contract Upgrade is Test {
         address proxyAdminOwner = Ownable(proxyAdmin).owner();
 
         // bool useGSN = false;
-        string memory contractName = "XERC20PTokenCompat.sol";
+        string
+            memory contractName = "XERC20-PTokenCompat.sol:XERC20PTokenCompat";
         try IERC777GSNUpgradeable(proxyAdmin).setTrustedSigner(vm.addr(1)) {
             // useGSN = true;
-            contractName = "XERC20PTokenNoGSNCompat.sol";
+            contractName = "XERC20-PTokenNoGSNCompat.sol:XERC20PTokenNoGSNCompat";
         } catch {}
 
         Options memory opts;

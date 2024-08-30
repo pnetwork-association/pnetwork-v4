@@ -9,6 +9,19 @@ interface IPAM {
         bytes signature;
     }
 
+    event EmitterSet(bytes32 chainid, bytes32 emitter);
+    event EmitterUnset(bytes32 chainId);
+    event TeeSignerChanged(address newAddress);
+    event TeeSignerPendingChange(
+        address newAddress,
+        bytes attestation,
+        uint256 gracePeriod
+    );
+
+    error UnsetTeeSigner();
+    error GracePeriodNotElapsed();
+    error InvalidNewTeeSigner();
+
     function isAuthorized(
         IAdapter.Operation memory operation,
         Metadata calldata metadata

@@ -16,3 +16,6 @@
 [submodule "solidity/lib/openzeppelin-foundry-upgrades"]
 	path = solidity/lib/openzeppelin-foundry-upgrades
 	url = https://github.com/OpenZeppelin/openzeppelin-foundry-upgrades
+[submodule "solidity/lib/isolmate"]
+	path = solidity/lib/isolmate
+	url = https://github.com/defi-wonderland/isolmate

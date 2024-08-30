@@ -7,12 +7,12 @@ import {Vm} from "forge-std/Vm.sol";
 import {Helper} from "./Helper.sol";
 import {Test, stdMath} from "forge-std/Test.sol";
 
-import {PAM} from "../../src/PAM.sol";
-import {Adapter} from "../../src/Adapter.sol";
-import {XERC20} from "../../src/xerc20/XERC20.sol";
-import {FeesManager} from "../../src/FeesManager.sol";
-import {ERC20Test} from "../../src/test/ERC20Test.sol";
-import {XERC20Lockbox} from "../../src/xerc20/XERC20Lockbox.sol";
+import {PAM} from "../../src/contracts/PAM.sol";
+import {Adapter} from "../../src/contracts/Adapter.sol";
+import {XERC20} from "../../src/contracts/XERC20.sol";
+import {FeesManager} from "../../src/contracts/FeesManager.sol";
+import {ERC20Test} from "../../src/contracts/test/ERC20Test.sol";
+import {XERC20Lockbox} from "../../src/contracts/XERC20Lockbox.sol";
 
 import {IPAM} from "../../src/interfaces/IPAM.sol";
 import {IAdapter} from "../../src/interfaces/IAdapter.sol";
@@ -36,11 +36,6 @@ contract PAMTest is Test, Helper {
         "0x04eb70384c33c68e77480302499cd30af9adc2dde7b9214bed46c5c17cefd7b49a345e8527a41a4dbf1f7b124d9c0a4393509e7d315c2ee85552b6586a39fe2421";
     address otherAttestatorAddress = 0xaeDa15984062138a3ABAa7FF1771E8167d529bec;
 
-    address user;
-    address owner;
-    address evil;
-    address recipient;
-
     PAM pam;
     ERC20 erc20;
     Adapter adapter;
@@ -53,15 +48,14 @@ contract PAMTest is Test, Helper {
     bytes data = "";
 
     function setUp() public {
-        user = vm.addr(1);
-        owner = vm.addr(2);
-        evil = vm.addr(3);
-        recipient = vm.addr(4);
+        vm.prank(owner);
+        erc20 = ERC20(new ERC20Test(erc20Name, erc20Symbol, erc20Supply));
 
-        (adapter, erc20, , , , ) = _setupChain(
+        (, , adapter, , ) = _setupChain(
             originChainId,
             owner,
-            address(erc20)
+            address(erc20),
+            true
         );
 
         _transferToken(address(erc20), owner, user, 50000);
@@ -105,13 +99,13 @@ contract PAMTest is Test, Helper {
         pam = new PAM();
 
         vm.expectEmit(address(pam));
-        emit PAM.TeeSignerPendingChange(
+        emit IPAM.TeeSignerPendingChange(
             attestatorAddress,
             attestation,
             block.timestamp
         );
         vm.expectEmit(address(pam));
-        emit PAM.TeeSignerChanged(attestatorAddress);
+        emit IPAM.TeeSignerChanged(attestatorAddress);
 
         pam.setTeeSigner(vm.parseBytes(attestatorPublicKey), attestation);
 
@@ -122,7 +116,7 @@ contract PAMTest is Test, Helper {
         vm.roll(100);
 
         vm.expectEmit(address(pam));
-        emit PAM.TeeSignerPendingChange(
+        emit IPAM.TeeSignerPendingChange(
             otherAttestatorAddress,
             attestation,
             block.timestamp + gracePeriod
@@ -133,13 +127,13 @@ contract PAMTest is Test, Helper {
         assertEq(pam.teeAddress(), attestatorAddress);
         assertEq(pam.teeAddressNew(), otherAttestatorAddress);
 
-        vm.expectRevert(PAM.GracePeriodNotElapsed.selector);
+        vm.expectRevert(IPAM.GracePeriodNotElapsed.selector);
         pam.applyNewTeeSigner();
 
         skip(gracePeriod);
 
         vm.expectEmit(address(pam));
-        emit PAM.TeeSignerChanged(otherAttestatorAddress);
+        emit IPAM.TeeSignerChanged(otherAttestatorAddress);
         pam.applyNewTeeSigner();
 
         assertEq(pam.teeAddress(), otherAttestatorAddress);
@@ -173,7 +167,7 @@ contract PAMTest is Test, Helper {
         pam = new PAM();
 
         vm.expectEmit(address(pam));
-        emit PAM.EmitterSet(
+        emit IPAM.EmitterSet(
             bytes32(originChainId),
             bytes32(abi.encode(adapter))
         );
@@ -202,7 +196,7 @@ contract PAMTest is Test, Helper {
         pam = new PAM();
         pam.setEmitter(bytes32(originChainId), bytes32(abi.encode(adapter)));
 
-        vm.expectRevert(PAM.UnsetTeeSigner.selector);
+        vm.expectRevert(IPAM.UnsetTeeSigner.selector);
         pam.isAuthorized(operation, metadata);
     }
 

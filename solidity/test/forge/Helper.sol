@@ -6,26 +6,35 @@ import {Test} from "forge-std/Test.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
-import {PAM} from "../../src/PAM.sol";
-import {Adapter} from "../../src/Adapter.sol";
-import {XERC20} from "../../src/xerc20/XERC20.sol";
-import {FeesManager} from "../../src/FeesManager.sol";
+import {DeployHelper} from "./DeployHelper.sol";
+import {PAM} from "../../src/contracts/PAM.sol";
+import {Adapter} from "../../src/contracts/Adapter.sol";
+import {XERC20} from "../../src/contracts/XERC20.sol";
+import {FeesManager} from "../../src/contracts/FeesManager.sol";
 
 import {IPAM} from "../../src/interfaces/IPAM.sol";
-import {ERC20Test} from "../../src/test/ERC20Test.sol";
+import {ERC20Test} from "../../src/contracts/test/ERC20Test.sol";
 import {IAdapter} from "../../src/interfaces/IAdapter.sol";
-import {XERC20Lockbox} from "../../src/xerc20/XERC20Lockbox.sol";
+import {XERC20Lockbox} from "../../src/contracts/XERC20Lockbox.sol";
+import {XERC20Factory} from "../../src/contracts/XERC20Factory.sol";
 import {BytesLib} from "solidity-bytes-utils/contracts/BytesLib.sol";
 
 import "forge-std/console.sol";
 
-abstract contract Helper is Test {
+abstract contract Helper is Test, DeployHelper {
+    address user = vm.addr(1);
+    address owner = vm.addr(2);
+    address evil = vm.addr(3);
+    address recipient = vm.addr(4);
+
     bytes signerPublicKey =
         vm.parseBytes(
             "0x0480472f799469d9af8790307a022802785c2b1e2f9c0930bdf9bafe193245e7a37cf43c720edc0892a2a97050005207e412f2227b1d92a78b8ee366fe4fea5ac9"
         );
     bytes signerAttestation = vm.parseBytes("0x");
-    address factoryAddress = address(0);
+    address securityCouncil = vm.addr(201);
+    string erc20Name = "Token A";
+    string erc20Symbol = "TKNA";
     uint256 erc20Supply = 1000000;
     uint256 mintingLimit = 2000000;
     uint256 burningLimit = 2000000;
@@ -45,78 +54,53 @@ abstract contract Helper is Test {
     }
 
     function _sendXERC20To(
-        address owner,
+        address owner_,
         address xerc20,
         address to,
         uint256 amount
     ) internal {
-        vm.startPrank(owner);
-        XERC20(xerc20).setLimits(owner, mintingLimit, burningLimit);
+        vm.startPrank(owner_);
+        XERC20(xerc20).setLimits(owner_, mintingLimit, burningLimit);
         XERC20(xerc20).mint(to, amount);
         vm.stopPrank();
     }
 
-    function _getFeesManagerNodesAndStakedAmounts(
-        uint size
-    )
-        internal
-        pure
-        returns (address[] memory nodes, uint256[] memory stakedAmounts)
-    {
-        nodes = new address[](size);
-        stakedAmounts = new uint256[](size);
-
-        for (uint i = 0; i < size; i++) {
-            nodes[i] = vm.addr(100 + i);
-            stakedAmounts[i] = (i + 1) * 1 ether;
-        }
-    }
-
     function _setupChain(
         uint256 chain,
-        address owner,
-        address erc20Native
+        address owner_,
+        address erc20,
+        bool local
     )
         internal
         returns (
-            Adapter adapter,
-            ERC20 erc20,
             XERC20 xerc20,
             XERC20Lockbox lockbox,
+            Adapter adapter,
             FeesManager feesManager,
             PAM pam
         )
     {
         uint256 prevChain = block.chainid;
         vm.chainId(chain);
-        vm.startPrank(owner);
+        vm.startPrank(owner_);
 
-        xerc20 = new XERC20("pToken A", "pTKA", factoryAddress);
+        (xerc20, lockbox, ) = _setupXERC20(
+            address(0),
+            erc20,
+            string.concat("p", erc20Name),
+            string.concat("p", erc20Symbol),
+            local
+        );
 
-        if (erc20Native == address(0)) {
-            erc20 = ERC20(new ERC20Test("Token A", "TKA", erc20Supply));
-            lockbox = new XERC20Lockbox(
-                address(xerc20),
-                address(erc20),
-                notNative
-            );
-
-            (
-                address[] memory nodes,
-                uint256[] memory stakedAmounts
-            ) = _getFeesManagerNodesAndStakedAmounts(1);
-
-            feesManager = new FeesManager(0, nodes, stakedAmounts);
-            feesManager.setFee(address(xerc20), 0, 2000);
-            xerc20.setLockbox(address(lockbox));
-            xerc20.setFeesManager(address(feesManager));
-        } else {
-            erc20 = ERC20(erc20Native);
-        }
         pam = new PAM();
         pam.setTeeSigner(signerPublicKey, signerAttestation);
-        adapter = new Adapter(address(xerc20), address(erc20));
-        xerc20.setPAM(address(adapter), address(pam));
+        feesManager = new FeesManager(securityCouncil);
+        adapter = new Adapter(
+            address(xerc20),
+            address(erc20),
+            address(feesManager),
+            address(pam)
+        );
         xerc20.setLimits(address(adapter), mintingLimit, burningLimit);
 
         vm.stopPrank();

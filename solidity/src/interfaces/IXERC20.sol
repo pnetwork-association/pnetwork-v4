@@ -1,9 +1,7 @@
-// SPDX-License-Identifier: MIT
+// SPDX-License-Identifier: UNLICENSED
 pragma solidity >=0.8.4 <0.9.0;
 
-import {IPTokenV2} from "../interfaces/IPTokenV2.sol";
-
-interface IXERC20 is IPTokenV2 {
+interface IXERC20 {
     /**
      * @notice Emits when a lockbox is set
      *
@@ -43,7 +41,6 @@ interface IXERC20 is IPTokenV2 {
      * @param minterParams The minting parameters for the bridge
      * @param burnerParams The burning parameters for the bridge
      */
-    // solhint-disable-next-line
     struct Bridge {
         BridgeParameters minterParams;
         BridgeParameters burnerParams;
