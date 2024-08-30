@@ -56,7 +56,7 @@ fi
 shift 2
 
 dir_name=$(dirname $(realpath $BASH_SOURCE))
-contract_path="$dir_name/../src/scripts/$contract"
+contract_path="$dir_name/$contract"
 
 # Perform a dry-run execution
 # add --broadcast to parameters if you

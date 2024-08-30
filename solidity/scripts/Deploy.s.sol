@@ -5,12 +5,12 @@ import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 import "forge-std/Script.sol";
 import "forge-std/console.sol";
-import "../contracts/PAM.sol";
-import "../contracts/Adapter.sol";
-import "../contracts/FeesManager.sol";
-import "../contracts/XERC20.sol";
-import "../contracts/XERC20Lockbox.sol";
-import "./DeployHelper.sol";
+import "../src/contracts/PAM.sol";
+import "../src/contracts/Adapter.sol";
+import "../src/contracts/FeesManager.sol";
+import "../src/contracts/XERC20.sol";
+import "../src/contracts/XERC20Lockbox.sol";
+import "../test/forge/DeployHelper.sol";
 
 contract Deploy is Script, DeployHelper {
     uint256 immutable supply = 100000 ether;

@@ -14,7 +14,7 @@
     "build": "forge build",
     "test": "yarn test:forge && yarn test:hh-no-fork",
     "test:forge": "forge test",
-    "test:hh": "FORK=1 hardhat test",
+    "test:hh": "hardhat clean && FORK=1 hardhat test",
     "test:hh-no-fork": "hardhat test",
     "lint": "npx solhint src/**/*.sol",
     "prettier": "prettier --write ./src ./test",

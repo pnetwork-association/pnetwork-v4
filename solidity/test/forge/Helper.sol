@@ -6,11 +6,11 @@ import {Test} from "forge-std/Test.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
+import {DeployHelper} from "./DeployHelper.sol";
 import {PAM} from "../../src/contracts/PAM.sol";
 import {Adapter} from "../../src/contracts/Adapter.sol";
 import {XERC20} from "../../src/contracts/XERC20.sol";
 import {FeesManager} from "../../src/contracts/FeesManager.sol";
-import {DeployHelper} from "../../src/scripts/DeployHelper.sol";
 
 import {IPAM} from "../../src/interfaces/IPAM.sol";
 import {ERC20Test} from "../../src/contracts/test/ERC20Test.sol";
