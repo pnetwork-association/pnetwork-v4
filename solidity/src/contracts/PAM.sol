@@ -16,27 +16,6 @@ contract PAM is Ownable, IPAM {
     mapping(bytes32 => bytes32) public emitters;
     mapping(bytes32 => bytes32) public chainIdToTopicZero;
 
-    event EmitterSet(bytes32 chainid, bytes32 emitter);
-    event EmitterUnset(bytes32 chainId);
-    event TeeSignerChanged(address newAddress);
-    event TeeSignerPendingChange(
-        address newAddress,
-        bytes attestation,
-        uint256 gracePeriod
-    );
-
-    error UnsetTeeSigner();
-    error GracePeriodNotElapsed();
-    error InvalidNewTeeSigner();
-    error AlreadyProcessed(bytes32 eventId);
-    error InvalidEventContentLength(uint256 length);
-    error UnsupportedProtocolId(bytes1 protocolId);
-    error UnsupportedChainId(bytes32 chainId);
-    error UnexpectedEventTopic(bytes32 topic);
-    error InvalidSender();
-    error InvalidEventId(bytes32 actual, bytes32 expected);
-    error InvalidDestinationChainId(uint256 chainId);
-
     constructor() Ownable(msg.sender) {}
 
     function setTeeSigner(

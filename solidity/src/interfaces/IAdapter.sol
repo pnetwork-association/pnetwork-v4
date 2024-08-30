@@ -29,24 +29,13 @@ interface IAdapter {
     event Swap(uint256 indexed nonce, EventBytes eventBytes);
 
     error NotAContract(address addr);
-    error OnlyFeesManager();
     error NotAllowed();
     error InvalidSwap();
     error InvalidAmount();
-    error InvalidSender();
-    error RLPInputTooLong();
     error InvalidOperation();
-    error InvalidFeesManager();
     error Unauthorized(bytes32 eventId);
     error InvalidTokenAddress(address token);
-    error UnsupportedChainId(uint256 chainId);
-    error UnexpectedEventTopic(bytes32 topic);
     error AlreadyProcessed(bytes32 operationId);
-    error UnsupportedProtocolId(bytes1 protocolId);
-    error InvalidEventContentLength(uint256 length);
-    error InsufficientAmount(uint256 amount, uint256 fees);
-    error InvalidMessageId(uint256 actual, uint256 expected);
-    error InvalidDestinationChainId(uint256 destinationChainId);
 
     /**
      * Finalise the swap operation on the destination chain

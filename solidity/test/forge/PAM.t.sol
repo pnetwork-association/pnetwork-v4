@@ -99,13 +99,13 @@ contract PAMTest is Test, Helper {
         pam = new PAM();
 
         vm.expectEmit(address(pam));
-        emit PAM.TeeSignerPendingChange(
+        emit IPAM.TeeSignerPendingChange(
             attestatorAddress,
             attestation,
             block.timestamp
         );
         vm.expectEmit(address(pam));
-        emit PAM.TeeSignerChanged(attestatorAddress);
+        emit IPAM.TeeSignerChanged(attestatorAddress);
 
         pam.setTeeSigner(vm.parseBytes(attestatorPublicKey), attestation);
 
@@ -116,7 +116,7 @@ contract PAMTest is Test, Helper {
         vm.roll(100);
 
         vm.expectEmit(address(pam));
-        emit PAM.TeeSignerPendingChange(
+        emit IPAM.TeeSignerPendingChange(
             otherAttestatorAddress,
             attestation,
             block.timestamp + gracePeriod
@@ -127,13 +127,13 @@ contract PAMTest is Test, Helper {
         assertEq(pam.teeAddress(), attestatorAddress);
         assertEq(pam.teeAddressNew(), otherAttestatorAddress);
 
-        vm.expectRevert(PAM.GracePeriodNotElapsed.selector);
+        vm.expectRevert(IPAM.GracePeriodNotElapsed.selector);
         pam.applyNewTeeSigner();
 
         skip(gracePeriod);
 
         vm.expectEmit(address(pam));
-        emit PAM.TeeSignerChanged(otherAttestatorAddress);
+        emit IPAM.TeeSignerChanged(otherAttestatorAddress);
         pam.applyNewTeeSigner();
 
         assertEq(pam.teeAddress(), otherAttestatorAddress);
@@ -167,7 +167,7 @@ contract PAMTest is Test, Helper {
         pam = new PAM();
 
         vm.expectEmit(address(pam));
-        emit PAM.EmitterSet(
+        emit IPAM.EmitterSet(
             bytes32(originChainId),
             bytes32(abi.encode(adapter))
         );
@@ -196,7 +196,7 @@ contract PAMTest is Test, Helper {
         pam = new PAM();
         pam.setEmitter(bytes32(originChainId), bytes32(abi.encode(adapter)));
 
-        vm.expectRevert(PAM.UnsetTeeSigner.selector);
+        vm.expectRevert(IPAM.UnsetTeeSigner.selector);
         pam.isAuthorized(operation, metadata);
     }
 
