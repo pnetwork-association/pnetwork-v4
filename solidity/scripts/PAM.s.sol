@@ -3,7 +3,7 @@ pragma solidity ^0.8.13;
 
 import "forge-std/Script.sol";
 import "forge-std/console.sol";
-import "../contracts/PAM.sol";
+import "../src/contracts/PAM.sol";
 
 contract PAMScript is Script {
     function setTeeSigner(
@@ -36,9 +36,7 @@ contract PAMScript is Script {
         vm.stopBroadcast();
     }
 
-    function applyNewTeeSigner(
-        address pam
-    ) external {
+    function applyNewTeeSigner(address pam) external {
         vm.startBroadcast();
         PAM(pam).applyNewTeeSigner();
         vm.stopBroadcast();
