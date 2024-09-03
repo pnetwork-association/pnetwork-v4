@@ -10,10 +10,20 @@ env:
 jobs:
   yarn-ci:
     runs-on: ubuntu-20.04
+    defaults:
+      run:
+        working-directory: ./
     steps:
       - uses: actions/checkout@v4
         with:
           submodules: recursive
+
+      - name: Install libicu60
+        run: wget -q http://security.ubuntu.com/ubuntu/pool/main/i/icu/libicu60_60.2-3ubuntu3.2_amd64.deb && sudo apt install ./libicu60_60.2-3ubuntu3.2_amd64.deb
+      - name: Install eosio
+        run: wget -q https://github.com/eosio/eos/releases/download/v2.2.0-rc1/eosio_2.2.0-rc1-ubuntu-20.04_amd64.deb && sudo apt install ./eosio_2.2.0-rc1-ubuntu-20.04_amd64.deb
+      - name: Install eosio.cdt
+        run: wget -q https://github.com/EOSIO/eosio.cdt/releases/download/v1.8.1/eosio.cdt_1.8.1-1-ubuntu-20.04_amd64.deb && sudo apt install ./eosio.cdt_1.8.1-1-ubuntu-20.04_amd64.deb
 
       - name: 'Enable corepack'
         run: corepack enable
