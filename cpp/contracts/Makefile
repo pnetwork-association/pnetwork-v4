@@ -1,19 +1,13 @@
-CONTRACT=ptokens.token
+SRC = $(wildcard *.cpp)
+TARGETS = $(SRC:.cpp=.wasm)
 
-all: $(CONTRACT).wasm $(CONTRACT).abi
-
-check_defined = \
-    $(strip $(foreach 1,$1, \
-        $(call __check_defined,$1,$(strip $(value 2)))))
-__check_defined = \
-    $(if $(value $1),, \
-      $(error Undefined $1$(if $2, ($2))))
+all: $(TARGETS)
 
 %.wasm: %.cpp
 	eosio-cpp -o $@ $<
 
-%.abi: %.cpp
-	eosio-abigen --output=$@ $<
+%.abi: %.wasm
+	eosio-cpp --abigen $@ $<
 
 clean:
 	rm -f $(CONTRACT).abi $(CONTRACT).wasm
