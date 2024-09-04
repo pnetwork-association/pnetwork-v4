@@ -2,19 +2,20 @@
   "name": "@pnetwork/eos-xerc20",
   "version": "1.0.0",
   "packageManager": "yarn@4.3.1",
+  "license": "BSL",
   "files": [
     "/contracts"
   ],
   "scripts": {
     "build": "make all",
     "clean": "make clean",
-    "test": "mocha tests"
+    "test": "yarn build && mocha",
+    "nodeos": "nodeos --config-dir . -c config.ini --delete-all-blocks > /dev/null >> nodeos.log 2>&1 &"
   },
   "devDependencies": {
-    "@types/mocha": "^10",
-    "@types/ramda": "^0",
-    "eoslime": "^2.0.1",
-    "mocha": "^10.7.3",
-    "ramda": "^0.30.1"
+    "@eosnetwork/vert": "^1.0.0",
+    "@wharfkit/antelope": "^1.0.12",
+    "chai": "^4.3.10",
+    "mocha": "^10.2.0"
   }
 }

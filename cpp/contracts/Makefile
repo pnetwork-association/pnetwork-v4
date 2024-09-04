@@ -4,10 +4,10 @@ TARGETS = $(SRC:.cpp=.wasm)
 all: $(TARGETS)
 
 %.wasm: %.cpp
-	eosio-cpp -o $@ $<
+	cdt-cpp -o $@ $<
 
 %.abi: %.wasm
-	eosio-cpp --abigen $@ $<
+	cdt-cpp --abigen $@ $<
 
 clean:
-	rm -f $(CONTRACT).abi $(CONTRACT).wasm
+	rm -f *.abi *.wasm

@@ -1,17 +1,8 @@
-# XERC20 EOS contracts
+## XERC20 standard EOS implementation
 
-## Requisites:
+### Requirements
 
-- [EOSIO CDT v1.8.1](https://github.com/EOSIO/eosio.cdt/releases/tag/v1.8.1)
+- [Eosio CDT 4.1.0](https://github.com/AntelopeIO/cdt/releases/download/v4.1.0/cdt_4.1.0-1_amd64.deb)
+- Make (`apt install -y build-essential`)
 
-## Local testing
-
-The first time, replay all the steps performed by the `test.sh`
-script located at the workspace root. Then run
-
-```
-yarn test
-```
-
-The following times you would be enough to just run nodeos in the background
-as done in the `test.sh` script.
+### Setup

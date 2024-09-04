@@ -1,6 +1,6 @@
 all: contracts
 
-.PHONY: test contracts
+.PHONY: test clean contracts
 
 contracts:
 	make -C contracts
