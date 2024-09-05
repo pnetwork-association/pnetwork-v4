@@ -2,10 +2,10 @@
 pragma solidity ^0.8.13;
 
 import "forge-std/Script.sol";
-import "../contracts/Adapter.sol";
-import "../contracts/XERC20.sol";
-import "../contracts/XERC20Lockbox.sol";
-import "../contracts/test/ERC20Test.sol";
+import "../src/contracts/Adapter.sol";
+import "../src/contracts/XERC20.sol";
+import "../src/contracts/XERC20Lockbox.sol";
+import "../src/contracts/test/ERC20Test.sol";
 
 import "forge-std/console.sol";
 
