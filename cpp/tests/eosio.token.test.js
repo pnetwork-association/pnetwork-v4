@@ -26,10 +26,11 @@ describe('xerc20.token', () => {
   const evil = 'evil'
   const issuer = 'issuer'
   const recipient = 'recipient'
+  const bridge = 'bridge'
 
   let xerc20
   before(async () => {
-    blockchain.createAccounts(issuer, account, evil, recipient)
+    blockchain.createAccounts(issuer, account, bridge, evil, recipient)
     xerc20 = deploy(blockchain, account, 'contracts/eosio.token')
   })
 
@@ -104,5 +105,18 @@ describe('xerc20.token', () => {
     expect(row).to.be.deep.equal({
       balance: `0 ${symbol}`,
     })
+  })
+
+  it('Should set the limits correctly', async () => {
+    const mintingLimit = `1000 ${symbol}`
+    const burningLimit = `1000 ${symbol}`
+
+    try {
+      await xerc20.actions
+        .setlimits([bridge, mintingLimit, burningLimit])
+        .send()
+    } finally {
+      console.log(xerc20.bc.console)
+    }
   })
 })

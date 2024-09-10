@@ -2,6 +2,7 @@
 
 #include <eosio/asset.hpp>
 #include <eosio/eosio.hpp>
+#include <eosio/system.hpp>
 
 #include <string>
 
@@ -101,32 +102,15 @@ namespace eosio {
          [[eosio::action]]
          void close( const name& owner, const symbol& symbol );
 
-         /**
-          * Issue new tokens and transfer them to the specified recipient.
-          *
-          * @param sender - the sender account to execute the mint action for,
-          * @param to - the account to issue tokens to, it must be the same as the issuer,
-          * @param quantity - the amount of tokens to be issued to the specified account
-          * @param memo - the memo string that accompanies the token issue transaction.
-          *
-          * @pre The pair of owner plus symbol has to exist otherwise no action is executed,
-          * @pre If the pair of owner plus symbol exists, the balance has to be zero.
-          */
          [[eosio::action]]
          void mint( const name& sender, const name& to, const asset& quantity, const string& memo );
 
-         /**
-          * Burns tokens from the specified sender account.
-          *
-          * @param sender - the sender account to execute the burn action for,
-          * @param quantity - the quantity of the token that will be burnt.
-          * @param memo - the memo string that accompanies the token issue transaction.
-          *
-          * @pre The pair of sender plus symbol has to exist otherwise no action is executed,
-          * @pre If the pair of sender plus symbol exists, the balance has to be zero.
-          */
          [[eosio::action]]
          void burn( const name& sender, const asset& quantity, const string& memo );
+
+         [[eosio::action]]
+         void setlimits( const name& bridge, const asset& minting_limit, const asset& burning_limit );
+
 
          static asset get_supply( const name& token_contract_account, const symbol_code& sym_code )
          {
@@ -148,7 +132,10 @@ namespace eosio {
          using transfer_action = eosio::action_wrapper<"transfer"_n, &token::transfer>;
          using open_action = eosio::action_wrapper<"open"_n, &token::open>;
          using close_action = eosio::action_wrapper<"close"_n, &token::close>;
+         // TODO: add actions wrappers
       private:
+         uint64_t const DURATION = 85400; // 1 days in seconds
+
          struct [[eosio::table]] account {
             asset    balance;
 
@@ -163,9 +150,35 @@ namespace eosio {
             uint64_t primary_key()const { return supply.symbol.code().raw(); }
          };
 
+         struct [[eosio::table]] bridge {
+            name            account;
+            block_timestamp minting_timestamp;
+            uint64_t        minting_rate;
+            asset           minting_current_limit;
+            asset           minting_max_limit;
+            block_timestamp burning_timestamp;
+            uint64_t        burning_rate;
+            asset           burning_current_limit;
+            asset           burning_max_limit;
+
+            // NOTE: we assume all the minting burning limits
+            // symbols match here
+            uint64_t primary_key()const { return account.value; }
+            uint64_t secondary_key()const { return minting_current_limit.symbol.code().raw(); }
+         };
+
          typedef eosio::multi_index< "accounts"_n, account > accounts;
          typedef eosio::multi_index< "stat"_n, currency_stats > stats;
+         typedef eosio::multi_index< "bridges"_n, bridge,
+            indexed_by< "bysymbol"_n, const_mem_fun<bridge, uint64_t, &bridge::secondary_key>
+         > > bridges;
 
+         template <typename itrT> asset minting_current_limit_of(const itrT& bridge);
+         template <typename itrT> asset burning_current_limit_of(const itrT& bridge);
+         template <typename idxT, typename itrT> void change_minter_limit(bridges& bridgestable, const idxT& index, const itrT& iterator, const asset& limit);
+         template <typename idxT, typename itrT> void change_burner_limit(bridges& bridgestable, const idxT& index, const itrT& iterator, const asset& limit);
+         asset calculate_new_current_limit(const asset& limit, const asset& old_limit, const asset& current_limit);
+         asset get_current_limit(const asset& current_limit, const asset& max_limit, const block_timestamp timestamp, const uint64_t rate_per_second);
          void sub_balance( const name& owner, const asset& value );
          void add_balance( const name& owner, const asset& value, const name& ram_payer );
    };
