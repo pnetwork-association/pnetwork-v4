@@ -150,16 +150,16 @@ namespace eosio {
             uint64_t primary_key()const { return supply.symbol.code().raw(); }
          };
 
-         struct [[eosio::table]] bridge {
-            name            account;
-            block_timestamp minting_timestamp;
-            uint64_t        minting_rate;
-            asset           minting_current_limit;
-            asset           minting_max_limit;
-            block_timestamp burning_timestamp;
-            uint64_t        burning_rate;
-            asset           burning_current_limit;
-            asset           burning_max_limit;
+         struct [[eosio::table]] bridge_model {
+            name        account;
+            uint64_t    minting_timestamp;
+            uint64_t    minting_rate;
+            asset       minting_current_limit;
+            asset       minting_max_limit;
+            uint64_t    burning_timestamp;
+            uint64_t    burning_rate;
+            asset       burning_current_limit;
+            asset       burning_max_limit;
 
             // NOTE: we assume all the minting burning limits
             // symbols match here
@@ -169,16 +169,17 @@ namespace eosio {
 
          typedef eosio::multi_index< "accounts"_n, account > accounts;
          typedef eosio::multi_index< "stat"_n, currency_stats > stats;
-         typedef eosio::multi_index< "bridges"_n, bridge,
-            indexed_by< "bysymbol"_n, const_mem_fun<bridge, uint64_t, &bridge::secondary_key>
+         typedef eosio::multi_index< "bridges"_n, bridge_model,
+            indexed_by< "bysymbol"_n, const_mem_fun<bridge_model, uint64_t, &bridge_model::secondary_key>
          > > bridges;
 
-         template <typename itrT> asset minting_current_limit_of(const itrT& bridge);
-         template <typename itrT> asset burning_current_limit_of(const itrT& bridge);
-         template <typename idxT, typename itrT> void change_minter_limit(bridges& bridgestable, const idxT& index, const itrT& iterator, const asset& limit);
-         template <typename idxT, typename itrT> void change_burner_limit(bridges& bridgestable, const idxT& index, const itrT& iterator, const asset& limit);
+         asset minting_current_limit_of(bridge_model& bridge);
+         asset burning_current_limit_of(bridge_model& bridge);
+         void change_minter_limit(bridge_model& bridge, const asset& limit);
+         void change_burner_limit(bridge_model& bridge, const asset& limit);
+         bridge_model get_empty_bridge_model(const name& account, const symbol& symbol);
          asset calculate_new_current_limit(const asset& limit, const asset& old_limit, const asset& current_limit);
-         asset get_current_limit(const asset& current_limit, const asset& max_limit, const block_timestamp timestamp, const uint64_t rate_per_second);
+         asset get_current_limit(const asset& current_limit, const asset& max_limit, const uint64_t timestamp, const uint64_t rate_per_second);
          void sub_balance( const name& owner, const asset& value );
          void add_balance( const name& owner, const asset& value, const name& ram_payer );
    };

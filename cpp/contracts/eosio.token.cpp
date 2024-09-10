@@ -186,7 +186,7 @@ void token::burn( const name& sender, const asset& quantity, const string& memo 
    sub_balance( sender, quantity );
 }
 
-void token::setlimits( const name& bridge, const asset& minting_limit, const asset& burning_limit ) {
+void token::setlimits( const name& account, const asset& minting_limit, const asset& burning_limit ) {
    require_auth( get_self() );
    check( minting_limit.symbol == burning_limit.symbol, "minting and burning limits symbol does not match" );
    uint64_t symbol_code = minting_limit.symbol.code().raw();
@@ -195,16 +195,51 @@ void token::setlimits( const name& bridge, const asset& minting_limit, const ass
    check( existing_symbol != statstable.end(), "token with symbol does not exist" );
    check( minting_limit.is_valid(), "invalid minting limit" );
    check( burning_limit.is_valid(), "invalid burning limit" );
+   check( minting_limit.amount >= 0, "only non-negative limits allowed" );
+   check( burning_limit.amount >= 0, "only non-negative limits allowed" );
 
-   // TODO(minging limit < max_supply)
-   // TODO(burning limit < max_supply)
+   const auto& st = *existing_symbol;
+   check( minting_limit.symbol == st.supply.symbol, "symbol precision mismatch");
 
-   bridges bridgestable( get_self(), get_self().value ); // contract scope
+   bridges bridgestable( get_self(), get_self().value );
    auto idx = bridgestable.get_index<name("bysymbol")>();
    auto itr = idx.lower_bound(symbol_code);
-   while ( itr != idx.end() && itr->account != bridge ) { itr++; }
+   while ( itr != idx.end() && itr->account != account ) { itr++; }
 
-   change_minter_limit<decltype(idx), decltype(itr)>(bridgestable, idx, itr, minting_limit);
+   bridge_model bridge = itr != idx.end() ? *itr : get_empty_bridge_model(account, minting_limit.symbol);
+   change_minter_limit(bridge, minting_limit);
+   change_burner_limit(bridge, burning_limit);
+
+   print("time\n");
+   print(uint64_t(block_timestamp(0).to_time_point().sec_since_epoch()));
+
+   if (itr == idx.end()) {
+      // Insert a new bridge limits
+      bridgestable.emplace(get_self(), [&](auto& row) {
+         row = bridge;
+      });
+   } else {
+      // Modify the existing bridge limits
+      bridgestable.modify(*itr, same_payer, [&](auto& row) {
+         row = bridge;
+      });
+   }
+}
+
+token::bridge_model token::get_empty_bridge_model(const name& account, const symbol& symbol) {
+   asset zeroedAsset = asset(0, symbol);
+   bridge_model b = {
+      .account = account,
+      .minting_timestamp = 0,
+      .minting_rate = 0,
+      .minting_current_limit = zeroedAsset,
+      .minting_max_limit = zeroedAsset,
+      .burning_timestamp = 0,
+      .burning_rate = 0,
+      .burning_current_limit = zeroedAsset,
+      .burning_max_limit = zeroedAsset
+   };
+   return b;
 }
 
 asset token::calculate_new_current_limit(const asset& limit, const asset& old_limit, const asset& current_limit) {
@@ -221,22 +256,19 @@ asset token::calculate_new_current_limit(const asset& limit, const asset& old_li
    return asset(new_current_limit, limit.symbol);
 }
 
-asset token::get_current_limit(const asset& current_limit, const asset& max_limit, const block_timestamp timestamp, const uint64_t rate_per_second) {
+asset token::get_current_limit(const asset& current_limit, const asset& max_limit, const uint64_t timestamp, const uint64_t rate_per_second) {
    asset limit = current_limit;
 
-   uint64_t block_ts = current_block_time()
-      .to_time_point()
-      .sec_since_epoch();
-   uint64_t ts = timestamp
+   uint64_t block_timestamp = current_block_time()
       .to_time_point()
       .sec_since_epoch();
 
    if (limit == max_limit) {
       limit = max_limit;
-   } else if (ts + DURATION <= block_ts) {
+   } else if (timestamp + DURATION <= block_timestamp) {
       limit = max_limit;
-   } else if (ts + DURATION > block_ts) {
-      uint64_t time_passed = block_ts - ts;
+   } else if (timestamp + DURATION > block_timestamp) {
+      uint64_t time_passed = block_timestamp - timestamp;
       asset calculated_limit = limit + asset(time_passed * rate_per_second, limit.symbol);
       limit = calculated_limit > max_limit ? max_limit : calculated_limit;
    }
@@ -244,74 +276,40 @@ asset token::get_current_limit(const asset& current_limit, const asset& max_limi
    return limit;
 }
 
-template <typename itrT>
-asset token::minting_current_limit_of(const itrT& bridge) {
+asset token::minting_current_limit_of(bridge_model& bridge) {
    return get_current_limit(
-      bridge->minting_current_limit,
-      bridge->minting_max_limit,
-      bridge->minting_timestamp,
-      bridge->minting_rate
+      bridge.minting_current_limit,
+      bridge.minting_max_limit,
+      bridge.minting_timestamp,
+      bridge.minting_rate
    );
 }
 
-template <typename itrT>
-asset token::burning_current_limit_of(const itrT& bridge) {
+asset token::burning_current_limit_of(bridge_model& bridge) {
    return get_current_limit(
-      bridge->burning_current_limit,
-      bridge->burning_max_limit,
-      bridge->burning_timestamp,
-      bridge->burning_rate
+      bridge.burning_current_limit,
+      bridge.burning_max_limit,
+      bridge.burning_timestamp,
+      bridge.burning_rate
    );
 }
 
-template <typename idxT, typename itrT>
-void token::change_minter_limit(bridges& bridgestable, const idxT& index, const itrT& bridge, const asset& limit) {
-   if (bridge == index.end()) {
-      // New bridge's limits to set
-      asset old_limit = asset(0, limit.symbol);
-      asset current_limit = limit;
-      bridgestable.emplace( get_self(), [&]( auto& r ) {
-         r.minting_max_limit = limit;
-         r.minting_current_limit = calculate_new_current_limit(limit, old_limit, current_limit);
-         r.minting_rate = limit.amount / DURATION;
-         r.minting_timestamp = current_block_time();
-      });
-   } else {
-      // Bridge's limits set already
-      asset old_limit = bridge->minting_max_limit;
-      asset current_limit = minting_current_limit_of<decltype(bridge)>(bridge);
-      bridgestable.modify( *bridge, same_payer, [&]( auto& r ) {
-         r.minting_max_limit = limit;
-         r.minting_current_limit = calculate_new_current_limit(limit, old_limit, current_limit);
-         r.minting_rate = limit.amount / DURATION;
-         r.minting_timestamp = current_block_time();
-      });
-   }
+void token::change_minter_limit(token::bridge_model& bridge, const asset& limit) {
+   asset old_limit = bridge.minting_max_limit;
+   asset current_limit = minting_current_limit_of(bridge);
+   bridge.minting_max_limit = limit;
+   bridge.minting_current_limit = calculate_new_current_limit(limit, old_limit, current_limit);
+   bridge.minting_rate = limit.amount / DURATION;
+   bridge.minting_timestamp = current_block_time().to_time_point().sec_since_epoch());
 }
 
-template <typename idxT, typename itrT>
-void token::change_burner_limit(bridges& bridgestable, const idxT& index, const itrT& bridge, const asset& limit) {
-   if (bridge == index.end()) {
-      // New bridge's limits to set
-      asset old_limit = asset(0, limit.symbol);
-      asset current_limit = limit;
-      bridgestable.emplace( get_self(), [&]( auto& r ) {
-         r.burning_max_limit = limit;
-         r.burning_current_limit = calculate_new_current_limit(limit, old_limit, current_limit);
-         r.burning_rate = limit.amount / DURATION;
-         r.burning_timestamp = current_block_time();
-      });
-   } else {
-      // Bridge's limits set already
-      asset old_limit = bridge->burning_max_limit;
-      asset current_limit = burning_current_limit_of<decltype(bridge)>(bridge);
-      bridgestable.modify( *bridge, same_payer, [&]( auto& r ) {
-         r.burning_max_limit = limit;
-         r.burning_current_limit = calculate_new_current_limit(limit, old_limit, current_limit);
-         r.burning_rate = limit.amount / DURATION;
-         r.burning_timestamp = current_block_time();
-      });
-   }
+void token::change_burner_limit(token::bridge_model& bridge, const asset& limit) {
+   asset old_limit = bridge.burning_max_limit;
+   asset current_limit = burning_current_limit_of(bridge);
+   bridge.burning_max_limit = limit;
+   bridge.burning_current_limit = calculate_new_current_limit(limit, old_limit, current_limit);
+   bridge.burning_rate = limit.amount / DURATION;
+   bridge.burning_timestamp = current_block_time().to_time_point().sec_since_epoch();
 }
 } /// namespace eosio
 

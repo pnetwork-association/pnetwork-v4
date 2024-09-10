@@ -1,7 +1,7 @@
 const { Blockchain, expectToThrow } = require('@eosnetwork/vert')
 const { deploy } = require('./utils/deploy')
 const { expect } = require('chai')
-const { Asset, Name } = require('@wharfkit/antelope')
+const { Asset, Name, TimePoint } = require('@wharfkit/antelope')
 
 const ERR_SYMBOL_ALREADY_EXISTS =
   'eosio_assert: token with symbol already exists'
@@ -109,14 +109,17 @@ describe('xerc20.token', () => {
 
   it('Should set the limits correctly', async () => {
     const mintingLimit = `1000 ${symbol}`
-    const burningLimit = `1000 ${symbol}`
+    const burningLimit = `600 ${symbol}`
 
-    try {
-      await xerc20.actions
-        .setlimits([bridge, mintingLimit, burningLimit])
-        .send()
-    } finally {
-      console.log(xerc20.bc.console)
-    }
+    blockchain.setTime(TimePoint.from(0))
+    await xerc20.actions.setlimits([bridge, mintingLimit, burningLimit]).send()
+
+    const scope = getAccountCodeRaw(account)
+    const primaryKey = getAccountCodeRaw(bridge)
+    const rows = xerc20.tables.bridges(scope).getTableRows(primaryKey)
+
+    console.log(xerc20.bc.console)
+
+    console.log('rows', rows)
   })
 })
