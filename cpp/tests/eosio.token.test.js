@@ -1,7 +1,7 @@
 const { Blockchain, expectToThrow } = require('@eosnetwork/vert')
 const { deploy } = require('./utils/deploy')
 const { expect } = require('chai')
-const { Asset, Name, TimePoint } = require('@wharfkit/antelope')
+const { Asset, Name, TimePointSec } = require('@wharfkit/antelope')
 
 const ERR_SYMBOL_ALREADY_EXISTS =
   'eosio_assert: token with symbol already exists'
@@ -110,16 +110,27 @@ describe('xerc20.token', () => {
   it('Should set the limits correctly', async () => {
     const mintingLimit = `1000 ${symbol}`
     const burningLimit = `600 ${symbol}`
+    const timestamp = TimePointSec.fromMilliseconds(Date.now())
 
-    blockchain.setTime(TimePoint.from(0))
+    blockchain.setTime(timestamp)
     await xerc20.actions.setlimits([bridge, mintingLimit, burningLimit]).send()
 
     const scope = getAccountCodeRaw(account)
     const primaryKey = getAccountCodeRaw(bridge)
     const rows = xerc20.tables.bridges(scope).getTableRows(primaryKey)
 
-    console.log(xerc20.bc.console)
-
-    console.log('rows', rows)
+    const expectedTimestamp = timestamp.toMilliseconds() / 1000
+    expect(rows).to.have.length(1)
+    expect(rows[0]).to.be.deep.equal({
+      account: bridge,
+      minting_timestamp: expectedTimestamp,
+      minting_rate: 0,
+      minting_current_limit: mintingLimit,
+      minting_max_limit: mintingLimit,
+      burning_timestamp: expectedTimestamp,
+      burning_rate: 0,
+      burning_current_limit: burningLimit,
+      burning_max_limit: burningLimit,
+    })
   })
 })

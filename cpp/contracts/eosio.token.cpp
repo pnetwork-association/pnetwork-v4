@@ -210,9 +210,6 @@ void token::setlimits( const name& account, const asset& minting_limit, const as
    change_minter_limit(bridge, minting_limit);
    change_burner_limit(bridge, burning_limit);
 
-   print("time\n");
-   print(uint64_t(block_timestamp(0).to_time_point().sec_since_epoch()));
-
    if (itr == idx.end()) {
       // Insert a new bridge limits
       bridgestable.emplace(get_self(), [&](auto& row) {
@@ -300,7 +297,7 @@ void token::change_minter_limit(token::bridge_model& bridge, const asset& limit)
    bridge.minting_max_limit = limit;
    bridge.minting_current_limit = calculate_new_current_limit(limit, old_limit, current_limit);
    bridge.minting_rate = limit.amount / DURATION;
-   bridge.minting_timestamp = current_block_time().to_time_point().sec_since_epoch());
+   bridge.minting_timestamp = current_block_time().to_time_point().sec_since_epoch();
 }
 
 void token::change_burner_limit(token::bridge_model& bridge, const asset& limit) {
