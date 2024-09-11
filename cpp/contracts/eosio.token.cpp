@@ -186,6 +186,12 @@ void token::burn( const name& sender, const asset& quantity, const string& memo 
    sub_balance( sender, quantity );
 }
 
+void token::setlockbox(const name& account) {
+   require_auth(get_self());
+   lockbox_singleton lockbox(get_self(), get_self().value);
+   lockbox.set(account, get_self());
+}
+
 void token::setlimits( const name& account, const asset& minting_limit, const asset& burning_limit ) {
    require_auth( get_self() );
    check( minting_limit.symbol == burning_limit.symbol, "minting and burning limits symbol does not match" );

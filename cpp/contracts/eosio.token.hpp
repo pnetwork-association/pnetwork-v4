@@ -3,6 +3,7 @@
 #include <eosio/asset.hpp>
 #include <eosio/eosio.hpp>
 #include <eosio/system.hpp>
+#include <eosio/singleton.hpp>
 
 #include <string>
 
@@ -111,6 +112,8 @@ namespace eosio {
          [[eosio::action]]
          void setlimits( const name& bridge, const asset& minting_limit, const asset& burning_limit );
 
+         [[eosio::action]]
+         void setlockbox( const name& account );
 
          static asset get_supply( const name& token_contract_account, const symbol_code& sym_code )
          {
@@ -167,11 +170,14 @@ namespace eosio {
             uint64_t secondary_key()const { return minting_current_limit.symbol.code().raw(); }
          };
 
+
          typedef eosio::multi_index< "accounts"_n, account > accounts;
          typedef eosio::multi_index< "stat"_n, currency_stats > stats;
          typedef eosio::multi_index< "bridges"_n, bridge_model,
             indexed_by< "bysymbol"_n, const_mem_fun<bridge_model, uint64_t, &bridge_model::secondary_key>
          > > bridges;
+
+         using lockbox_singleton = singleton<"lockbox"_n, name>;
 
          asset minting_current_limit_of(bridge_model& bridge);
          asset burning_current_limit_of(bridge_model& bridge);

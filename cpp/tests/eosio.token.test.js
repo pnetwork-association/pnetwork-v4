@@ -133,4 +133,17 @@ describe('xerc20.token', () => {
       burning_max_limit: burningLimit,
     })
   })
+
+  it('Should set the lockbox successfully', async () => {
+    const lockbox = 'lockbox.enf'
+    const lockboxTable = 'lockbox'
+    blockchain.createAccount(lockbox)
+    await xerc20.actions.setlockbox([lockbox]).send()
+
+    const property = xerc20.tables
+      .lockbox()
+      .getTableRow(getAccountCodeRaw(lockboxTable))
+
+    expect(property).to.be.equal(lockbox)
+  })
 })
