@@ -129,6 +129,30 @@ namespace eosio {
             return ac.balance;
          }
 
+         static asset minting_max_limit_of( const name& token_contract_account, const name& bridge, const symbol& sym)
+         {
+            bridges bridgestable( token_contract_account, token_contract_account.value );
+            auto idx = bridgestable.get_index<name("bysymbol")>();
+            auto itr = idx.lower_bound(sym.code().raw());
+            while ( itr != idx.end() && itr->account != bridge ) { itr++; }
+
+            check(itr != idx.end(), "entry not found");
+
+            return itr->minting_max_limit;
+         }
+
+         static asset burning_max_limit_of( const name& token_contract_account, const name& bridge, const symbol& sym)
+         {
+            bridges bridgestable( token_contract_account, token_contract_account.value );
+            auto idx = bridgestable.get_index<name("bysymbol")>();
+            auto itr = idx.lower_bound(sym.code().raw());
+            while ( itr != idx.end() && itr->account != bridge ) { itr++; }
+
+            check(itr != idx.end(), "entry not found");
+
+            return itr->burning_max_limit;
+         }
+
          using create_action = eosio::action_wrapper<"create"_n, &token::create>;
          using issue_action = eosio::action_wrapper<"issue"_n, &token::issue>;
          using retire_action = eosio::action_wrapper<"retire"_n, &token::retire>;
