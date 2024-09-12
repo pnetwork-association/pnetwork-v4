@@ -42,25 +42,12 @@ namespace eosio {
          [[eosio::action]]
          void create( const name&   issuer,
                       const asset&  maximum_supply);
-         /**
-          *  This action issues to `to` account a `quantity` of tokens.
-          *
-          * @param to - the account to issue tokens to, it must be the same as the issuer,
-          * @param quantity - the amount of tokens to be issued,
-          * @param - the memo string that accompanies the token issue transaction.
-          */
-         [[eosio::action]]
-         void issue( const name& to, const asset& quantity, const string& memo );
 
-         /**
-          * The opposite for create action, if all validations succeed,
-          * it debits the statstable.supply amount.
-          *
-          * @param quantity - the quantity of tokens to retire,
-          * @param memo - the memo string to accompany the transaction.
-          */
          [[eosio::action]]
-         void retire( const asset& quantity, const string& memo );
+         void mint( const name& caller, const name& to, const asset& quantity, const string& memo );
+
+         [[eosio::action]]
+         void burn( const name& caller, const asset& quantity, const string& memo );
 
          /**
           * Allows `from` account to transfer to `to` account the `quantity` tokens.
@@ -102,12 +89,6 @@ namespace eosio {
           */
          [[eosio::action]]
          void close( const name& owner, const symbol& symbol );
-
-         [[eosio::action]]
-         void mint( const name& sender, const name& to, const asset& quantity, const string& memo );
-
-         [[eosio::action]]
-         void burn( const name& sender, const asset& quantity, const string& memo );
 
          [[eosio::action]]
          void setlimits( const name& bridge, const asset& minting_limit, const asset& burning_limit );
@@ -154,8 +135,8 @@ namespace eosio {
          }
 
          using create_action = eosio::action_wrapper<"create"_n, &token::create>;
-         using issue_action = eosio::action_wrapper<"issue"_n, &token::issue>;
-         using retire_action = eosio::action_wrapper<"retire"_n, &token::retire>;
+         using issue_action = eosio::action_wrapper<"mint"_n, &token::mint>;
+         using retire_action = eosio::action_wrapper<"burn"_n, &token::burn>;
          using transfer_action = eosio::action_wrapper<"transfer"_n, &token::transfer>;
          using open_action = eosio::action_wrapper<"open"_n, &token::open>;
          using close_action = eosio::action_wrapper<"close"_n, &token::close>;
@@ -205,6 +186,7 @@ namespace eosio {
 
          asset minting_current_limit_of(bridge_model& bridge);
          asset burning_current_limit_of(bridge_model& bridge);
+         void use_minter_limits(token::bridge_model& bridge, const asset& change);
          void change_minter_limit(bridge_model& bridge, const asset& limit);
          void change_burner_limit(bridge_model& bridge, const asset& limit);
          bridge_model get_empty_bridge_model(const name& account, const symbol& symbol);

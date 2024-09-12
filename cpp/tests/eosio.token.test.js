@@ -1,15 +1,16 @@
+const { expect } = require('chai')
 const { Blockchain, expectToThrow } = require('@eosnetwork/vert')
 const { deploy } = require('./utils/deploy')
-const { expect } = require('chai')
 const { Asset, Name, TimePointSec } = require('@wharfkit/antelope')
+const { substract } = require('./utils/wharfkit-ext')
 
 const ERR_SYMBOL_ALREADY_EXISTS =
   'eosio_assert: token with symbol already exists'
 
 const ERR_AUTH_MISSING = _account => `missing required authority ${_account}`
 
-const ERR_ISSUER_ONLY =
-  'eosio_assert: tokens can only be issued to issuer account'
+const ERR_LOCKBOX_OR_BRIDGE_ONLY =
+  'eosio_assert: recipient must be the lockbox or a supported bridge'
 
 const active = _account => `${_account}@active`
 
@@ -53,58 +54,17 @@ describe('xerc20.token', () => {
     await expectToThrow(action, ERR_SYMBOL_ALREADY_EXISTS)
   })
 
-  it('Should revert when the issuer is not legit', async () => {
-    const memo = ''
-    const quantity = `10 ${symbol}`
-    const action = xerc20.actions
-      .issue([recipient, quantity, memo])
-      .send(active(evil))
-    await expectToThrow(action, ERR_ISSUER_ONLY)
-  })
+  it('Should set the lockbox successfully', async () => {
+    const lockbox = 'lockbox.enf'
+    const lockboxTable = 'lockbox'
+    blockchain.createAccount(lockbox)
+    await xerc20.actions.setlockbox([lockbox]).send()
 
-  it('Should mint the tokens to a specific recipient', async () => {
-    const memo = ''
-    const quantity = `10 ${symbol}`
+    const property = xerc20.tables
+      .lockbox()
+      .getTableRow(getAccountCodeRaw(lockboxTable))
 
-    await xerc20.actions
-      .mint([issuer, recipient, quantity, memo])
-      .send(active(issuer))
-
-    const scope = getAccountCodeRaw(recipient)
-    const primaryKey = getSymbolCodeRaw(maxSupply)
-    const row = xerc20.tables.accounts(scope).getTableRow(primaryKey)
-
-    expect(row).to.be.deep.equal({
-      balance: quantity,
-    })
-  })
-
-  it('Should revert when burning without the owner account', async () => {
-    const memo = ''
-    const quantity = `10 ${symbol}`
-
-    const action = xerc20.actions
-      .burn([recipient, quantity, memo])
-      .send(active(evil))
-
-    await expectToThrow(action, ERR_AUTH_MISSING(recipient))
-  })
-
-  it('Should burn the previously minted quantity successfully', async () => {
-    const memo = ''
-    const quantity = `10 ${symbol}`
-
-    await xerc20.actions
-      .burn([recipient, quantity, memo])
-      .send(active(recipient))
-
-    const scope = getAccountCodeRaw(recipient)
-    const primaryKey = getSymbolCodeRaw(maxSupply)
-    const row = xerc20.tables.accounts(scope).getTableRow(primaryKey)
-
-    expect(row).to.be.deep.equal({
-      balance: `0 ${symbol}`,
-    })
+    expect(property).to.be.equal(lockbox)
   })
 
   it('Should set the limits correctly', async () => {
@@ -134,16 +94,77 @@ describe('xerc20.token', () => {
     })
   })
 
-  it('Should set the lockbox successfully', async () => {
-    const lockbox = 'lockbox.enf'
-    const lockboxTable = 'lockbox'
-    blockchain.createAccount(lockbox)
-    await xerc20.actions.setlockbox([lockbox]).send()
+  it('Should revert when the account minting tokens is not among the allowed bridges', async () => {
+    const memo = ''
+    const quantity = `10 ${symbol}`
+    const action = xerc20.actions
+      .mint([evil, recipient, quantity, memo])
+      .send(active(evil))
+    await expectToThrow(action, ERR_LOCKBOX_OR_BRIDGE_ONLY)
+  })
 
-    const property = xerc20.tables
-      .lockbox()
-      .getTableRow(getAccountCodeRaw(lockboxTable))
+  it('Should mint the tokens to a specific recipient', async () => {
+    const memo = ''
+    const quantity = `10 ${symbol}`
+    const timestamp = TimePointSec.fromMilliseconds(1726133966067)
 
-    expect(property).to.be.equal(lockbox)
+    blockchain.setTime(timestamp)
+
+    const bridgeLimitsBefore = xerc20.tables
+      .bridges(getAccountCodeRaw(account))
+      .getTableRows(getAccountCodeRaw(bridge))
+
+    await xerc20.actions
+      .mint([bridge, recipient, quantity, memo])
+      .send(active(issuer))
+
+    const balance = xerc20.tables
+      .accounts(getAccountCodeRaw(recipient))
+      .getTableRow(getSymbolCodeRaw(maxSupply))
+
+    const bridgeLimits = xerc20.tables
+      .bridges(getAccountCodeRaw(account))
+      .getTableRows(getAccountCodeRaw(bridge))
+    const expectedTimestamp = timestamp.toMilliseconds() / 1000
+
+    const difference = substract(
+      bridgeLimitsBefore[0].minting_current_limit,
+      quantity,
+    )
+
+    expect(balance).to.be.deep.equal({ balance: quantity })
+    expect(bridgeLimits).to.have.length(1)
+    expect(bridgeLimits[0].minting_current_limit).to.be.equal(
+      String(difference),
+    )
+    expect(bridgeLimits[0].minting_timestamp).to.be.equal(expectedTimestamp)
+  })
+
+  it('Should revert when burning without the owner account', async () => {
+    const memo = ''
+    const quantity = `10 ${symbol}`
+
+    const action = xerc20.actions
+      .burn([recipient, quantity, memo])
+      .send(active(evil))
+
+    await expectToThrow(action, ERR_AUTH_MISSING(recipient))
+  })
+
+  it('Should burn the previously minted quantity successfully', async () => {
+    const memo = ''
+    const quantity = `10 ${symbol}`
+
+    await xerc20.actions
+      .burn([recipient, quantity, memo])
+      .send(active(recipient))
+
+    const scope = getAccountCodeRaw(recipient)
+    const primaryKey = getSymbolCodeRaw(maxSupply)
+    const row = xerc20.tables.accounts(scope).getTableRow(primaryKey)
+
+    expect(row).to.be.deep.equal({
+      balance: `0 ${symbol}`,
+    })
   })
 })

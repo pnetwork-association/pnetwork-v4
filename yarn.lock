@@ -2060,9 +2060,11 @@ __metadata:
   resolution: "@pnetwork/eos-xerc20@workspace:cpp"
   dependencies:
     "@eosnetwork/vert": "npm:^1.0.0"
+    "@types/ramda": "npm:^0"
     "@wharfkit/antelope": "npm:^1.0.12"
     chai: "npm:^4.3.10"
     mocha: "npm:^10.2.0"
+    ramda: "npm:^0.30.1"
   languageName: unknown
   linkType: soft
 
@@ -2650,6 +2652,15 @@ __metadata:
   version: 2.7.3
   resolution: "@types/prettier@npm:2.7.3"
   checksum: 10c0/0960b5c1115bb25e979009d0b44c42cf3d792accf24085e4bfce15aef5794ea042e04e70c2139a2c3387f781f18c89b5706f000ddb089e9a4a2ccb7536a2c5f0
+  languageName: node
+  linkType: hard
+
+"@types/ramda@npm:^0":
+  version: 0.30.2
+  resolution: "@types/ramda@npm:0.30.2"
+  dependencies:
+    types-ramda: "npm:^0.30.1"
+  checksum: 10c0/dda95008860f594eb7b4fd9819adeb2dcd4d4e2baca6cb33f692f6f8ea76d04a7fd81f9a057c5c67555612769e5592cb15f91de6c9f8b619b8b1d806d19dc9ea
   languageName: node
   linkType: hard
 
@@ -8998,6 +9009,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"ts-toolbelt@npm:^9.6.0":
+  version: 9.6.0
+  resolution: "ts-toolbelt@npm:9.6.0"
+  checksum: 10c0/838f9a2f0fe881d5065257a23b402c41315b33ff987b73db3e2b39fcb70640c4c7220e1ef118ed5676763543724fdbf4eda7b0e2c17acb667ed1401336af9f8c
+  languageName: node
+  linkType: hard
+
 "tslib@npm:2.4.0":
   version: 2.4.0
   resolution: "tslib@npm:2.4.0"
@@ -9119,6 +9137,15 @@ __metadata:
   bin:
     typechain: dist/cli/cli.js
   checksum: 10c0/1ea660cc7c699c6ac68da67b76454eb4e9395c54666d924ca67f983ae8eb5b5e7dab0a576beb55dbfad75ea784a3f68cb1ca019d332293b7291731c156ead5b5
+  languageName: node
+  linkType: hard
+
+"types-ramda@npm:^0.30.1":
+  version: 0.30.1
+  resolution: "types-ramda@npm:0.30.1"
+  dependencies:
+    ts-toolbelt: "npm:^9.6.0"
+  checksum: 10c0/4a8b230ae9772e6534f65b1a154dd5604bcd1d74e27b49686337a215e83aa8fc93e49f8c49af395418d2950cb9fb9b900662077c1d4b73ff6fe4f4bcb83ab2d6
   languageName: node
   linkType: hard
 
