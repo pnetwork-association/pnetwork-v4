@@ -142,7 +142,7 @@ namespace eosio {
          using close_action = eosio::action_wrapper<"close"_n, &token::close>;
          // TODO: add actions wrappers
       private:
-         uint64_t const DURATION = 85400; // 1 days in seconds
+         uint64_t const DURATION = 86400; // 1 days in seconds
 
          struct [[eosio::table]] account {
             asset    balance;
@@ -161,11 +161,11 @@ namespace eosio {
          struct [[eosio::table]] bridge_model {
             name        account;
             uint64_t    minting_timestamp;
-            uint64_t    minting_rate;
+            float      minting_rate;
             asset       minting_current_limit;
             asset       minting_max_limit;
             uint64_t    burning_timestamp;
-            uint64_t    burning_rate;
+            float      burning_rate;
             asset       burning_current_limit;
             asset       burning_max_limit;
 

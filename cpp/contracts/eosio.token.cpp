@@ -286,7 +286,7 @@ void token::change_minter_limit(token::bridge_model& bridge, const asset& limit)
    asset current_limit = minting_current_limit_of(bridge);
    bridge.minting_max_limit = limit;
    bridge.minting_current_limit = calculate_new_current_limit(limit, old_limit, current_limit);
-   bridge.minting_rate = limit.amount / DURATION;
+   bridge.minting_rate = float(limit.amount) / DURATION;
    bridge.minting_timestamp = current_block_time().to_time_point().sec_since_epoch();
 }
 
@@ -295,7 +295,7 @@ void token::change_burner_limit(token::bridge_model& bridge, const asset& limit)
    asset current_limit = burning_current_limit_of(bridge);
    bridge.burning_max_limit = limit;
    bridge.burning_current_limit = calculate_new_current_limit(limit, old_limit, current_limit);
-   bridge.burning_rate = limit.amount / DURATION;
+   bridge.burning_rate = float(limit.amount) / DURATION;
    bridge.burning_timestamp = current_block_time().to_time_point().sec_since_epoch();
 }
 

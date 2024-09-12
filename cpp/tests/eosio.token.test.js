@@ -18,11 +18,15 @@ const getSymbolCodeRaw = _asset => Asset.from(_asset).symbol.code.value.value
 
 const getAccountCodeRaw = _account => Name.from(_account).value.value
 
+const round = (_value, _decimals) =>
+  Math.round(_value * 10 ** _decimals) / 10 ** _decimals
+
 describe('xerc20.token', () => {
   const symbol = 'TKN'
   const account = `${symbol.toLowerCase()}.token`
   const maxSupply = `500000000 ${symbol}`
   const blockchain = new Blockchain()
+  const DURATION = 24 * 60 * 60 // 1 day
 
   const evil = 'evil'
   const issuer = 'issuer'
@@ -80,15 +84,24 @@ describe('xerc20.token', () => {
     const rows = xerc20.tables.bridges(scope).getTableRows(primaryKey)
 
     const expectedTimestamp = timestamp.toMilliseconds() / 1000
+    const expectedMintingRate = round(
+      Asset.from(mintingLimit).value / DURATION,
+      7,
+    ).toString()
+    const expectedBurningRate = round(
+      Asset.from(burningLimit).value / DURATION,
+      7,
+    ).toString()
+
     expect(rows).to.have.length(1)
     expect(rows[0]).to.be.deep.equal({
       account: bridge,
       minting_timestamp: expectedTimestamp,
-      minting_rate: 0,
+      minting_rate: expectedMintingRate,
       minting_current_limit: mintingLimit,
       minting_max_limit: mintingLimit,
       burning_timestamp: expectedTimestamp,
-      burning_rate: 0,
+      burning_rate: expectedBurningRate,
       burning_current_limit: burningLimit,
       burning_max_limit: burningLimit,
     })
