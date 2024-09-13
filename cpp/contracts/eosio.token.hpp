@@ -135,8 +135,8 @@ namespace eosio {
          }
 
          using create_action = eosio::action_wrapper<"create"_n, &token::create>;
-         using issue_action = eosio::action_wrapper<"mint"_n, &token::mint>;
-         using retire_action = eosio::action_wrapper<"burn"_n, &token::burn>;
+         using mint_action = eosio::action_wrapper<"mint"_n, &token::mint>;
+         using burn_action = eosio::action_wrapper<"burn"_n, &token::burn>;
          using transfer_action = eosio::action_wrapper<"transfer"_n, &token::transfer>;
          using open_action = eosio::action_wrapper<"open"_n, &token::open>;
          using close_action = eosio::action_wrapper<"close"_n, &token::close>;
@@ -161,11 +161,11 @@ namespace eosio {
          struct [[eosio::table]] bridge_model {
             name        account;
             uint64_t    minting_timestamp;
-            float      minting_rate;
+            float       minting_rate;
             asset       minting_current_limit;
             asset       minting_max_limit;
             uint64_t    burning_timestamp;
-            float      burning_rate;
+            float       burning_rate;
             asset       burning_current_limit;
             asset       burning_max_limit;
 
