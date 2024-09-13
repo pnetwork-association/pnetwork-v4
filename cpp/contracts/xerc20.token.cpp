@@ -1,4 +1,4 @@
-#include "eosio.token.hpp"
+#include "xerc20.token.hpp"
 
 namespace eosio {
 

@@ -36,7 +36,7 @@ describe('xerc20.token', () => {
   let xerc20
   before(async () => {
     blockchain.createAccounts(issuer, account, bridge, evil, recipient)
-    xerc20 = deploy(blockchain, account, 'contracts/eosio.token')
+    xerc20 = deploy(blockchain, account, 'contracts/xerc20.token')
   })
 
   it('Should create a token successfully', async () => {
