@@ -1,22 +1,18 @@
 const { expect } = require('chai')
 const { Blockchain, expectToThrow } = require('@eosnetwork/vert')
 const { deploy } = require('./utils/deploy')
-const { Asset, Name, TimePointSec } = require('@wharfkit/antelope')
+const { Asset, TimePointSec } = require('@wharfkit/antelope')
 const { substract } = require('./utils/wharfkit-ext')
+const {
+  active,
+  getSymbolCodeRaw,
+  getAccountCodeRaw,
+} = require('./utils/eos-ext')
 
 const ERR_SYMBOL_ALREADY_EXISTS =
   'eosio_assert: token with symbol already exists'
 
 const ERR_AUTH_MISSING = _account => `missing required authority ${_account}`
-
-const ERR_LOCKBOX_OR_BRIDGE_ONLY =
-  'eosio_assert: recipient must be the lockbox or a supported bridge'
-
-const active = _account => `${_account}@active`
-
-const getSymbolCodeRaw = _asset => Asset.from(_asset).symbol.code.value.value
-
-const getAccountCodeRaw = _account => Name.from(_account).value.value
 
 const round = (_value, _decimals) =>
   Math.round(_value * 10 ** _decimals) / 10 ** _decimals
