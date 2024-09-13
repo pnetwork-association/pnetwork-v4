@@ -8,11 +8,7 @@ const {
   getSymbolCodeRaw,
   getAccountCodeRaw,
 } = require('./utils/eos-ext')
-
-const ERR_SYMBOL_ALREADY_EXISTS =
-  'eosio_assert: token with symbol already exists'
-
-const ERR_AUTH_MISSING = _account => `missing required authority ${_account}`
+const errors = require('./utils/errors')
 
 const round = (_value, _decimals) =>
   Math.round(_value * 10 ** _decimals) / 10 ** _decimals
@@ -51,7 +47,7 @@ describe('xerc20.token', () => {
 
   it('Should revert when creating a token with the same symbol', async () => {
     const action = xerc20.actions.create([account, maxSupply]).send()
-    await expectToThrow(action, ERR_SYMBOL_ALREADY_EXISTS)
+    await expectToThrow(action, errors.SYMBOL_ALREADY_EXISTS)
   })
 
   it('Should set the lockbox successfully', async () => {
@@ -109,7 +105,7 @@ describe('xerc20.token', () => {
     let action = xerc20.actions
       .mint([bridge, recipient, quantity, memo])
       .send(active(evil))
-    await expectToThrow(action, ERR_AUTH_MISSING(bridge))
+    await expectToThrow(action, errors.AUTH_MISSING(bridge))
   })
 
   it('Should mint the tokens to a specific recipient', async () => {
@@ -157,7 +153,7 @@ describe('xerc20.token', () => {
       .burn([bridge, quantity, memo])
       .send(active(evil))
 
-    await expectToThrow(action, ERR_AUTH_MISSING(bridge))
+    await expectToThrow(action, errors.AUTH_MISSING(bridge))
   })
 
   it('Should burn the previously minted quantity successfully', async () => {
