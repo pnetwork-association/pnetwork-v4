@@ -6,16 +6,34 @@
         "source.removeUnusedImports": "explicit"
     },
     "files.associations": {
+        ".env": "shellscript",
         "XERC20.sol": "noformatonsave",
         "XERC20Lockbox.sol": "noformatonsave",
         "XERC20Factory.sol": "noformatonsave",
         "XERC20-PTokenCompat.sol": "noformatonsave",
         "XERC20-PTokenNoGSNCompat.sol": "noformatonsave",
+        "array": "cpp",
+        "memory": "cpp",
+        "ranges": "cpp",
+        "functional": "cpp",
+        "tuple": "cpp",
+        "utility": "cpp",
+        "variant": "cpp",
+        "optional": "cpp",
+        "ostream": "cpp",
+        "ratio": "cpp",
+        "system_error": "cpp",
+        "type_traits": "cpp",
+        "typeinfo": "cpp"
     },
     "[noformatonsave]": {
         "editor.tabSize": 2,
         "editor.formatOnSave": false,
         "editor.defaultFormatter": null
+    },
+    "[cpp]": {
+        "editor.tabSize": 3,
+        "editor.formatOnSave": false,
     },
     "[json]": {
         "editor.defaultFormatter": "esbenp.prettier-vscode"
@@ -36,10 +54,16 @@
     "files.watcherExclude": {
         "**/.git/**": true,
         "./solidity/lib": true,
-        "**/node_modules/*/**": true
+        "**/node_modules/*/**": true,
     },
     "files.exclude": {
         "**/node_modules": true,
+        "**/*.abi": {
+            "when": "$(basename).cpp"
+        },
+        "**/*.wasm": {
+            "when": "$(basename).cpp"
+        },
         "**/*.js": {
             "when": "$(basename).ts"
         },

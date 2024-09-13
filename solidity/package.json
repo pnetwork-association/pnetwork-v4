@@ -1,5 +1,5 @@
 {
-  "name": "@pnetwork/contracts",
+  "name": "@pnetwork/evm-xerc20",
   "version": "1.0.0",
   "type": "module",
   "description": "pNetwork v4 contracts",

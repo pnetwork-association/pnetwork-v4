@@ -9,11 +9,17 @@ env:
 
 jobs:
   yarn-ci:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
+    defaults:
+      run:
+        working-directory: ./
     steps:
       - uses: actions/checkout@v4
         with:
           submodules: recursive
+
+      - name: Install eosio.cdt
+        run: wget -q https://github.com/AntelopeIO/cdt/releases/download/v4.1.0/cdt_4.1.0-1_amd64.deb && sudo apt install ./cdt_4.1.0-1_amd64.deb
 
       - name: 'Enable corepack'
         run: corepack enable
