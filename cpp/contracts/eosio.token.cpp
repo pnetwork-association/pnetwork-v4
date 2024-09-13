@@ -25,7 +25,7 @@ void token::create( const name&   issuer,
 
 void token::mint( const name& caller, const name& to, const asset& quantity, const string& memo )
 {
-   auto sym = quantity.symbol;
+    auto sym = quantity.symbol;
     check( sym.is_valid(), "invalid symbol name" );
     check( memo.size() <= 256, "memo has more than 256 bytes" );
 
@@ -52,6 +52,7 @@ void token::mint( const name& caller, const name& to, const asset& quantity, con
       bridgestable.modify(*itr, same_payer, [&](auto& r) { r = bridge; });
     }
 
+    require_auth( caller );
     check( quantity.is_valid(), "invalid quantity" );
     check( quantity.amount > 0, "must issue positive quantity" );
     check( quantity.symbol == st.supply.symbol, "symbol precision mismatch" );
@@ -75,9 +76,27 @@ void token::burn( const name& caller, const asset& quantity, const string& memo 
    check( existing != statstable.end(), "token with symbol does not exist" );
    const auto& st = *existing;
 
+   lockbox_singleton _lockbox( get_self(), get_self().value );
+   auto lockbox = _lockbox.get();
+   bridges bridgestable( get_self(), get_self().value );
+   auto idx = bridgestable.get_index<name("bysymbol")>();
+   auto itr = idx.lower_bound( quantity.symbol.code().raw() );
+   while ( itr != idx.end() && itr->account != caller ) { itr++; }
+
+   check( itr != idx.end() && caller != lockbox, "recipient must be the lockbox or a supported bridge" );
+
+   if (caller != lockbox) {
+      auto bridge = *itr;
+      auto current_limit = burning_current_limit_of(bridge);
+      check(quantity <= current_limit, "xerc20_assert: not hight enough limits");
+      use_burner_limits(bridge, quantity);
+
+      bridgestable.modify(*itr, same_payer, [&](auto& r) { r = bridge; });
+   }
+
    require_auth( caller );
    check( quantity.is_valid(), "invalid quantity" );
-   check( quantity.amount > 0, "must retire positive quantity" );
+   check( quantity.amount > 0, "must burn positive quantity" );
 
    check( quantity.symbol == st.supply.symbol, "symbol precision mismatch" );
 
@@ -305,24 +324,10 @@ void token::use_minter_limits(token::bridge_model& bridge, const asset& change) 
    bridge.minting_current_limit = current_limit - change;
 }
 
-// void token::mint_with_caller(const name& caller, const name& user, const asset& amount) {
-//    bridges bridgestable( get_self(), get_self().value );
-//    auto idx = bridgestable.get_index<name("bysymbol")>();
-//    auto itr = idx.lower_bound(amount.symbol.code().raw());
-//    while ( itr != idx.end() && itr->account != caller ) { itr++; }
-
-//    check(itr != idx.end() && caller != lockbox, "caller is not a supported bridge");
-
-//    bridge_model bridge = *itr;
-//    lockbox_singleton _lockbox(get_self(), get_self().value);
-//    auto lockbox = _lockbox.get();
-
-//    if (caller != lockbox) {
-//       auto current_limit = minting_current_limit_of(bridge);
-//       check(amount <= current_limit, "xerc20_assert: not hight enough limits");
-//       use_minter_limits(caller, amount);
-//    }
-// }
-// void burn_with_caller(const name& caller, const name& user, const asset& amount);
+void token::use_burner_limits(token::bridge_model& bridge, const asset& change) {
+   asset current_limit = burning_current_limit_of(bridge);
+   bridge.burning_timestamp = current_block_time().to_time_point().sec_since_epoch();
+   bridge.burning_current_limit = current_limit - change;
+}
 } /// namespace eosio
 

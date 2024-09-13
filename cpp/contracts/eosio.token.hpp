@@ -187,6 +187,7 @@ namespace eosio {
          asset minting_current_limit_of(bridge_model& bridge);
          asset burning_current_limit_of(bridge_model& bridge);
          void use_minter_limits(token::bridge_model& bridge, const asset& change);
+         void use_burner_limits(token::bridge_model& bridge, const asset& change);
          void change_minter_limit(bridge_model& bridge, const asset& limit);
          void change_burner_limit(bridge_model& bridge, const asset& limit);
          bridge_model get_empty_bridge_model(const name& account, const symbol& symbol);

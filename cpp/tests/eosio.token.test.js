@@ -110,10 +110,10 @@ describe('xerc20.token', () => {
   it('Should revert when the account minting tokens is not among the allowed bridges', async () => {
     const memo = ''
     const quantity = `10 ${symbol}`
-    const action = xerc20.actions
-      .mint([evil, recipient, quantity, memo])
+    let action = xerc20.actions
+      .mint([bridge, recipient, quantity, memo])
       .send(active(evil))
-    await expectToThrow(action, ERR_LOCKBOX_OR_BRIDGE_ONLY)
+    await expectToThrow(action, ERR_AUTH_MISSING(bridge))
   })
 
   it('Should mint the tokens to a specific recipient', async () => {
@@ -129,7 +129,7 @@ describe('xerc20.token', () => {
 
     await xerc20.actions
       .mint([bridge, recipient, quantity, memo])
-      .send(active(issuer))
+      .send(active(bridge))
 
     const balance = xerc20.tables
       .accounts(getAccountCodeRaw(recipient))
@@ -153,31 +153,47 @@ describe('xerc20.token', () => {
     expect(bridgeLimits[0].minting_timestamp).to.be.equal(expectedTimestamp)
   })
 
-  it('Should revert when burning without the owner account', async () => {
+  it('Should revert when the account burning the tokens is not a bridge', async () => {
     const memo = ''
     const quantity = `10 ${symbol}`
 
     const action = xerc20.actions
-      .burn([recipient, quantity, memo])
+      .burn([bridge, quantity, memo])
       .send(active(evil))
 
-    await expectToThrow(action, ERR_AUTH_MISSING(recipient))
+    await expectToThrow(action, ERR_AUTH_MISSING(bridge))
   })
 
   it('Should burn the previously minted quantity successfully', async () => {
     const memo = ''
     const quantity = `10 ${symbol}`
 
+    const bridgeLimitsBefore = xerc20.tables
+      .bridges(getAccountCodeRaw(account))
+      .getTableRows(getAccountCodeRaw(bridge))
+
     await xerc20.actions
-      .burn([recipient, quantity, memo])
+      .transfer([recipient, bridge, quantity, memo])
       .send(active(recipient))
+    await xerc20.actions.burn([bridge, quantity, memo]).send(active(bridge))
+
+    const bridgeLimits = xerc20.tables
+      .bridges(getAccountCodeRaw(account))
+      .getTableRows(getAccountCodeRaw(bridge))
 
     const scope = getAccountCodeRaw(recipient)
     const primaryKey = getSymbolCodeRaw(maxSupply)
     const row = xerc20.tables.accounts(scope).getTableRow(primaryKey)
+    const difference = substract(
+      bridgeLimitsBefore[0].burning_current_limit,
+      quantity,
+    )
 
     expect(row).to.be.deep.equal({
       balance: `0 ${symbol}`,
     })
+    expect(bridgeLimits[0].burning_current_limit).to.be.equal(
+      String(difference),
+    )
   })
 })
