@@ -35,7 +35,7 @@ void lockbox::init(
 }
 
 [[eosio::on_notify("*::transfer")]]
-void lockbox::deposit(
+void lockbox::ontransfer(
    const name& from,
    const name& to,
    const asset& quantity,
@@ -43,27 +43,50 @@ void lockbox::deposit(
 ) {
    if (from == get_self()) return;
 
-   require_auth(from);
-   check(to != get_self(), "invalid receiver");
+   check(to == get_self(), "recipient must be the contract");
    check(quantity.amount > 0, "invalid amount");
 
    name token = get_first_receiver();
-
+   print("\ntoken\n");
+   print(token.to_string());
    registry _registry(get_self(), get_self().value);
-   auto itr = _registry.find(token.value);
+   auto search_token = _registry.find(token.value);
+   print("\nsearch_token\n");
+   print(search_token->token.to_string());
+   auto idx = _registry.get_index<name("byxtoken")>();
+   auto search_xerc20 = idx.lower_bound(token.value);
 
-   check(itr != _registry.end(), "token not registered");
+   check(
+      search_token != _registry.end() ||
+      search_xerc20 != idx.end(),
+      "token not registered"
+   );
 
-   auto xerc20_quantity = asset(quantity.amount, itr->xerc20_symbol);
-   action(
-      permission_level{ get_self(), "active"_n },
-      "eosio.token"_n,
-      "mint"_n,
-      std::make_tuple(get_self(), from, xerc20_quantity, memo)
-   ).send();
+   if (search_token != _registry.end()) {
+      auto xerc20_quantity = asset(quantity.amount, search_token->xerc20_symbol);
+      action(
+         permission_level{ get_self(), "active"_n },
+         search_token->xerc20,
+         "mint"_n,
+         std::make_tuple(get_self(), from, xerc20_quantity, memo)
+      ).send();
+   } else if (search_xerc20 != idx.end()) {
+      action(
+         permission_level{ get_self(), "active"_n },
+         token,
+         "burn"_n,
+         std::make_tuple(get_self(), from, quantity, memo)
+      ).send();
+
+      auto token_quantity = asset(quantity.amount, search_xerc20->token_symbol);
+
+      action(
+         permission_level{ get_self(), "active"_n },
+         search_xerc20->token,
+         "transfer"_n,
+         std::make_tuple(get_self(), from, token_quantity, memo)
+      ).send();
+   }
+
 }
-
-   // void lockbox::depositto(const name& user, const asset& amount);
-   // void lockbox::withdraw(const asset& amount);
-   // void lockbox::withdrawto(const name& user, const asset& amount);
 }

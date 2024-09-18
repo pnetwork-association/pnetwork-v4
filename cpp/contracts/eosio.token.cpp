@@ -156,4 +156,8 @@ void token::close( const name& owner, const symbol& symbol )
    acnts.erase( it );
 }
 
+void token::ciao(const name& sender) {
+   eos:print("ciao");
+}
+
 } /// namespace eosio

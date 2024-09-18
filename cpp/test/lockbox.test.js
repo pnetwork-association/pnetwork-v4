@@ -1,22 +1,28 @@
 const { expect } = require('chai')
 const { Blockchain, expectToThrow } = require('@eosnetwork/vert')
 const { deploy } = require('./utils/deploy')
-const { active, getAccountCodeRaw } = require('./utils/eos-ext')
+const {
+  active,
+  precision,
+  getAccountCodeRaw,
+  getSymbolCodeRaw,
+} = require('./utils/eos-ext')
 const errors = require('./utils/errors')
-const { getSymbolCodeRaw } = require('./utils/eos-ext')
+const { substract } = require('./utils/wharfkit-ext')
+const { getTokenBalance } = require('./utils/get-token-balance')
 
 describe('Lockbox testing', () => {
   const symbol = 'TKN'
-  const precision = 4
-  const maxSupply = 500000000
+  const precision4 = precision(4)
+  const maxSupply = '500000000.0000'
   const token = {
-    symbol: `${precision},${symbol}`,
+    symbol: symbol,
     account: `${symbol.toLowerCase()}.token`,
     maxSupply: `${maxSupply} ${symbol}`,
     contract: undefined,
   }
   const xerc20 = {
-    symbol: `${precision},X${symbol}`,
+    symbol: `X${symbol}`,
     account: `x${symbol.toLowerCase()}.token`,
     maxSupply: `${maxSupply} X${symbol}`,
     contract: undefined,
@@ -49,7 +55,12 @@ describe('Lockbox testing', () => {
   describe('lockbox::init', () => {
     it('Should fail if account initializing is not the lockbox.account', async () => {
       const action = lockbox.contract.actions
-        .init([xerc20.account, xerc20.symbol, token.account, token.symbol])
+        .init([
+          xerc20.account,
+          precision4(xerc20.symbol),
+          token.account,
+          precision4(token.symbol),
+        ])
         .send(active(evil))
 
       await expectToThrow(action, errors.AUTH_MISSING(lockbox.account))
@@ -57,7 +68,12 @@ describe('Lockbox testing', () => {
 
     it('Should fail when unable to find the symbol in the xerc20 stats table', async () => {
       const action = lockbox.contract.actions
-        .init([xerc20.account, xerc20.symbol, token.account, token.symbol])
+        .init([
+          xerc20.account,
+          precision4(xerc20.symbol),
+          token.account,
+          precision4(token.symbol),
+        ])
         .send(active(lockbox.account))
 
       await expectToThrow(action, errors.SYMBOL_NOT_FOUND)
@@ -67,7 +83,12 @@ describe('Lockbox testing', () => {
       await xerc20.contract.actions.create([issuer, xerc20.maxSupply]).send()
 
       const action = lockbox.contract.actions
-        .init([xerc20.account, xerc20.symbol, token.account, token.symbol])
+        .init([
+          xerc20.account,
+          precision4(xerc20.symbol),
+          token.account,
+          precision4(token.symbol),
+        ])
         .send(active(lockbox.account))
 
       await expectToThrow(action, errors.SYMBOL_NOT_FOUND)
@@ -77,7 +98,12 @@ describe('Lockbox testing', () => {
       await token.contract.actions.create([issuer, token.maxSupply]).send()
 
       await lockbox.contract.actions
-        .init([xerc20.account, xerc20.symbol, token.account, token.symbol])
+        .init([
+          xerc20.account,
+          precision4(xerc20.symbol),
+          token.account,
+          precision4(token.symbol),
+        ])
         .send(active(lockbox.account))
 
       const after = lockbox.contract.tables
@@ -86,36 +112,95 @@ describe('Lockbox testing', () => {
 
       expect(after).to.be.deep.equal({
         token: token.account,
-        token_symbol: token.symbol,
+        token_symbol: precision4(token.symbol),
         xerc20: xerc20.account,
-        xerc20_symbol: xerc20.symbol,
+        xerc20_symbol: precision4(xerc20.symbol),
       })
     })
   })
 
-  // describe('lockbox::deposit', () => {
-  //   before(async () => {
-  //     token = {
-  //       contract: deploy(blockchain, token.account, 'contracts/eosio.token'),
-  //       account: token.account,
-  //   })
+  describe('lockbox::deposit', () => {
+    const userInitialBalance = `1000.0000 ${symbol}`
+    before(async () => {
+      const memo = ''
+      await token.contract.actions
+        .issue([issuer, userInitialBalance, memo])
+        .send(active(issuer))
+      await token.contract.actions
+        .transfer([issuer, user, userInitialBalance, memo])
+        .send(active(issuer))
 
-  //   it('Should deposit the expected quantity to the sender', async () => {
-  //     const memo = ''
-  //     const quantity = `1000 ${symbol}`
-  //     await token.contract.actions.create([issuer, maxSupply]).send()
-  //     await xerc20.contract.actions.create([issuer, maxSupplyXERC20]).send()
-  //     await token.contract.actions
-  //       .issue([issuer, quantity, memo])
-  //       .send(active(issuer))
-  //     await token.contract.actions
-  //       .tranfer([issuer, user, quantity, memo])
-  //       .send(active(issuer))
+      await xerc20.contract.actions
+        .setlockbox(lockbox)
+        .send(active(xerc20.account))
+    })
 
-  //     console.log('balance', getTokenBalance(token.contract, user, symbol))
-  //     await lockbox.contract.actions
-  //       .deposit([user, token.account, quantity])
-  //       .send(active(user))
-  //   })
-  // })
+    it('Should deposit the expected quantity', async () => {
+      const memo = ''
+      const amount = '10.0000'
+      const quantity = `${amount} ${token.symbol}`
+
+      try {
+        await token.contract.actions
+          .transfer([user, lockbox.account, quantity, memo])
+          .send(active(user))
+      } finally {
+        console.log(lockbox.contract.bc.console)
+      }
+
+      const tokenBalance = token.contract.tables
+        .accounts(getAccountCodeRaw(user))
+        .getTableRow(getSymbolCodeRaw(token.maxSupply)).balance
+
+      expect(tokenBalance).to.be.equal(
+        String(substract(userInitialBalance, quantity)),
+      )
+
+      const lockboxBalance = token.contract.tables
+        .accounts(getAccountCodeRaw(lockbox.account))
+        .getTableRow(getSymbolCodeRaw(token.maxSupply)).balance
+
+      expect(lockboxBalance).to.be.equal(quantity)
+
+      const userBalance = xerc20.contract.tables
+        .accounts(getAccountCodeRaw(user))
+        .getTableRow(getSymbolCodeRaw(xerc20.maxSupply)).balance
+
+      const expectedBalance = `${amount} ${xerc20.symbol}`
+      expect(userBalance).to.be.equal(expectedBalance)
+    })
+
+    // it('Should withdraw the expected quantity', async () => {
+    //   const memo = ''
+    //   const amount = '5.0000'
+    //   const quantity = `${amount} ${xerc20.symbol}`
+
+    //   const before = {
+    //     lockbox: {
+    //       balanceXERC20: getTokenBalance(
+    //         xerc20.contract,
+    //         lockbox.account,
+    //         xerc20.symbol,
+    //       ),
+    //       balanceToken: getTokenBalance(
+    //         token.contract,
+    //         lockbox.account,
+    //         token.symbol,
+    //       ),
+    //     },
+    //     user: {
+    //       balanceXERC20: getTokenBalance(xerc20.contract, user, xerc20.symbol),
+    //       balanceToken: getTokenBalance(token.contract, user, token.symbol),
+    //     },
+    //   }
+
+    //   try {
+    //     await xerc20.contract.actions
+    //       .transfer([user, lockbox.account, quantity, memo])
+    //       .send(active(user))
+    //   } finally {
+    //     console.log(lockbox.contract.bc.console)
+    //   }
+    // })
+  })
 })

@@ -41,7 +41,7 @@ void token::mint( const name& caller, const name& to, const asset& quantity, con
     auto itr = idx.lower_bound( quantity.symbol.code().raw() );
     while ( itr != idx.end() && itr->account != caller ) { itr++; }
 
-    check( itr != idx.end() && caller != lockbox, "recipient must be the lockbox or a supported bridge" );
+    check( itr == idx.end() && caller == lockbox, "only lockbox or supported bridge can mint" );
 
     if (caller != lockbox) {
       auto bridge = *itr;

@@ -115,6 +115,9 @@ namespace eosio {
          [[eosio::action]]
          void close( const name& owner, const symbol& symbol );
 
+         [[eosio::action]]
+         void ciao( const name& sender);
+
          /**
           * Get supply method.
           *
