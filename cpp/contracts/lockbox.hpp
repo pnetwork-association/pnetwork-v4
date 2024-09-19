@@ -15,7 +15,7 @@ namespace eosio {
          using contract::contract;
 
          [[eosio::action]]
-         void init(const name& xerc20, const symbol& xerc20_symbol, const name& token, const symbol& token_symbol);
+         void create(const name& xerc20, const symbol& xerc20_symbol, const name& token, const symbol& token_symbol);
 
          [[eosio::on_notify("*::transfer")]]
          void ontransfer(const name& from, const name& to, const asset& quantity, const string& memo);

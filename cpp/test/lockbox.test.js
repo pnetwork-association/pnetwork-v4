@@ -56,7 +56,7 @@ describe('Lockbox testing', () => {
   describe('lockbox::init', () => {
     it('Should fail if account initializing is not the lockbox.account', async () => {
       const action = lockbox.contract.actions
-        .init([
+        .create([
           xerc20.account,
           precision4(xerc20.symbol),
           token.account,
@@ -69,7 +69,7 @@ describe('Lockbox testing', () => {
 
     it('Should fail when unable to find the symbol in the xerc20 stats table', async () => {
       const action = lockbox.contract.actions
-        .init([
+        .create([
           xerc20.account,
           precision4(xerc20.symbol),
           token.account,
@@ -84,7 +84,7 @@ describe('Lockbox testing', () => {
       await xerc20.contract.actions.create([issuer, xerc20.maxSupply]).send()
 
       const action = lockbox.contract.actions
-        .init([
+        .create([
           xerc20.account,
           precision4(xerc20.symbol),
           token.account,
@@ -99,7 +99,7 @@ describe('Lockbox testing', () => {
       await token.contract.actions.create([issuer, token.maxSupply]).send()
 
       await lockbox.contract.actions
-        .init([
+        .create([
           xerc20.account,
           precision4(xerc20.symbol),
           token.account,

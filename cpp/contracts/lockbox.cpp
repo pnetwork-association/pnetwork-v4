@@ -8,7 +8,7 @@ void lockbox::check_symbol_is_valid(const name& account, const symbol& sym) {
    check(itr != _stats.end(), "symbol not found");
 }
 
-void lockbox::init(
+void lockbox::create(
    const name& xerc20,
    const symbol& xerc20_symbol,
    const name& token,
@@ -34,7 +34,6 @@ void lockbox::init(
    });
 }
 
-[[eosio::on_notify("*::transfer")]]
 void lockbox::ontransfer(
    const name& from,
    const name& to,
