@@ -35,8 +35,8 @@ namespace eosio {
             name     xerc20;
             symbol   xerc20_symbol;
 
-            uint64_t primary_key() const { return token.value; }
-            uint64_t secondary_key() const { return xerc20.value; }
+            uint64_t primary_key()   const { return token_symbol.code().raw(); }
+            uint64_t secondary_key() const { return xerc20_symbol.code().raw(); }
          };
 
          // Needed to access the token/XERC20 symbols table

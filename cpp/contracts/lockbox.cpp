@@ -47,9 +47,9 @@ void lockbox::ontransfer(
 
    name token = get_first_receiver();
    registry _registry(get_self(), get_self().value);
-   auto search_token = _registry.find(token.value);
+   auto search_token = _registry.find(quantity.symbol.code().raw());
    auto idx = _registry.get_index<name("byxtoken")>();
-   auto search_xerc20 = idx.lower_bound(token.value);
+   auto search_xerc20 = idx.lower_bound(quantity.symbol.code().raw());
 
    check(
       search_token != _registry.end() ||
@@ -57,7 +57,9 @@ void lockbox::ontransfer(
       "token not registered"
    );
 
+
    if (search_token != _registry.end()) {
+      check(search_token->token == token, "invalid first receiver");
       auto xerc20_quantity = asset(quantity.amount, search_token->xerc20_symbol);
       action(
          permission_level{ get_self(), "active"_n },
@@ -66,6 +68,7 @@ void lockbox::ontransfer(
          std::make_tuple(get_self(), from, xerc20_quantity, memo)
       ).send();
    } else if (search_xerc20 != idx.end()) {
+      check(search_xerc20->xerc20 == token, "invalid first receiver");
       action(
          permission_level{ get_self(), "active"_n },
          token,

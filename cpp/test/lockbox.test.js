@@ -109,7 +109,7 @@ describe('Lockbox testing', () => {
 
       const after = lockbox.contract.tables
         .registry(getAccountCodeRaw(lockbox.account))
-        .getTableRow(getAccountCodeRaw(token.account))
+        .getTableRow(getSymbolCodeRaw(token.maxSupply))
 
       expect(after).to.be.deep.equal({
         token: token.account,
