@@ -53,7 +53,7 @@ describe('Lockbox testing', () => {
     )
   })
 
-  describe('lockbox::init', () => {
+  describe('lockbox::create', () => {
     it('Should fail if account initializing is not the lockbox.account', async () => {
       const action = lockbox.contract.actions
         .create([
@@ -109,7 +109,7 @@ describe('Lockbox testing', () => {
 
       const after = lockbox.contract.tables
         .registry(getAccountCodeRaw(lockbox.account))
-        .getTableRow(getAccountCodeRaw(token.account))
+        .getTableRow(getSymbolCodeRaw(token.maxSupply))
 
       expect(after).to.be.deep.equal({
         token: token.account,

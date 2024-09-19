@@ -20,7 +20,7 @@ void lockbox::create(
    check(is_account(xerc20), "xERC20 account does not exist");
 
    registry _registry(get_self(), get_self().value);
-   auto itr = _registry.find(token.value);
+   auto itr = _registry.find(token_symbol.code().raw());
    check(itr == _registry.end(), "token already registered");
    check_symbol_is_valid(xerc20, xerc20_symbol);
    check_symbol_is_valid(token, token_symbol);
@@ -42,14 +42,15 @@ void lockbox::ontransfer(
 ) {
    if (from == get_self()) return;
 
+   print("\nlockbox!!!!!\n");
    check(to == get_self(), "recipient must be the contract");
    check(quantity.amount > 0, "invalid amount");
 
    name token = get_first_receiver();
    registry _registry(get_self(), get_self().value);
-   auto search_token = _registry.find(token.value);
+   auto search_token = _registry.find(quantity.symbol.code().raw());
    auto idx = _registry.get_index<name("byxtoken")>();
-   auto search_xerc20 = idx.lower_bound(token.value);
+   auto search_xerc20 = idx.lower_bound(quantity.symbol.code().raw());
 
    check(
       search_token != _registry.end() ||
@@ -57,7 +58,9 @@ void lockbox::ontransfer(
       "token not registered"
    );
 
+
    if (search_token != _registry.end()) {
+      check(search_token->token == token, "invalid first receiver");
       auto xerc20_quantity = asset(quantity.amount, search_token->xerc20_symbol);
       action(
          permission_level{ get_self(), "active"_n },
@@ -66,6 +69,7 @@ void lockbox::ontransfer(
          std::make_tuple(get_self(), from, xerc20_quantity, memo)
       ).send();
    } else if (search_xerc20 != idx.end()) {
+      check(search_xerc20->xerc20 == token, "invalid first receiver");
       action(
          permission_level{ get_self(), "active"_n },
          token,
