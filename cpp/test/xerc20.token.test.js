@@ -1,22 +1,14 @@
 const { expect } = require('chai')
 const { Blockchain, expectToThrow } = require('@eosnetwork/vert')
 const { deploy } = require('./utils/deploy')
-const { Asset, Name, TimePointSec } = require('@wharfkit/antelope')
+const { Asset, TimePointSec } = require('@wharfkit/antelope')
 const { substract } = require('./utils/wharfkit-ext')
-
-const ERR_SYMBOL_ALREADY_EXISTS =
-  'eosio_assert: token with symbol already exists'
-
-const ERR_AUTH_MISSING = _account => `missing required authority ${_account}`
-
-const ERR_LOCKBOX_OR_BRIDGE_ONLY =
-  'eosio_assert: recipient must be the lockbox or a supported bridge'
-
-const active = _account => `${_account}@active`
-
-const getSymbolCodeRaw = _asset => Asset.from(_asset).symbol.code.value.value
-
-const getAccountCodeRaw = _account => Name.from(_account).value.value
+const {
+  active,
+  getSymbolCodeRaw,
+  getAccountCodeRaw,
+} = require('./utils/eos-ext')
+const errors = require('./utils/errors')
 
 const round = (_value, _decimals) =>
   Math.round(_value * 10 ** _decimals) / 10 ** _decimals
@@ -55,7 +47,7 @@ describe('xerc20.token', () => {
 
   it('Should revert when creating a token with the same symbol', async () => {
     const action = xerc20.actions.create([account, maxSupply]).send()
-    await expectToThrow(action, ERR_SYMBOL_ALREADY_EXISTS)
+    await expectToThrow(action, errors.SYMBOL_ALREADY_EXISTS)
   })
 
   it('Should set the lockbox successfully', async () => {
@@ -107,13 +99,14 @@ describe('xerc20.token', () => {
     })
   })
 
-  it('Should revert when the account minting tokens is not among the allowed bridges', async () => {
+  // TODO: add test reverting when the bridge is not whitelisted (MINT/BURN)
+  it('Should revert when the account minting tokens is not authorized', async () => {
     const memo = ''
     const quantity = `10 ${symbol}`
     let action = xerc20.actions
       .mint([bridge, recipient, quantity, memo])
       .send(active(evil))
-    await expectToThrow(action, ERR_AUTH_MISSING(bridge))
+    await expectToThrow(action, errors.AUTH_MISSING(bridge))
   })
 
   it('Should mint the tokens to a specific recipient', async () => {
@@ -127,9 +120,13 @@ describe('xerc20.token', () => {
       .bridges(getAccountCodeRaw(account))
       .getTableRows(getAccountCodeRaw(bridge))
 
-    await xerc20.actions
-      .mint([bridge, recipient, quantity, memo])
-      .send(active(bridge))
+    try {
+      await xerc20.actions
+        .mint([bridge, recipient, quantity, memo])
+        .send(active(bridge))
+    } finally {
+      console.log(xerc20.bc.console)
+    }
 
     const balance = xerc20.tables
       .accounts(getAccountCodeRaw(recipient))
@@ -153,7 +150,7 @@ describe('xerc20.token', () => {
     expect(bridgeLimits[0].minting_timestamp).to.be.equal(expectedTimestamp)
   })
 
-  it('Should revert when the account burning the tokens is not a bridge', async () => {
+  it('Should revert when the account burning is not authorized', async () => {
     const memo = ''
     const quantity = `10 ${symbol}`
 
@@ -161,7 +158,7 @@ describe('xerc20.token', () => {
       .burn([bridge, quantity, memo])
       .send(active(evil))
 
-    await expectToThrow(action, ERR_AUTH_MISSING(bridge))
+    await expectToThrow(action, errors.AUTH_MISSING(bridge))
   })
 
   it('Should burn the previously minted quantity successfully', async () => {

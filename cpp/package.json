@@ -9,8 +9,7 @@
   "scripts": {
     "build": "make all",
     "clean": "make clean",
-    "test": "yarn build && mocha",
-    "nodeos": "nodeos --config-dir . -c config.ini --delete-all-blocks > /dev/null >> nodeos.log 2>&1 &"
+    "test": "yarn build && mocha"
   },
   "devDependencies": {
     "@eosnetwork/vert": "^1.0.0",
