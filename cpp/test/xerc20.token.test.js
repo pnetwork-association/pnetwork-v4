@@ -99,7 +99,8 @@ describe('xerc20.token', () => {
     })
   })
 
-  it('Should revert when the account minting tokens is not among the allowed bridges', async () => {
+  // TODO: add test reverting when the bridge is not whitelisted (MINT/BURN)
+  it('Should revert when the account minting tokens is not authorized', async () => {
     const memo = ''
     const quantity = `10 ${symbol}`
     let action = xerc20.actions
@@ -119,9 +120,13 @@ describe('xerc20.token', () => {
       .bridges(getAccountCodeRaw(account))
       .getTableRows(getAccountCodeRaw(bridge))
 
-    await xerc20.actions
-      .mint([bridge, recipient, quantity, memo])
-      .send(active(bridge))
+    try {
+      await xerc20.actions
+        .mint([bridge, recipient, quantity, memo])
+        .send(active(bridge))
+    } finally {
+      console.log(xerc20.bc.console)
+    }
 
     const balance = xerc20.tables
       .accounts(getAccountCodeRaw(recipient))
@@ -145,7 +150,7 @@ describe('xerc20.token', () => {
     expect(bridgeLimits[0].minting_timestamp).to.be.equal(expectedTimestamp)
   })
 
-  it('Should revert when the account burning the tokens is not a bridge', async () => {
+  it('Should revert when the account burning is not authorized', async () => {
     const memo = ''
     const quantity = `10 ${symbol}`
 

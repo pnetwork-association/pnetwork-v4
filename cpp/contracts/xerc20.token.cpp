@@ -25,6 +25,7 @@ void token::create( const name&   issuer,
 
 void token::mint( const name& caller, const name& to, const asset& quantity, const string& memo )
 {
+    require_auth(caller);
     auto sym = quantity.symbol;
     check( sym.is_valid(), "invalid symbol name" );
     check( memo.size() <= 256, "memo has more than 256 bytes" );
@@ -41,7 +42,7 @@ void token::mint( const name& caller, const name& to, const asset& quantity, con
     auto itr = idx.lower_bound( quantity.symbol.code().raw() );
     while ( itr != idx.end() && itr->account != caller ) { itr++; }
 
-    check( itr == idx.end() && caller == lockbox, "only lockbox or supported bridge can mint" );
+    check( itr != idx.end() || caller == lockbox, "only lockbox or supported bridge can mint" );
 
     if (caller != lockbox) {
       auto bridge = *itr;
@@ -67,6 +68,7 @@ void token::mint( const name& caller, const name& to, const asset& quantity, con
 
 void token::burn( const name& caller, const asset& quantity, const string& memo )
 {
+   require_auth(caller);
    auto sym = quantity.symbol;
    check( sym.is_valid(), "invalid symbol name" );
    check( memo.size() <= 256, "memo has more than 256 bytes" );
@@ -83,7 +85,7 @@ void token::burn( const name& caller, const asset& quantity, const string& memo 
    auto itr = idx.lower_bound( quantity.symbol.code().raw() );
    while ( itr != idx.end() && itr->account != caller ) { itr++; }
 
-   check( itr != idx.end() && caller != lockbox, "recipient must be the lockbox or a supported bridge" );
+   check( itr != idx.end() || caller == lockbox, "only lockbox or supported bridge can mint" );
 
    if (caller != lockbox) {
       auto bridge = *itr;

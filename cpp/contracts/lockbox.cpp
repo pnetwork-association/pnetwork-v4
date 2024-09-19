@@ -47,12 +47,8 @@ void lockbox::ontransfer(
    check(quantity.amount > 0, "invalid amount");
 
    name token = get_first_receiver();
-   print("\ntoken\n");
-   print(token.to_string());
    registry _registry(get_self(), get_self().value);
    auto search_token = _registry.find(token.value);
-   print("\nsearch_token\n");
-   print(search_token->token.to_string());
    auto idx = _registry.get_index<name("byxtoken")>();
    auto search_xerc20 = idx.lower_bound(token.value);
 
@@ -75,7 +71,7 @@ void lockbox::ontransfer(
          permission_level{ get_self(), "active"_n },
          token,
          "burn"_n,
-         std::make_tuple(get_self(), from, quantity, memo)
+         std::make_tuple(get_self(), quantity, memo)
       ).send();
 
       auto token_quantity = asset(quantity.amount, search_xerc20->token_symbol);
@@ -87,6 +83,5 @@ void lockbox::ontransfer(
          std::make_tuple(get_self(), from, token_quantity, memo)
       ).send();
    }
-
 }
 }

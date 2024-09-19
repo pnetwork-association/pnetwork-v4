@@ -1,6 +1,7 @@
 const { expect } = require('chai')
 const { Blockchain, expectToThrow } = require('@eosnetwork/vert')
 const { deploy } = require('./utils/deploy')
+const { Asset } = require('@wharfkit/antelope')
 const {
   active,
   precision,
@@ -140,13 +141,9 @@ describe('Lockbox testing', () => {
       const amount = '10.0000'
       const quantity = `${amount} ${token.symbol}`
 
-      try {
-        await token.contract.actions
-          .transfer([user, lockbox.account, quantity, memo])
-          .send(active(user))
-      } finally {
-        console.log(lockbox.contract.bc.console)
-      }
+      await token.contract.actions
+        .transfer([user, lockbox.account, quantity, memo])
+        .send(active(user))
 
       const tokenBalance = token.contract.tables
         .accounts(getAccountCodeRaw(user))
@@ -170,37 +167,54 @@ describe('Lockbox testing', () => {
       expect(userBalance).to.be.equal(expectedBalance)
     })
 
-    // it('Should withdraw the expected quantity', async () => {
-    //   const memo = ''
-    //   const amount = '5.0000'
-    //   const quantity = `${amount} ${xerc20.symbol}`
+    it('Should withdraw the expected quantity', async () => {
+      const memo = ''
+      const amount = '5.0000'
+      const quantity = `${amount} ${xerc20.symbol}`
 
-    //   const before = {
-    //     lockbox: {
-    //       balanceXERC20: getTokenBalance(
-    //         xerc20.contract,
-    //         lockbox.account,
-    //         xerc20.symbol,
-    //       ),
-    //       balanceToken: getTokenBalance(
-    //         token.contract,
-    //         lockbox.account,
-    //         token.symbol,
-    //       ),
-    //     },
-    //     user: {
-    //       balanceXERC20: getTokenBalance(xerc20.contract, user, xerc20.symbol),
-    //       balanceToken: getTokenBalance(token.contract, user, token.symbol),
-    //     },
-    //   }
+      const before = {
+        lockbox: {
+          balanceToken: getTokenBalance(
+            token.contract,
+            lockbox.account,
+            token.symbol,
+          ),
+        },
+        user: {
+          balanceXERC20: getTokenBalance(xerc20.contract, user, xerc20.symbol),
+          balanceToken: getTokenBalance(token.contract, user, token.symbol),
+        },
+      }
 
-    //   try {
-    //     await xerc20.contract.actions
-    //       .transfer([user, lockbox.account, quantity, memo])
-    //       .send(active(user))
-    //   } finally {
-    //     console.log(lockbox.contract.bc.console)
-    //   }
-    // })
+      await xerc20.contract.actions
+        .transfer([user, lockbox.account, quantity, memo])
+        .send(active(user))
+
+      const after = {
+        lockbox: {
+          balanceToken: getTokenBalance(
+            token.contract,
+            lockbox.account,
+            token.symbol,
+          ),
+        },
+        user: {
+          balanceXERC20: getTokenBalance(xerc20.contract, user, xerc20.symbol),
+          balanceToken: getTokenBalance(token.contract, user, token.symbol),
+        },
+      }
+
+      expect(
+        String(
+          substract(before.lockbox.balanceToken, after.lockbox.balanceToken),
+        ),
+      ).to.be.equal(Asset.from(`${amount} ${token.symbol}`).toString())
+      expect(
+        String(substract(after.user.balanceToken, before.user.balanceToken)),
+      ).to.be.equal(Asset.from(`${amount} ${token.symbol}`).toString())
+      expect(
+        String(substract(before.user.balanceXERC20, after.user.balanceXERC20)),
+      ).to.be.equal(Asset.from(quantity).toString())
+    })
   })
 })
