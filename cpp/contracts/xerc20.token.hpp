@@ -175,7 +175,6 @@ namespace eosio {
             uint64_t secondary_key()const { return minting_current_limit.symbol.code().raw(); }
          };
 
-
          typedef eosio::multi_index< "accounts"_n, account > accounts;
          typedef eosio::multi_index< "stat"_n, currency_stats > stats;
          typedef eosio::multi_index< "bridges"_n, bridge_model,
