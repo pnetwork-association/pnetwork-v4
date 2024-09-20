@@ -4,11 +4,19 @@
 #include <eosio/eosio.hpp>
 #include <eosio/system.hpp>
 #include <eosio/singleton.hpp>
+#include <eosio/fixed_bytes.hpp>
+#include <eosio/transaction.hpp>
 
 #include <string>
 
 namespace eosio {
    using std::string;
+   using std::vector;
+   using std::make_tuple;
+   using eosio::read_transaction;
+   using eosio::transaction_size;
+   using eosio::unpack;
+   using bytes = std::vector<uint8_t>;
 
    class [[eosio::contract("adapter")]] adapter : public contract {
       public:
@@ -31,8 +39,14 @@ namespace eosio {
          // [[eosio::action]]
          // void settle(const operation& operation_, const metadata& metadata_);
 
-         // [[eosio::on_notify("*::transfer")]]
-         // void swap(const name& from, const name& to, const asset& quantity, const string& memo);
+         [[eosio::action]]
+         void adduserdata(std::vector<uint8_t> user_data);
+
+         [[eosio::action]]
+         void swap(const uint64_t& nonce, const bytes& event_bytes);
+
+         [[eosio::on_notify("*::transfer")]]
+         void ontransfer(const name& from, const name& to, const asset& quantity, const string& memo);
 
          // [[eosio::on_notify("*::transfer")]]
          // void ontransfer(const name& from, const name& to, const asset& quantity, const string& memo);
@@ -74,10 +88,9 @@ namespace eosio {
          };
 
          struct [[eosio::table]] global_storage_model {
-            uint64_t   nonce;
             name       pam;
-            name       feesmanager;
             name       minfee;
+            name       feesmanager;
          };
 
          typedef eosio::multi_index<"stat"_n, currency_stats> stats;
@@ -88,15 +101,22 @@ namespace eosio {
             indexed_by< "byeventid"_n, const_mem_fun<past_events_model, checksum256, &past_events_model::secondary_key>
          > > past_events;
 
+         using lockbox_singleton = singleton<"lockbox"_n, name>;
          using storage = singleton<"storage"_n, global_storage_model>;
 
          global_storage_model empty_storage = {
-            .nonce = 0,
             .pam = ""_n,
             .feesmanager = ""_n,
             .minfee = ""_n
          };
 
          void check_symbol_is_valid(const name& account, const symbol& sym);
+         void extract_memo_args(
+            const name& self,
+            const string& memo,
+            string& ret_dest_chainid,
+            string& ret_recipient,
+            bytes& ret_dat
+         );
    };
 }

@@ -53,7 +53,7 @@ describe('Lockbox testing', () => {
     )
   })
 
-  describe('lockbox::init', () => {
+  describe('lockbox::create', () => {
     it('Should fail if account initializing is not the lockbox.account', async () => {
       const action = lockbox.contract.actions
         .create([
