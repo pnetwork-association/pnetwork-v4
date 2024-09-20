@@ -67,7 +67,7 @@ void adapter::create(
    check(is_account(xerc20), "xERC20 account does not exist");
 
    registry _registry(get_self(), get_self().value);
-   auto itr = _registry.find(token.value);
+   auto itr = _registry.find(token_symbol.code().raw());
    check(itr == _registry.end(), "token already registered");
    check_symbol_is_valid(xerc20, xerc20_symbol);
    check_symbol_is_valid(token, token_symbol);
@@ -124,7 +124,7 @@ void adapter::extract_memo_args(
 
    check(ret_recipient.length() > 0, "invalid destination address");
    check(is_hex_notation(ret_dest_chainid), "chain id must be 0x prefixed");
-   check(ret_dest_chainid.length() == 64, "chain id must be a 32 bytes hex-string");
+   check(ret_dest_chainid.length() == 66, "chain id must be a 32 bytes hex-string");
 
    // FIXME: use linked actions pattern here
    // https://docs.eosnetwork.com/docs/latest/guides/linked-actions-pattern
@@ -143,18 +143,19 @@ void adapter::extract_memo_args(
 }
 
 
-template<typename T>
-bytes to_byte_array(T value, size_t size) {
+bytes to_bytes_array(uint64_t value, size_t size) {
    bytes vec(size, 0);
 
-   for (auto i = 0; i < vec.size(); i++) {
-      vec[i] = value >> 8 * i;
+   for (size_t i = 0; i < 8; ++i) {
+      uint64_t v = (value >> (i * 8)) & 0xFF;
+      vec[size - i - 1] = static_cast<uint8_t>(v);
    }
+
+   return vec;
 }
 
-template<typename T>
-bytes to_vec32(T x) {
-   return to_byte_array<T>(x, 32);
+bytes to_bytes32(uint64_t value) {
+   return to_bytes_array(value, 32);
 }
 
 void adapter::adduserdata(bytes user_data) {}
@@ -162,8 +163,7 @@ void adapter::adduserdata(bytes user_data) {}
 void adapter::swap(const uint64_t& nonce, const bytes& event_bytes) {}
 
 void adapter::ontransfer(const name& from, const name& to, const asset& quantity, const string& memo) {
-
-   print("heeerere");
+   if (from == get_self()) return;
    check(to == get_self(), "recipient must be the contract");
    check(quantity.amount > 0, "invalid amount");
 
@@ -185,8 +185,10 @@ void adapter::ontransfer(const name& from, const name& to, const asset& quantity
    extract_memo_args(get_self(), memo, dest_chainid, recipient, userdata);
 
    auto first_receiver = get_first_receiver();
+
    if (search_token != _registry.end()) {
       auto xerc20 = search_token->xerc20;
+
       check(search_token->token == first_receiver, "invalid first receiver");
       lockbox_singleton _lockbox(xerc20, xerc20.value);
 
@@ -194,20 +196,23 @@ void adapter::ontransfer(const name& from, const name& to, const asset& quantity
 
       auto lockbox = _lockbox.get();
 
+      string memo2 = "";
       // Deposit
       action(
          permission_level{ get_self(), "active"_n },
          first_receiver,
          "transfer"_n,
-         make_tuple(get_self(), lockbox, quantity, "")
+         make_tuple(get_self(), lockbox, quantity, memo2)
       ).send();
 
       // TODO: accrue fees here
       // TODO: compute the net amount w/ 1e-18 decimals
       uint64_t nonce = 100000;
-      auto bytes32nonce = to_vec32<uint64_t>(nonce);
-      print("\nbytes32nonce\n");
-      printhex(bytes32nonce.data(), bytes32nonce.size());
+      auto x = to_bytes32(nonce);
+
+      printhex(x.data(), x.size());
+      // print("\nbytes32nonce\n");
+      // printhex(bytes32nonce.data(), bytes32nonce.size());
       // bytes event_bytes = get_swap_event_bytes(
       //    to_bytes32(nonce),
       //    to_bytes32(abi.encode(erc20)),
@@ -218,13 +223,14 @@ void adapter::ontransfer(const name& from, const name& to, const asset& quantity
       //    bytes(recipient),
       //    data
       // );
+      print("\nheeeree\n");
 
-
+      bytes event_bytes(1, 0);
       action(
          permission_level{ get_self(), "active"_n },
          xerc20,
          "swap"_n,
-         make_tuple(get_self(), lockbox, quantity, "")
+         make_tuple(get_self(), nonce, event_bytes)
       ).send();
 
    } else if (search_xerc20 != idx.end()) {

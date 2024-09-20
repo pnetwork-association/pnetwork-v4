@@ -16,6 +16,7 @@
     "@types/ramda": "^0",
     "@wharfkit/antelope": "^1.0.12",
     "chai": "^4.3.10",
+    "ethers": "^6.13.2",
     "mocha": "^10.2.0",
     "ramda": "^0.30.1"
   }

@@ -20,7 +20,7 @@ void lockbox::create(
    check(is_account(xerc20), "xERC20 account does not exist");
 
    registry _registry(get_self(), get_self().value);
-   auto itr = _registry.find(token.value);
+   auto itr = _registry.find(token_symbol.code().raw());
    check(itr == _registry.end(), "token already registered");
    check_symbol_is_valid(xerc20, xerc20_symbol);
    check_symbol_is_valid(token, token_symbol);
@@ -42,6 +42,7 @@ void lockbox::ontransfer(
 ) {
    if (from == get_self()) return;
 
+   print("\nlockbox!!!!!\n");
    check(to == get_self(), "recipient must be the contract");
    check(quantity.amount > 0, "invalid amount");
 
