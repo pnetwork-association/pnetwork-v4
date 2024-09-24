@@ -190,15 +190,15 @@ describe('Lockbox testing', () => {
         String(
           substract(before.lockbox[token.symbol], after.lockbox[token.symbol]),
         ),
-      ).to.be.equal(Asset.from(`${amount} ${token.symbol}`).toString())
+      ).to.be.equal(`${amount} ${token.symbol}`)
       expect(
         String(substract(after.user[token.symbol], before.user[token.symbol])),
-      ).to.be.equal(Asset.from(`${amount} ${token.symbol}`).toString())
+      ).to.be.equal(`${amount} ${token.symbol}`)
       expect(
         String(
           substract(before.user[xerc20.symbol], after.user[xerc20.symbol]),
         ),
-      ).to.be.equal(Asset.from(quantity).toString())
+      ).to.be.equal(quantity)
     })
   })
 })
