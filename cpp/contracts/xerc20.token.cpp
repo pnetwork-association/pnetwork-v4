@@ -25,6 +25,7 @@ void token::create( const name&   issuer,
 
 void token::mint( const name& caller, const name& to, const asset& quantity, const string& memo )
 {
+    print("\nxerc20::mint\n");
     require_auth(caller);
     auto sym = quantity.symbol;
     check( sym.is_valid(), "invalid symbol name" );
@@ -64,10 +65,13 @@ void token::mint( const name& caller, const name& to, const asset& quantity, con
     });
 
     add_balance( to, quantity, caller );
+
+    require_recipient(to);
 }
 
 void token::burn( const name& caller, const asset& quantity, const string& memo )
 {
+   print("\nxerc20::burn\n");
    require_auth(caller);
    auto sym = quantity.symbol;
    check( sym.is_valid(), "invalid symbol name" );
@@ -106,7 +110,15 @@ void token::burn( const name& caller, const asset& quantity, const string& memo 
       s.supply -= quantity;
    });
 
+   print("\nburn::sub_balance\n");
+
    sub_balance( caller, quantity );
+   print("\nburn::sub_balance\n");
+
+}
+
+void token::ciao() {
+   eos:print("ciao\n");
 }
 
 void token::transfer( const name&    from,
@@ -131,7 +143,10 @@ void token::transfer( const name&    from,
 
     auto payer = has_auth( to ) ? to : from;
 
+   print("\ntransfer::sub_balance\n");
     sub_balance( from, quantity );
+   print("\ntransfer::sub_balance\n");
+
     add_balance( to, quantity, payer );
 }
 
@@ -159,6 +174,11 @@ void token::add_balance( const name& owner, const asset& value, const name& ram_
         a.balance += value;
       });
    }
+
+   print("\nadd_balance(", owner.to_string());
+   print(", ", value.amount);
+   print(", ", value.symbol.code());
+   print(")\n");
 }
 
 void token::open( const name& owner, const symbol& symbol, const name& ram_payer )

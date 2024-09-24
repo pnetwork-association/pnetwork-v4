@@ -49,6 +49,9 @@ namespace eosio {
          [[eosio::action]]
          void burn( const name& caller, const asset& quantity, const string& memo );
 
+         [[eosio::action]]
+         void ciao();
+
          /**
           * Allows `from` account to transfer to `to` account the `quantity` tokens.
           * One account is debited and the other is credited with quantity tokens.

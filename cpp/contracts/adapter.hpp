@@ -48,19 +48,15 @@ namespace eosio {
          [[eosio::on_notify("*::transfer")]]
          void ontransfer(const name& from, const name& to, const asset& quantity, const string& memo);
 
+         [[eosio::on_notify("*::mint")]]
+         void onmint(const name& caller, const name& to, const asset& quantity, const string& memo);
+
          // [[eosio::on_notify("*::transfer")]]
          // void ontransfer(const name& from, const name& to, const asset& quantity, const string& memo);
 
       private:
          struct [[eosio::table]] registry_model {
-            // NOTE: EVM XERC20Lockbox contract includes
-            // a isNative boolean in the storage marking
-            // if the relative xERC20 wraps the native currency.
-            // Here we don't need that since there isn't such
-            // distintion on EOS.
-            // NOTE: we need the relative symbol info for each pair
-            // element since the account name alone does not identify the
-            // token.
+            // NOTE: see lockbox
             name     token;
             symbol   token_symbol;
             name     xerc20;
@@ -114,9 +110,10 @@ namespace eosio {
          void extract_memo_args(
             const name& self,
             const string& memo,
-            string& ret_dest_chainid,
-            string& ret_recipient,
-            bytes& ret_dat
+            string& out_sender,
+            string& out_dest_chainid,
+            string& out_recipient,
+            bytes& out_dat
          );
    };
 }

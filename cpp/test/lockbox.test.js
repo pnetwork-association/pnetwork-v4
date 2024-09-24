@@ -10,7 +10,7 @@ const {
 } = require('./utils/eos-ext')
 const errors = require('./utils/errors')
 const { substract } = require('./utils/wharfkit-ext')
-const { getTokenBalance } = require('./utils/get-token-balance')
+const { getAccountsBalances } = require('./utils/get-token-balance')
 
 describe('Lockbox testing', () => {
   const symbol = 'TKN'
@@ -172,49 +172,33 @@ describe('Lockbox testing', () => {
       const amount = '5.0000'
       const quantity = `${amount} ${xerc20.symbol}`
 
-      const before = {
-        lockbox: {
-          balanceToken: getTokenBalance(
-            token.contract,
-            lockbox.account,
-            token.symbol,
-          ),
-        },
-        user: {
-          balanceXERC20: getTokenBalance(xerc20.contract, user, xerc20.symbol),
-          balanceToken: getTokenBalance(token.contract, user, token.symbol),
-        },
-      }
+      const before = getAccountsBalances(
+        [lockbox.account, user],
+        [token, xerc20],
+      )
 
       await xerc20.contract.actions
         .transfer([user, lockbox.account, quantity, memo])
         .send(active(user))
 
-      const after = {
-        lockbox: {
-          balanceToken: getTokenBalance(
-            token.contract,
-            lockbox.account,
-            token.symbol,
-          ),
-        },
-        user: {
-          balanceXERC20: getTokenBalance(xerc20.contract, user, xerc20.symbol),
-          balanceToken: getTokenBalance(token.contract, user, token.symbol),
-        },
-      }
+      const after = getAccountsBalances(
+        [lockbox.account, user],
+        [token, xerc20],
+      )
 
       expect(
         String(
-          substract(before.lockbox.balanceToken, after.lockbox.balanceToken),
+          substract(before.lockbox[token.symbol], after.lockbox[token.symbol]),
         ),
-      ).to.be.equal(Asset.from(`${amount} ${token.symbol}`).toString())
+      ).to.be.equal(`${amount} ${token.symbol}`)
       expect(
-        String(substract(after.user.balanceToken, before.user.balanceToken)),
-      ).to.be.equal(Asset.from(`${amount} ${token.symbol}`).toString())
+        String(substract(after.user[token.symbol], before.user[token.symbol])),
+      ).to.be.equal(`${amount} ${token.symbol}`)
       expect(
-        String(substract(before.user.balanceXERC20, after.user.balanceXERC20)),
-      ).to.be.equal(Asset.from(quantity).toString())
+        String(
+          substract(before.user[xerc20.symbol], after.user[xerc20.symbol]),
+        ),
+      ).to.be.equal(quantity)
     })
   })
 })

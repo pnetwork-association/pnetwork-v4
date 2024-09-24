@@ -40,9 +40,9 @@ void lockbox::ontransfer(
    const asset& quantity,
    const string& memo
 ) {
+   print("\nlockbox::ontransfer\n");
    if (from == get_self()) return;
 
-   print("\nlockbox!!!!!\n");
    check(to == get_self(), "recipient must be the contract");
    check(quantity.amount > 0, "invalid amount");
 
@@ -58,10 +58,10 @@ void lockbox::ontransfer(
       "token not registered"
    );
 
-
    if (search_token != _registry.end()) {
       check(search_token->token == token, "invalid first receiver");
       auto xerc20_quantity = asset(quantity.amount, search_token->xerc20_symbol);
+      print("\nxerc20.mint\n");
       action(
          permission_level{ get_self(), "active"_n },
          search_token->xerc20,

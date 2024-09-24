@@ -11,13 +11,16 @@ const {
 } = require('./utils/eos-ext')
 const errors = require('./utils/errors')
 const { substract } = require('./utils/wharfkit-ext')
-const { getTokenBalance } = require('./utils/get-token-balance')
+const {
+  getTokenBalance,
+  getAccountsBalances,
+} = require('./utils/get-token-balance')
 const ethers = require('ethers')
 
-const getSwapMemo = (destinationChainId, recipient, data) =>
-  `${destinationChainId},${recipient},${R.isEmpty(data) ? '0' : '1'}`
+const getSwapMemo = (sender, destinationChainId, recipient, data) =>
+  `${sender},${destinationChainId},${recipient},${R.isEmpty(data) ? '0' : '1'}`
 
-describe('Lockbox testing', () => {
+describe('Adapter testing', () => {
   const symbol = 'TKN'
   const precision4 = precision(4)
   const maxSupply = '500000000.0000'
@@ -68,12 +71,15 @@ describe('Lockbox testing', () => {
 
   const setup = async () => {
     const memo = ''
+
     await token.contract.actions
       .create([issuer, token.maxSupply])
       .send(active(token.account))
     await xerc20.contract.actions
       .create([issuer, xerc20.maxSupply])
       .send(active(xerc20.account))
+
+    console.log(xerc20.contract.bc.console)
     await lockbox.contract.actions
       .create([
         xerc20.account,
@@ -93,6 +99,13 @@ describe('Lockbox testing', () => {
 
     await xerc20.contract.actions
       .setlockbox(lockbox)
+      .send(active(xerc20.account))
+
+    const mintingLimit = `1000.0000 ${xerc20.symbol}`
+    const burningLimit = `600.0000 ${xerc20.symbol}`
+
+    await xerc20.contract.actions
+      .setlimits([adapter.account, mintingLimit, burningLimit])
       .send(active(xerc20.account))
   }
 
@@ -126,22 +139,52 @@ describe('Lockbox testing', () => {
     it('Should swap correctly', async () => {
       const data = ''
       const recipient = '0x68bbed6a47194eff1cf514b50ea91895597fc91e'
-
       const destinationChainId = ethers.zeroPadValue('0x01', 32)
-      console.log('destinationChainId', destinationChainId)
-
-      const memo = getSwapMemo(destinationChainId, recipient, data)
+      const memo = getSwapMemo(user, destinationChainId, recipient, data)
       const amount = '10.0000'
       const quantity = `${amount} ${symbol}`
 
+      const before = getAccountsBalances(
+        [user, lockbox.account, adapter.account],
+        [token, xerc20],
+      )
+
+      console.log('user.transfer')
       try {
         await token.contract.actions
           .transfer([user, adapter.account, quantity, memo])
           .send(active(user))
       } finally {
-        console.log(adapter.contract.bc.console)
-        console.log(lockbox.contract.bc.console)
+        console.log(xerc20.contract.bc.console)
       }
+
+      const after = getAccountsBalances(
+        [user, lockbox.account, adapter.account],
+        [token, xerc20],
+      )
+
+      expect(
+        substract(
+          before.user[token.symbol],
+          after.user[token.symbol],
+        ).toString(),
+      ).to.be.equal(quantity)
+
+      expect(
+        substract(
+          after.lockbox[token.symbol],
+          before.lockbox[token.symbol],
+        ).toString(),
+      ).to.be.equal(quantity)
+
+      expect(
+        substract(
+          after.lockbox[xerc20.symbol],
+          before.lockbox[xerc20.symbol],
+        ).toString(),
+      ).to.be.equal(`0.0000 ${xerc20.symbol}`)
+
+      // TODO: check swap action inclusion here
     })
   })
 })

@@ -109,26 +109,29 @@ void adapter::setpam(const name& pam) {
 void adapter::extract_memo_args(
    const name& self,
    const string& memo,
-   string& ret_dest_chainid,
-   string& ret_recipient,
-   bytes& ret_data
+   string& out_sender,
+   string& out_dest_chainid,
+   string& out_recipient,
+   bytes& out_data
 ) {
 
    const vector<string> parts = split(memo, ",");
 
-   check(parts.size() == 3, "invalid memo format");
+   check(parts.size() == 4, "invalid memo format");
 
-   ret_dest_chainid = parts[0];
-   ret_recipient = parts[1];
-   string has_userdata = parts[2];
+   out_sender = parts[0];
+   out_dest_chainid = parts[1];
+   out_recipient = parts[2];
+   string has_userdata = parts[3];
 
-   check(ret_recipient.length() > 0, "invalid destination address");
-   check(is_hex_notation(ret_dest_chainid), "chain id must be 0x prefixed");
-   check(ret_dest_chainid.length() == 66, "chain id must be a 32 bytes hex-string");
+   check(out_sender.length() > 0, "invalid sender address");
+   check(out_recipient.length() > 0, "invalid destination address");
+   check(is_hex_notation(out_dest_chainid), "chain id must be 0x prefixed");
+   check(out_dest_chainid.length() == 66, "chain id must be a 32 bytes hex-string");
 
-   // FIXME: use linked actions pattern here
-   // https://docs.eosnetwork.com/docs/latest/guides/linked-actions-pattern
    if (has_userdata == "1") {
+      // FIXME: use linked actions pattern here
+      // https://docs.eosnetwork.com/docs/latest/guides/linked-actions-pattern
       action act = get_action(1, 1);
       check(act.name == "adduserdata"_n, "expected adduserdata action");
       check(act.account == self, "adduserdata must come from adapter contract");
@@ -138,12 +141,12 @@ void adapter::extract_memo_args(
       unpacked_data data = unpack<unpacked_data>(act.data);
 
       check(data.user_data.size() == 0, "no userdata found");
-      ret_data = data.user_data;
+      out_data = data.user_data;
    }
 }
 
 
-bytes to_bytes_array(uint64_t value, size_t size) {
+bytes to_bytes(uint64_t value, size_t size) {
    bytes vec(size, 0);
 
    for (size_t i = 0; i < 8; ++i) {
@@ -155,15 +158,131 @@ bytes to_bytes_array(uint64_t value, size_t size) {
 }
 
 bytes to_bytes32(uint64_t value) {
-   return to_bytes_array(value, 32);
+   return to_bytes(value, 32);
+}
+
+// Ascii to hex convertion of the account name
+// Example:
+// to_bytes32("tkn.token") => 0000000000000000000000000000000000000000000000746b6e2e746f6b656e
+//
+// NOTE: last string character positioned at the end of the bytearray
+bytes to_bytes32(string value) {
+   auto size = 32;
+   bytes vec(size, 0);
+   size_t k = 0;
+   for (auto it = value.rbegin(); it != value.rend() ; ++it) {
+      vec[size - k - 1] = static_cast<uint8_t>(*it);
+      ++k;
+   }
+
+   return vec;
+}
+
+bytes to_bytes(string str) {
+   std::vector<uint8_t> vec;
+   vec.reserve(str.size());
+   for (char c : str) {
+      vec.push_back(static_cast<uint8_t>(c)); // Convert char to uint8_t
+   }
+   return vec;
+}
+
+uint64_t to_wei(asset quantity) {
+   auto exp = 18 - quantity.symbol.precision();
+   return quantity.amount * pow(10.0, exp);
+}
+
+// Concat a set of bytes together
+template <typename... Type>
+bytes concat(uint64_t size, Type... elements) {
+   bytes res;
+   res.reserve(size);
+
+   for(const auto elem : { elements... }) {
+      for (size_t k = 0; k < elem.size(); k++) {
+         res.push_back(elem[k]);
+      }
+   }
+
+   return res;
 }
 
 void adapter::adduserdata(bytes user_data) {}
 
+
+void adapter::onmint(const name& caller, const name& to, const asset& quantity, const string& memo) {
+   print("\nadapter::onmint\n");
+   auto xerc20 = get_first_receiver();
+
+   // TODO: factor out
+   lockbox_singleton _lockbox(xerc20, xerc20.value);
+   check(_lockbox.exists(), "lockbox not found for the specified token");
+   auto lockbox = _lockbox.get();
+
+   check(caller == lockbox, "mint must come from the lockbox");
+
+   registry _registry(lockbox, lockbox.value);
+   auto idx = _registry.get_index<name("byxtoken")>();
+   auto search_xerc20 = idx.lower_bound(quantity.symbol.code().raw());
+
+   check(search_xerc20 != idx.end(), "token not registered");
+
+   // TODO: accrue fees here
+
+   print("\nxerc20.burn\n");
+   action(
+      permission_level{ get_self(), "active"_n },
+      xerc20,
+      "burn"_n,
+      make_tuple(get_self(), quantity, memo)
+   ).send();
+
+   print("\nend!\n");
+
+   string sender;
+   string dest_chainid;
+   string recipient;
+   bytes userdata;
+
+   extract_memo_args(get_self(), memo, sender, dest_chainid, recipient, userdata);
+
+   // TODO: get the nonce from the table here
+   uint64_t nonce = 100000;
+
+   auto recipient_bytes = to_bytes(recipient);
+
+   bytes event_bytes = concat(
+      32 * 6 + recipient_bytes.size() + userdata.size(),
+      to_bytes32(nonce),
+      to_bytes32(search_xerc20->token.to_string()),
+      hex_to_bytes(dest_chainid),
+      to_bytes32(to_wei(quantity)),
+      to_bytes32(sender),
+      to_bytes32(recipient_bytes.size()),
+      recipient_bytes,
+      userdata
+   );
+
+   print("\nadapter.swap\n");
+   print("\nevent_bytes\n");
+   // printhex(event_bytes.data(), event_bytes.size());
+   action(
+      permission_level{ get_self(), "active"_n },
+      get_self(),
+      "swap"_n,
+      make_tuple(nonce, event_bytes)
+   ).send();
+
+   // TODO: increase nonce here
+}
+
+
 void adapter::swap(const uint64_t& nonce, const bytes& event_bytes) {}
 
 void adapter::ontransfer(const name& from, const name& to, const asset& quantity, const string& memo) {
+   print("\nadapter::ontransfer\n");
    if (from == get_self()) return;
+
    check(to == get_self(), "recipient must be the contract");
    check(quantity.amount > 0, "invalid amount");
 
@@ -178,66 +297,43 @@ void adapter::ontransfer(const name& from, const name& to, const asset& quantity
       "token not registered"
    );
 
-   string dest_chainid;
-   string recipient;
-   bytes userdata;
-
-   extract_memo_args(get_self(), memo, dest_chainid, recipient, userdata);
-
-   auto first_receiver = get_first_receiver();
+   auto token = get_first_receiver();
 
    if (search_token != _registry.end()) {
       auto xerc20 = search_token->xerc20;
 
-      check(search_token->token == first_receiver, "invalid first receiver");
-      lockbox_singleton _lockbox(xerc20, xerc20.value);
 
+      // TODO: factor out
+      check(search_token->token == token, "invalid first receiver");
+      lockbox_singleton _lockbox(xerc20, xerc20.value);
       check(_lockbox.exists(), "lockbox not found for the specified token");
 
       auto lockbox = _lockbox.get();
 
-      string memo2 = "";
+      string empty_str = "";
       // Deposit
+      print("\ntoken.transfer\n");
       action(
          permission_level{ get_self(), "active"_n },
-         first_receiver,
+         token,
          "transfer"_n,
-         make_tuple(get_self(), lockbox, quantity, memo2)
+         make_tuple(get_self(), lockbox, quantity, memo)
       ).send();
 
-      // TODO: accrue fees here
-      // TODO: compute the net amount w/ 1e-18 decimals
-      uint64_t nonce = 100000;
-      auto x = to_bytes32(nonce);
-
-      printhex(x.data(), x.size());
-      // print("\nbytes32nonce\n");
-      // printhex(bytes32nonce.data(), bytes32nonce.size());
-      // bytes event_bytes = get_swap_event_bytes(
-      //    to_bytes32(nonce),
-      //    to_bytes32(abi.encode(erc20)),
-      //    to_bytes32(destinationChainId),
-      //    to_bytes32(netAmount),
-      //    to_bytes32(uint256(uint160(msg.sender))),
-      //    to_bytes32(bytes(recipient).length),
-      //    bytes(recipient),
-      //    data
-      // );
-      print("\nheeeree\n");
-
-      bytes event_bytes(1, 0);
-      action(
-         permission_level{ get_self(), "active"_n },
-         xerc20,
-         "swap"_n,
-         make_tuple(get_self(), nonce, event_bytes)
-      ).send();
-
+      // From this point we rely on the mint event
+      // handler (adapter::onmint) to be notified by
+      // the minting inline action from the lockbox
+      // (recipient of the token::transfer above).
+      // NOTE: this is due to the execution order
+      // of inline actions estabilished by the eosio protocol
+      // (i.e. notifications are execute BEFORE inline actions)
    } else if (search_xerc20 != idx.end()) {
 
-      check(search_xerc20->xerc20 == first_receiver, "invalid first receiver");
+      check(search_xerc20->xerc20 == token, "invalid first receiver");
 
       // TODO: call swap
    }
+
+
 }
 }
