@@ -1,5 +1,17 @@
 const { Asset, Name } = require('@wharfkit/antelope')
 
+// Usage:
+// const before = getAccountsBalances(
+//   [user, lockbox.account, adapter.account],
+//   [token, xerc20],
+// )
+//
+// console.log(before)
+// {
+//   user:    { TKN: '1000.0000 TKN', XTKN: '0' },
+//   lockbox: { TKN: '0', XTKN: '0' },
+//   adapter: { TKN: '0', XTKN: '0' }
+// }
 const getAccountsBalances = (_accounts, _tokensAndSymbol) => {
   const res = {}
   for (let account of _accounts) {
