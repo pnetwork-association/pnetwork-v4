@@ -30,11 +30,11 @@ const getAccountsBalances = (_accounts, _tokensAndSymbol) => {
 
 // Given contract must be compatible with
 // eosio.token
-const getTokenBalance = (contract, account, symcode) => {
+const getTokenBalance = (contract, account, symcode, precision = 4) => {
   const scope = Name.from(account).value.value
   const primary_key = Asset.SymbolCode.from(symcode).value.value
   const row = contract.tables.accounts(scope).getTableRow(primary_key)
-  if (!row) return 0
+  if (!row) return Asset.from(`0.${''.padEnd(precision, '0')} ${symcode}`)
   return Asset.from(row.balance)
 }
 
