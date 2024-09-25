@@ -47,7 +47,7 @@ void feesmanager::incallowance( name node, name token, uint64_t amount ) {
 // Withdraw function to withdraw tokens
 void feesmanager::withdrawto( name node, name token ) {
     allowances_table allowances(get_self(), get_self().value);
-    auto allowance_itr = allowances.find(node.value);
+    auto allowance_itr = allowances.find(node.value + token.value);
     check(allowance_itr != allowances.end(), "No allowance set for this node");
     check(allowance_itr->amount >= 0, "Allowance is zero");
 
