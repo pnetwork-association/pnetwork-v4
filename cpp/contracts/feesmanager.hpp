@@ -9,15 +9,15 @@ CONTRACT feesmanager : public eosio::contract {
 public:
     using contract::contract;
 
-    ACTION init( name security_council );
+    ACTION init(name security_council);
 
-    ACTION setallowance( name node, name token, uint64_t amount );
+    ACTION setallowance(name node, name token, uint64_t amount);
 
-    ACTION incallowance( name node, name token, uint64_t amount );
+    ACTION incallowance(name node, name token, uint64_t amount);
 
-    ACTION withdrawto( name node, name token );
+    ACTION withdrawto(name node, name token);
 
-    ACTION withdrawto( name node, const std::vector<name>& tokens);
+    ACTION withdrawto(name node, const std::vector<name>& tokens);
 
 private:
     TABLE allowance {
