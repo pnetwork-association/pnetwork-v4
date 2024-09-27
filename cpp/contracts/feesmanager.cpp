@@ -2,21 +2,9 @@
 
 using namespace eosio;
 
-void feesmanager::init( name security_council ) {
-    require_auth(get_self());
-    print("AAAAA");
-    check(is_account(security_council), "Security Council account does not exist");
-
-    config_singleton _config(get_self(), get_self().value);
-    check(!_config.exists(), "Owner is already set");
-    _config.set(config{security_council}, get_self());
-}
-
 // Set allowance for a node
 void feesmanager::setallowance( name node, const asset& value ) {
-    print("Setting allowance for node: ", node, " with value: ", value);
-    check_owner();
-
+    require_auth(get_self());
     allowances_table allowances(get_self(), node.value);
     auto allowance_itr = allowances.find(value.symbol.code().raw());
     
@@ -33,7 +21,7 @@ void feesmanager::setallowance( name node, const asset& value ) {
 
 // Increase allowance for a node
 void feesmanager::incallowance( name node, const asset& value ) {
-    check_owner();
+    require_auth(get_self());
 
     allowances_table allowances(get_self(), node.value);
     const auto& allowance_table = allowances.get(value.symbol.code().raw(), "No allowance set for this node");
@@ -44,35 +32,27 @@ void feesmanager::incallowance( name node, const asset& value ) {
 }
 
 // Withdraw function to withdraw tokens
-void feesmanager::withdrawto( name node, const asset& token ) {
+void feesmanager::withdrawto( name node, name token, const asset& value ) {
     allowances_table allowances(get_self(), node.value);
-    const auto& allowance_table = allowances.get(token.symbol.code().raw(), "No allowance set for this node");
+    const auto& allowance_table = allowances.get(value.symbol.code().raw(), "No allowance set for this node");
     check(allowance_table.allowance_data.amount >= 0, "Allowance is zero");
 
-    asset asset_data = asset(allowance_table.allowance_data.amount, token.symbol);
+    asset asset_data = asset(allowance_table.allowance_data.amount, value.symbol);
 
     allowances.modify(allowance_table, node, [&](auto& a) {
         a.allowance_data.amount = 0;
     });
-
+   
     action(
         permission_level{get_self(), "active"_n},
-        "eosio.token"_n,
+        token,
         "transfer"_n,
         std::make_tuple(get_self(), node, asset_data, std::string("Withdraw"))
     ).send();
 }
 
-void feesmanager::withdrawto(name node, const std::vector<asset>& tokens) {
+void feesmanager::withdrawto(name node, const std::vector<name>& tokens, const std::vector<asset>& values) {
     for (const auto& token : tokens) {
-        withdrawto(node, token);
+        withdrawto(node, token, values[0]);
     }
-}
-
-void feesmanager::check_owner() {
-    config_singleton _config(get_self(), get_self().value);
-    check(_config.exists(), "Owner has not been set");
-
-    config cfg = _config.get();
-    require_auth(cfg.owner); 
 }
