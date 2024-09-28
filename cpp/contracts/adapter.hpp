@@ -48,6 +48,9 @@ namespace eosio {
          [[eosio::on_notify("*::transfer")]]
          void ontransfer(const name& from, const name& to, const asset& quantity, const string& memo);
 
+         [[eosio::on_notify("*::mint")]]
+         void onmint(const name& caller, const name& to, const asset& quantity, const string& memo);
+
          // [[eosio::on_notify("*::transfer")]]
          // void ontransfer(const name& from, const name& to, const asset& quantity, const string& memo);
 

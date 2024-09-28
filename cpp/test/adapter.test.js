@@ -149,7 +149,7 @@ describe('Adapter testing', () => {
         [token, xerc20],
       )
 
-      console.log('adapter.ontransfer')
+      console.log('user.transfer')
       try {
         await token.contract.actions
           .transfer([user, adapter.account, quantity, memo])
@@ -182,7 +182,7 @@ describe('Adapter testing', () => {
           after.lockbox[xerc20.symbol],
           before.lockbox[xerc20.symbol],
         ).toString(),
-      ).to.be.equal(quantity)
+      ).to.be.equal(`0.0000 ${xerc20.symbol}`)
     })
   })
 })

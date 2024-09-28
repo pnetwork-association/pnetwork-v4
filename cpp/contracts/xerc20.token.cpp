@@ -25,7 +25,7 @@ void token::create( const name&   issuer,
 
 void token::mint( const name& caller, const name& to, const asset& quantity, const string& memo )
 {
-    print("\ntoken::mint\n");
+    print("\nxerc20::mint\n");
     require_auth(caller);
     auto sym = quantity.symbol;
     check( sym.is_valid(), "invalid symbol name" );
@@ -65,10 +65,13 @@ void token::mint( const name& caller, const name& to, const asset& quantity, con
     });
 
     add_balance( to, quantity, caller );
+
+    require_recipient(to);
 }
 
 void token::burn( const name& caller, const asset& quantity, const string& memo )
 {
+   print("\nxerc20::burn\n");
    require_auth(caller);
    auto sym = quantity.symbol;
    check( sym.is_valid(), "invalid symbol name" );

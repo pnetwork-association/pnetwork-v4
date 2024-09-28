@@ -207,6 +207,58 @@ bytes concat(uint64_t size, Type... elements) {
 void adapter::adduserdata(bytes user_data) {}
 
 
+//
+void adapter::onmint(const name& caller, const name& to, const asset& quantity, const string& memo) {
+   auto xerc20 = get_first_receiver();
+
+   // TODO: factor out
+   lockbox_singleton _lockbox(xerc20, xerc20.value);
+   check(_lockbox.exists(), "lockbox not found for the specified token");
+   auto lockbox = _lockbox.get();
+
+   check(caller == lockbox, "mint must come from the lockbox");
+
+   // TODO: accrue fees here
+
+   print("\nxerc20.burn\n");
+   action(
+      permission_level{ get_self(), "active"_n },
+      xerc20,
+      "burn"_n,
+      make_tuple(get_self(), quantity, memo)
+   ).send();
+
+   print("\nend!\n");
+
+   // TODO: get the nonce from the table here
+   // uint64_t nonce = 100000;
+
+   // auto recipient_bytes = to_bytes(recipient);
+
+   // bytes event_bytes = concat(
+   //    32 * 6 + recipient_bytes.size() + userdata.size(),
+   //    to_bytes32(nonce),
+   //    to_bytes32(token.to_string()),
+   //    to_bytes32(dest_chainid),
+   //    to_bytes32(to_wei(quantity)),
+   //    to_bytes32(from.to_string()),
+   //    to_bytes32(recipient_bytes.size()),
+   //    recipient_bytes,
+   //    userdata
+   // );
+
+   // action(
+   //    permission_level{ get_self(), "active"_n },
+   //    xerc20,
+   //    "swap"_n,
+   //    make_tuple(get_self(), nonce, event_bytes)
+   // ).send();
+
+
+   // TODO: increase nonce here
+}
+
+
 void adapter::swap(const uint64_t& nonce, const bytes& event_bytes) {}
 
 void adapter::ontransfer(const name& from, const name& to, const asset& quantity, const string& memo) {
@@ -238,9 +290,10 @@ void adapter::ontransfer(const name& from, const name& to, const asset& quantity
    if (search_token != _registry.end()) {
       auto xerc20 = search_token->xerc20;
 
+
+      // TODO: factor out
       check(search_token->token == token, "invalid first receiver");
       lockbox_singleton _lockbox(xerc20, xerc20.value);
-
       check(_lockbox.exists(), "lockbox not found for the specified token");
 
       auto lockbox = _lockbox.get();
@@ -255,47 +308,13 @@ void adapter::ontransfer(const name& from, const name& to, const asset& quantity
          make_tuple(get_self(), lockbox, quantity, empty_str)
       ).send();
 
-      asset wrapped_quantity = asset(quantity.amount, search_token->xerc20_symbol);
-
-      // TODO: accrue fees here
-
-      print("\nxerc20.burn\n");
-      action(
-         permission_level{ get_self(), "active"_n },
-         search_token->xerc20,
-         "burn"_n,
-         make_tuple(get_self(), wrapped_quantity, empty_str)
-      ).send();
-
-      print("\nend!\n");
-
-      // TODO: get the nonce from the table here
-      // uint64_t nonce = 100000;
-
-      // auto recipient_bytes = to_bytes(recipient);
-
-      // bytes event_bytes = concat(
-      //    32 * 6 + recipient_bytes.size() + userdata.size(),
-      //    to_bytes32(nonce),
-      //    to_bytes32(token.to_string()),
-      //    to_bytes32(dest_chainid),
-      //    to_bytes32(to_wei(quantity)),
-      //    to_bytes32(from.to_string()),
-      //    to_bytes32(recipient_bytes.size()),
-      //    recipient_bytes,
-      //    userdata
-      // );
-
-      // action(
-      //    permission_level{ get_self(), "active"_n },
-      //    xerc20,
-      //    "swap"_n,
-      //    make_tuple(get_self(), nonce, event_bytes)
-      // ).send();
-
-
-      // TODO: increase nonce here
-
+      // From this point we rely on the mint event
+      // handler (adapter::onmint) to be notified by
+      // the minting inline action from the lockbox
+      // (recipient of the token::transfer above).
+      // NOTE: this is due to the execution order
+      // of inline actions estabilished by the eosio protocol
+      // (i.e. notifications are execute BEFORE inline actions)
    } else if (search_xerc20 != idx.end()) {
 
       check(search_xerc20->xerc20 == token, "invalid first receiver");
