@@ -109,22 +109,25 @@ void adapter::setpam(const name& pam) {
 void adapter::extract_memo_args(
    const name& self,
    const string& memo,
-   string& ret_dest_chainid,
-   string& ret_recipient,
-   bytes& ret_data
+   string& out_sender,
+   string& out_dest_chainid,
+   string& out_recipient,
+   bytes& out_data
 ) {
 
    const vector<string> parts = split(memo, ",");
 
-   check(parts.size() == 3, "invalid memo format");
+   check(parts.size() == 4, "invalid memo format");
 
-   ret_dest_chainid = parts[0];
-   ret_recipient = parts[1];
-   string has_userdata = parts[2];
+   out_sender = parts[0];
+   out_dest_chainid = parts[1];
+   out_recipient = parts[2];
+   string has_userdata = parts[3];
 
-   check(ret_recipient.length() > 0, "invalid destination address");
-   check(is_hex_notation(ret_dest_chainid), "chain id must be 0x prefixed");
-   check(ret_dest_chainid.length() == 66, "chain id must be a 32 bytes hex-string");
+   check(out_sender.length() > 0, "invalid sender address");
+   check(out_recipient.length() > 0, "invalid destination address");
+   check(is_hex_notation(out_dest_chainid), "chain id must be 0x prefixed");
+   check(out_dest_chainid.length() == 66, "chain id must be a 32 bytes hex-string");
 
    if (has_userdata == "1") {
       // FIXME: use linked actions pattern here
@@ -138,7 +141,7 @@ void adapter::extract_memo_args(
       unpacked_data data = unpack<unpacked_data>(act.data);
 
       check(data.user_data.size() == 0, "no userdata found");
-      ret_data = data.user_data;
+      out_data = data.user_data;
    }
 }
 
@@ -207,8 +210,8 @@ bytes concat(uint64_t size, Type... elements) {
 void adapter::adduserdata(bytes user_data) {}
 
 
-//
 void adapter::onmint(const name& caller, const name& to, const asset& quantity, const string& memo) {
+   print("\nadapter::onmint\n");
    auto xerc20 = get_first_receiver();
 
    // TODO: factor out
@@ -217,6 +220,12 @@ void adapter::onmint(const name& caller, const name& to, const asset& quantity, 
    auto lockbox = _lockbox.get();
 
    check(caller == lockbox, "mint must come from the lockbox");
+
+   registry _registry(lockbox, lockbox.value);
+   auto idx = _registry.get_index<name("byxtoken")>();
+   auto search_xerc20 = idx.lower_bound(quantity.symbol.code().raw());
+
+   check(search_xerc20 != idx.end(), "token not registered");
 
    // TODO: accrue fees here
 
@@ -230,30 +239,39 @@ void adapter::onmint(const name& caller, const name& to, const asset& quantity, 
 
    print("\nend!\n");
 
+   string sender;
+   string dest_chainid;
+   string recipient;
+   bytes userdata;
+
+   extract_memo_args(get_self(), memo, sender, dest_chainid, recipient, userdata);
+
    // TODO: get the nonce from the table here
-   // uint64_t nonce = 100000;
+   uint64_t nonce = 100000;
 
-   // auto recipient_bytes = to_bytes(recipient);
+   auto recipient_bytes = to_bytes(recipient);
 
-   // bytes event_bytes = concat(
-   //    32 * 6 + recipient_bytes.size() + userdata.size(),
-   //    to_bytes32(nonce),
-   //    to_bytes32(token.to_string()),
-   //    to_bytes32(dest_chainid),
-   //    to_bytes32(to_wei(quantity)),
-   //    to_bytes32(from.to_string()),
-   //    to_bytes32(recipient_bytes.size()),
-   //    recipient_bytes,
-   //    userdata
-   // );
+   bytes event_bytes = concat(
+      32 * 6 + recipient_bytes.size() + userdata.size(),
+      to_bytes32(nonce),
+      to_bytes32(search_xerc20->token.to_string()),
+      hex_to_bytes(dest_chainid),
+      to_bytes32(to_wei(quantity)),
+      to_bytes32(sender),
+      to_bytes32(recipient_bytes.size()),
+      recipient_bytes,
+      userdata
+   );
 
-   // action(
-   //    permission_level{ get_self(), "active"_n },
-   //    xerc20,
-   //    "swap"_n,
-   //    make_tuple(get_self(), nonce, event_bytes)
-   // ).send();
-
+   print("\nadapter.swap\n");
+   print("\nevent_bytes\n");
+   // printhex(event_bytes.data(), event_bytes.size());
+   action(
+      permission_level{ get_self(), "active"_n },
+      get_self(),
+      "swap"_n,
+      make_tuple(nonce, event_bytes)
+   ).send();
 
    // TODO: increase nonce here
 }
@@ -279,12 +297,6 @@ void adapter::ontransfer(const name& from, const name& to, const asset& quantity
       "token not registered"
    );
 
-   string dest_chainid;
-   string recipient;
-   bytes userdata;
-
-   extract_memo_args(get_self(), memo, dest_chainid, recipient, userdata);
-
    auto token = get_first_receiver();
 
    if (search_token != _registry.end()) {
@@ -305,7 +317,7 @@ void adapter::ontransfer(const name& from, const name& to, const asset& quantity
          permission_level{ get_self(), "active"_n },
          token,
          "transfer"_n,
-         make_tuple(get_self(), lockbox, quantity, empty_str)
+         make_tuple(get_self(), lockbox, quantity, memo)
       ).send();
 
       // From this point we rely on the mint event

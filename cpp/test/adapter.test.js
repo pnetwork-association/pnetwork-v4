@@ -17,8 +17,8 @@ const {
 } = require('./utils/get-token-balance')
 const ethers = require('ethers')
 
-const getSwapMemo = (destinationChainId, recipient, data) =>
-  `${destinationChainId},${recipient},${R.isEmpty(data) ? '0' : '1'}`
+const getSwapMemo = (sender, destinationChainId, recipient, data) =>
+  `${sender},${destinationChainId},${recipient},${R.isEmpty(data) ? '0' : '1'}`
 
 describe('Adapter testing', () => {
   const symbol = 'TKN'
@@ -140,7 +140,7 @@ describe('Adapter testing', () => {
       const data = ''
       const recipient = '0x68bbed6a47194eff1cf514b50ea91895597fc91e'
       const destinationChainId = ethers.zeroPadValue('0x01', 32)
-      const memo = getSwapMemo(destinationChainId, recipient, data)
+      const memo = getSwapMemo(user, destinationChainId, recipient, data)
       const amount = '10.0000'
       const quantity = `${amount} ${symbol}`
 
@@ -183,6 +183,8 @@ describe('Adapter testing', () => {
           before.lockbox[xerc20.symbol],
         ).toString(),
       ).to.be.equal(`0.0000 ${xerc20.symbol}`)
+
+      // TODO: check swap action inclusion here
     })
   })
 })
