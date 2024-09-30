@@ -22,8 +22,11 @@ const multiply = assetOperation(R.multiply)
 
 const divide = assetOperation(R.divide)
 
+const no0x = _0xValue => _0xValue.replace('0x', '')
+
 module.exports = {
   sum,
+  no0x,
   divide,
   multiply,
   substract,

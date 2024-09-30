@@ -26,24 +26,35 @@ namespace eosio {
    // |      ''       | bytes32(address(WETH)) | 'xweth.token'  |
    //
    struct [[eosio::table]] adapter_registry_table {
-      name           token;
-      symbol         token_symbol;
-      bytes          token_bytes;
-      name           xerc20;
-      symbol         xerc20_symbol;
+      name                 token;
+      symbol               token_symbol;
+      checksum256          token_bytes;
+      name                 xerc20;
+      symbol               xerc20_symbol;
 
-      uint64_t primary_key()   const { return token_symbol.code().raw(); }
-      uint64_t secondary_key() const { return xerc20_symbol.code().raw(); }
+      uint64_t primary_key()    const { return token_symbol.code().raw(); }
+      uint64_t secondary_key()  const { return xerc20_symbol.code().raw(); }
+      const checksum256& ternary_key() const { return token_bytes; }
    };
 
-   constexpr name adapter_registry_idx_xtoken_name = "byxtoken1"_n;
+   constexpr name adapter_registry_idx_xtoken = "byxtoken1"_n;
+   constexpr name adapter_registry_idx_token_bytes = "bytokenbytes"_n;
 
    typedef indexed_by<
-      adapter_registry_idx_xtoken_name,
+      adapter_registry_idx_xtoken,
       const_mem_fun<
          adapter_registry_table,
          uint64_t,
          &adapter_registry_table::secondary_key
       >
    > adapter_registry_byxtoken;
+
+   typedef indexed_by<
+      adapter_registry_idx_token_bytes,
+      const_mem_fun<
+         adapter_registry_table,
+         const checksum256&,
+         &adapter_registry_table::ternary_key
+      >
+   > adapter_registry_bytokenbytes;
 }

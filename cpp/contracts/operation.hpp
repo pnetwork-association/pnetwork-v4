@@ -1,5 +1,6 @@
 #pragma once
 
+#include <eosio/asset.hpp>
 #include <eosio/eosio.hpp>
 
 namespace eosio {
@@ -7,16 +8,16 @@ namespace eosio {
 
    struct operation {
    public:
-      bytes blockId;
-      bytes txId;
-      uint64_t nonce;
-      bytes erc20;
-      bytes originChainId;
-      bytes destinationChainId;
-      uint64_t amount;
-      bytes sender;
-      name recipient;
-      bytes data;
+      // bytes blockId;
+      // bytes txId;
+      // uint64_t nonce;
+      checksum256 token; // erc20 on EVM
+      // bytes originChainId;
+      // bytes destinationChainId;
+      // asset quantity; // amount on EVM
+      // bytes sender;
+      // name recipient;
+      // bytes data;
 
       // constexpr operation() : value(42) {}
 

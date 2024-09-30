@@ -60,11 +60,12 @@ void adapter::create(
    const symbol& xerc20_symbol,
    const name& token,
    const symbol& token_symbol,
-   const bytes& token_bytes
+   const checksum256& token_bytes
 ) {
    require_auth(get_self());
 
-   check(token_bytes.size() == 32, "token bytes length must be 32");
+   auto _token_bytes = token_bytes.extract_as_byte_array();
+   check(_token_bytes.size() == 32, "token bytes length must be 32");
    check(is_account(token), "token account does not exist");
    check(is_account(xerc20), "xERC20 account does not exist");
 
@@ -288,26 +289,17 @@ void adapter::settle(const operation& operation, const metadata& metadata) {
    print("\nsettle!\n");
    print("\nblockid\n");
 
-   // registry _registry(get_self(), get_self().value);
-   // auto search_token = _registry.find(quantity.symbol.code().raw());
-   // auto idx = _registry.get_index<name("byxtoken")>();
-   // auto search_xerc20 = idx.lower_bound(quantity.symbol.code().raw());
+   registry_adapter _registry(get_self(), get_self().value);
+   auto idx = _registry.get_index<adapter_registry_idx_token_bytes>();
+   auto search_token_bytes = idx.find(operation.token);
+   // auto y = operation.token.extract_as_byte_array();
+   // auto x = search_token_bytes->token_bytes.extract_as_byte_array();
+   check(search_token_bytes != idx.end(), "invalid token");
 
-   // check(
-   //    search_token != _registry.end() ||
-   //    search_xerc20 != idx.end(),
-   //    "token not registered"
-   // );
-
-   // check(search_token->token !=)
-
+   // check()
 
    // printhex(operation.blockId.data(), operation.blockId.size());
 
-   // auto search_token;
-   // auto search_xerc20;
-
-   // get_registered_tokens()
 
 }
 
@@ -323,7 +315,7 @@ void adapter::ontransfer(const name& from, const name& to, const asset& quantity
 
    registry_adapter _registry(get_self(), get_self().value);
    auto search_token = _registry.find(quantity.symbol.code().raw());
-   auto idx = _registry.get_index<adapter_registry_idx_xtoken_name>();
+   auto idx = _registry.get_index<adapter_registry_idx_xtoken>();
    auto search_xerc20 = idx.lower_bound(quantity.symbol.code().raw());
 
    check(
@@ -334,6 +326,9 @@ void adapter::ontransfer(const name& from, const name& to, const asset& quantity
 
    auto token = get_first_receiver();
 
+   // TODO: handle case when transfer quantity is an xERC20
+   // asset, meaning perform non-local (from host) crosschain
+   // swap
    if (search_token != _registry.end()) {
       auto xerc20 = search_token->xerc20;
 

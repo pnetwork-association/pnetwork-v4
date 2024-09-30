@@ -36,7 +36,7 @@ namespace eosio {
             const symbol& xerc20_symbol,
             const name& token,
             const symbol& token_symbol,
-            const bytes& token_bytes
+            const checksum256& token_bytes
          );
 
          [[eosio::action]]
@@ -81,8 +81,13 @@ namespace eosio {
 
          using byeventid = indexed_by<"byeventid"_n, const_mem_fun<past_events_model, checksum256, &past_events_model::secondary_key> >;
          typedef eosio::multi_index<"pastevents"_n, past_events_model, byeventid> past_events;
-         typedef eosio::multi_index<"regadapter"_n, adapter_registry_table, adapter_registry_byxtoken> registry_adapter;
          typedef eosio::multi_index<"reglockbox"_n, lockbox_registry_table, lockbox_registry_byxtoken> registry_lockbox;
+         typedef eosio::multi_index<
+            "regadapter"_n,
+            adapter_registry_table,
+            adapter_registry_byxtoken,
+            adapter_registry_bytokenbytes
+         > registry_adapter;
 
          using lockbox_singleton = singleton<"lockbox"_n, name>;
          using storage = singleton<"storage"_n, global_storage_model>;

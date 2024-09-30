@@ -10,7 +10,7 @@ const {
   getSymbolCodeRaw,
 } = require('./utils/eos-ext')
 const errors = require('./utils/errors')
-const { substract } = require('./utils/wharfkit-ext')
+const { substract, no0x } = require('./utils/wharfkit-ext')
 const {
   getTokenBalance,
   getAccountsBalances,
@@ -118,15 +118,21 @@ describe('Adapter testing', () => {
         32,
       )
 
-      await adapter.contract.actions
-        .create([
-          xerc20.account,
-          precision4(xerc20.symbol),
-          token.account,
-          precision4(token.symbol),
-          ethers.getBytes(tokenBytes),
-        ])
-        .send(active(adapter.account))
+      console.log('tokenBytes', tokenBytes)
+
+      try {
+        await adapter.contract.actions
+          .create([
+            xerc20.account,
+            precision4(xerc20.symbol),
+            token.account,
+            precision4(token.symbol),
+            ethers.getBytes(tokenBytes),
+          ])
+          .send(active(adapter.account))
+      } finally {
+        console.log(adapter.contract.bc.console)
+      }
 
       const row = adapter.contract.tables
         .regadapter(getAccountCodeRaw(adapter.account))
@@ -195,13 +201,19 @@ describe('Adapter testing', () => {
     })
   })
 
-  // it('Should settle the operation properly', async () => {
-  //   try {
-  //     await adapter.contract.actions
-  //       .settle([{ blockId: [1, 2, 3, 4] }])
-  //       .send(active(user))
-  //   } finally {
-  //     console.log(adapter.contract.bc.console)
-  //   }
-  // })
+  describe('adapter::settle', () => {
+    it('Should settle the operation properly', async () => {
+      const preimage = ethers.getBytes('0x00')
+      const signature = ethers.getBytes('0x00')
+      const erc20 = ethers.getBytes(ethers.zeroPadBytes('0x00', 32))
+
+      try {
+        await adapter.contract.actions
+          .settle([{ token: erc20 }, { preimage, signature }])
+          .send(active(user))
+      } finally {
+        console.log(adapter.contract.bc.console)
+      }
+    })
+  })
 })
