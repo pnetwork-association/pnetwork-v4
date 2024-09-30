@@ -49,7 +49,7 @@ void lockbox::ontransfer(
    name token = get_first_receiver();
    registry _registry(get_self(), get_self().value);
    auto search_token = _registry.find(quantity.symbol.code().raw());
-   auto idx = _registry.get_index<name("byxtoken")>();
+   auto idx = _registry.get_index<lockbox_registry_idx_xtoken_name>();
    auto search_xerc20 = idx.lower_bound(quantity.symbol.code().raw());
 
    check(

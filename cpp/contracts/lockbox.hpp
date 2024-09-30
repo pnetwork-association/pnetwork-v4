@@ -30,8 +30,11 @@ namespace eosio {
 
       private:
          typedef eosio::multi_index<"stat"_n, token_stats_table > stats;
-         using byxtoken = indexed_by<"byxtoken"_n, const_mem_fun<lockbox_registry_table, uint64_t, &lockbox_registry_table::secondary_key>>;
-         typedef eosio::multi_index<"registry"_n, lockbox_registry_table, byxtoken> registry;
+         typedef eosio::multi_index<
+            "reglockbox"_n,
+            lockbox_registry_table,
+            lockbox_registry_byxtoken
+         > registry;
 
          void check_symbol_is_valid(const name& account, const symbol& sym);
    };

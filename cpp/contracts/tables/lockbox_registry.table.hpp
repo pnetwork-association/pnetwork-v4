@@ -21,4 +21,13 @@ namespace eosio {
       uint64_t primary_key()   const { return token_symbol.code().raw(); }
       uint64_t secondary_key() const { return xerc20_symbol.code().raw(); }
    };
+
+   constexpr name lockbox_registry_idx_xtoken_name = "byxtoken2"_n;
+
+   typedef indexed_by<
+      lockbox_registry_idx_xtoken_name,
+      const_mem_fun<lockbox_registry_table,
+      uint64_t,
+      &lockbox_registry_table::secondary_key>
+   > lockbox_registry_byxtoken;
 }
