@@ -9,10 +9,18 @@
 
 #include <string>
 
+#include "operation.hpp"
+#include "metadata.hpp"
+
+#include "tables/token_stats.table.hpp"
+#include "tables/adapter_registry.table.hpp"
+#include "tables/lockbox_registry.table.hpp"
+
 namespace eosio {
    using std::string;
    using std::vector;
    using std::make_tuple;
+   using eosio::operation;
    using eosio::read_transaction;
    using eosio::transaction_size;
    using eosio::unpack;
@@ -27,7 +35,8 @@ namespace eosio {
             const name& xerc20,
             const symbol& xerc20_symbol,
             const name& token,
-            const symbol& token_symbol
+            const symbol& token_symbol,
+            const bytes& token_bytes
          );
 
          [[eosio::action]]
@@ -35,9 +44,6 @@ namespace eosio {
 
          [[eosio::action]]
          void setpam(const name& pam);
-
-         // [[eosio::action]]
-         // void settle(const operation& operation_, const metadata& metadata_);
 
          [[eosio::action]]
          void adduserdata(std::vector<uint8_t> user_data);
@@ -51,30 +57,12 @@ namespace eosio {
          [[eosio::on_notify("*::mint")]]
          void onmint(const name& caller, const name& to, const asset& quantity, const string& memo);
 
+         [[eosio::action]]
+         void settle(const operation& operation, const metadata& metadata);
+
          // [[eosio::on_notify("*::transfer")]]
          // void ontransfer(const name& from, const name& to, const asset& quantity, const string& memo);
-
       private:
-         struct [[eosio::table]] registry_model {
-            // NOTE: see lockbox
-            name     token;
-            symbol   token_symbol;
-            name     xerc20;
-            symbol   xerc20_symbol;
-
-            uint64_t primary_key()   const { return token_symbol.code().raw(); }
-            uint64_t secondary_key() const { return xerc20_symbol.code().raw(); }
-         };
-
-         // Needed to access the token/XERC20 symbols table
-         struct [[eosio::table]] currency_stats {
-            asset    supply;
-            asset    max_supply;
-            name     issuer;
-
-            uint64_t primary_key() const { return supply.symbol.code().raw(); }
-         };
-
          struct [[eosio::table]] past_events_model {
             uint64_t      nonce;
             checksum256   event_id;
@@ -89,13 +77,12 @@ namespace eosio {
             name       feesmanager;
          };
 
-         typedef eosio::multi_index<"stat"_n, currency_stats> stats;
-         typedef eosio::multi_index<"registry"_n, registry_model,
-            indexed_by< "byxtoken"_n, const_mem_fun<registry_model, uint64_t, &registry_model::secondary_key>
-         > > registry;
-         typedef eosio::multi_index<"pastevents"_n, past_events_model,
-            indexed_by< "byeventid"_n, const_mem_fun<past_events_model, checksum256, &past_events_model::secondary_key>
-         > > past_events;
+         typedef eosio::multi_index<"stat"_n, token_stats_table> stats;
+
+         using byeventid = indexed_by<"byeventid"_n, const_mem_fun<past_events_model, checksum256, &past_events_model::secondary_key> >;
+         typedef eosio::multi_index<"pastevents"_n, past_events_model, byeventid> past_events;
+         typedef eosio::multi_index<"regadapter"_n, adapter_registry_table, adapter_registry_byxtoken> registry_adapter;
+         typedef eosio::multi_index<"reglockbox"_n, lockbox_registry_table, lockbox_registry_byxtoken> registry_lockbox;
 
          using lockbox_singleton = singleton<"lockbox"_n, name>;
          using storage = singleton<"storage"_n, global_storage_model>;
@@ -105,6 +92,7 @@ namespace eosio {
             .feesmanager = ""_n,
             .minfee = ""_n
          };
+
 
          void check_symbol_is_valid(const name& account, const symbol& sym);
          void extract_memo_args(

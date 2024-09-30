@@ -113,22 +113,29 @@ describe('Adapter testing', () => {
     it('Should create the pair successfully', async () => {
       await setup()
 
+      const tokenBytes = ethers.zeroPadValue(
+        ethers.toBeHex(getSymbolCodeRaw(token.maxSupply).toString()),
+        32,
+      )
+
       await adapter.contract.actions
         .create([
           xerc20.account,
           precision4(xerc20.symbol),
           token.account,
           precision4(token.symbol),
+          ethers.getBytes(tokenBytes),
         ])
         .send(active(adapter.account))
 
       const row = adapter.contract.tables
-        .registry(getAccountCodeRaw(adapter.account))
+        .regadapter(getAccountCodeRaw(adapter.account))
         .getTableRow(getSymbolCodeRaw(token.maxSupply))
 
       expect(row).to.be.deep.equal({
         token: token.account,
         token_symbol: precision4(token.symbol),
+        token_bytes: tokenBytes.replace('0x', ''),
         xerc20: xerc20.account,
         xerc20_symbol: precision4(xerc20.symbol),
       })
@@ -155,7 +162,7 @@ describe('Adapter testing', () => {
           .transfer([user, adapter.account, quantity, memo])
           .send(active(user))
       } finally {
-        console.log(xerc20.contract.bc.console)
+        console.log(adapter.contract.bc.console)
       }
 
       const after = getAccountsBalances(
@@ -187,4 +194,14 @@ describe('Adapter testing', () => {
       // TODO: check swap action inclusion here
     })
   })
+
+  // it('Should settle the operation properly', async () => {
+  //   try {
+  //     await adapter.contract.actions
+  //       .settle([{ blockId: [1, 2, 3, 4] }])
+  //       .send(active(user))
+  //   } finally {
+  //     console.log(adapter.contract.bc.console)
+  //   }
+  // })
 })
