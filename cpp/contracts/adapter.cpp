@@ -59,24 +59,29 @@ void adapter::create(
    const name& xerc20,
    const symbol& xerc20_symbol,
    const name& token,
-   const symbol& token_symbol
+   const symbol& token_symbol,
+   const checksum256& token_bytes
 ) {
    require_auth(get_self());
 
+   auto _token_bytes = token_bytes.extract_as_byte_array();
+   check(_token_bytes.size() == 32, "token bytes length must be 32");
    check(is_account(token), "token account does not exist");
    check(is_account(xerc20), "xERC20 account does not exist");
 
-   registry _registry(get_self(), get_self().value);
+   registry_adapter _registry(get_self(), get_self().value);
    auto itr = _registry.find(token_symbol.code().raw());
    check(itr == _registry.end(), "token already registered");
    check_symbol_is_valid(xerc20, xerc20_symbol);
    check_symbol_is_valid(token, token_symbol);
 
+   checksum256 c;
    _registry.emplace( get_self(), [&]( auto& r ) {
        r.xerc20 = xerc20;
        r.xerc20_symbol = xerc20_symbol;
        r.token = token;
        r.token_symbol = token_symbol;
+       r.token_bytes = token_bytes;
    });
 }
 
@@ -221,9 +226,12 @@ void adapter::onmint(const name& caller, const name& to, const asset& quantity, 
 
    check(caller == lockbox, "mint must come from the lockbox");
 
-   registry _registry(lockbox, lockbox.value);
-   auto idx = _registry.get_index<name("byxtoken")>();
+   registry_lockbox _registry(lockbox, lockbox.value);
+   auto idx = _registry.get_index<lockbox_registry_idx_xtoken_name>();
+
+   print("\nciao\n");
    auto search_xerc20 = idx.lower_bound(quantity.symbol.code().raw());
+   print(quantity.to_string());
 
    check(search_xerc20 != idx.end(), "token not registered");
 
@@ -277,6 +285,25 @@ void adapter::onmint(const name& caller, const name& to, const asset& quantity, 
 }
 
 
+void adapter::settle(const operation& operation, const metadata& metadata) {
+   print("\nsettle!\n");
+   print("\nblockid\n");
+
+   registry_adapter _registry(get_self(), get_self().value);
+   auto idx = _registry.get_index<adapter_registry_idx_token_bytes>();
+   auto search_token_bytes = idx.find(operation.token);
+   // auto y = operation.token.extract_as_byte_array();
+   // auto x = search_token_bytes->token_bytes.extract_as_byte_array();
+   check(search_token_bytes != idx.end(), "invalid token");
+
+   // check()
+
+   // printhex(operation.blockId.data(), operation.blockId.size());
+
+
+}
+
+
 void adapter::swap(const uint64_t& nonce, const bytes& event_bytes) {}
 
 void adapter::ontransfer(const name& from, const name& to, const asset& quantity, const string& memo) {
@@ -286,9 +313,9 @@ void adapter::ontransfer(const name& from, const name& to, const asset& quantity
    check(to == get_self(), "recipient must be the contract");
    check(quantity.amount > 0, "invalid amount");
 
-   registry _registry(get_self(), get_self().value);
+   registry_adapter _registry(get_self(), get_self().value);
    auto search_token = _registry.find(quantity.symbol.code().raw());
-   auto idx = _registry.get_index<name("byxtoken")>();
+   auto idx = _registry.get_index<adapter_registry_idx_xtoken>();
    auto search_xerc20 = idx.lower_bound(quantity.symbol.code().raw());
 
    check(
@@ -299,9 +326,11 @@ void adapter::ontransfer(const name& from, const name& to, const asset& quantity
 
    auto token = get_first_receiver();
 
+   // TODO: handle case when transfer quantity is an xERC20
+   // asset, meaning perform non-local (from host) crosschain
+   // swap
    if (search_token != _registry.end()) {
       auto xerc20 = search_token->xerc20;
-
 
       // TODO: factor out
       check(search_token->token == token, "invalid first receiver");

@@ -10,7 +10,7 @@ const {
   getSymbolCodeRaw,
 } = require('./utils/eos-ext')
 const errors = require('./utils/errors')
-const { substract } = require('./utils/wharfkit-ext')
+const { substract, no0x } = require('./utils/wharfkit-ext')
 const {
   getTokenBalance,
   getAccountsBalances,
@@ -113,22 +113,35 @@ describe('Adapter testing', () => {
     it('Should create the pair successfully', async () => {
       await setup()
 
-      await adapter.contract.actions
-        .create([
-          xerc20.account,
-          precision4(xerc20.symbol),
-          token.account,
-          precision4(token.symbol),
-        ])
-        .send(active(adapter.account))
+      const tokenBytes = ethers.zeroPadValue(
+        ethers.toBeHex(getSymbolCodeRaw(token.maxSupply).toString()),
+        32,
+      )
+
+      console.log('tokenBytes', tokenBytes)
+
+      try {
+        await adapter.contract.actions
+          .create([
+            xerc20.account,
+            precision4(xerc20.symbol),
+            token.account,
+            precision4(token.symbol),
+            ethers.getBytes(tokenBytes),
+          ])
+          .send(active(adapter.account))
+      } finally {
+        console.log(adapter.contract.bc.console)
+      }
 
       const row = adapter.contract.tables
-        .registry(getAccountCodeRaw(adapter.account))
+        .regadapter(getAccountCodeRaw(adapter.account))
         .getTableRow(getSymbolCodeRaw(token.maxSupply))
 
       expect(row).to.be.deep.equal({
         token: token.account,
         token_symbol: precision4(token.symbol),
+        token_bytes: tokenBytes.replace('0x', ''),
         xerc20: xerc20.account,
         xerc20_symbol: precision4(xerc20.symbol),
       })
@@ -155,7 +168,7 @@ describe('Adapter testing', () => {
           .transfer([user, adapter.account, quantity, memo])
           .send(active(user))
       } finally {
-        console.log(xerc20.contract.bc.console)
+        console.log(adapter.contract.bc.console)
       }
 
       const after = getAccountsBalances(
@@ -185,6 +198,22 @@ describe('Adapter testing', () => {
       ).to.be.equal(`0.0000 ${xerc20.symbol}`)
 
       // TODO: check swap action inclusion here
+    })
+  })
+
+  describe('adapter::settle', () => {
+    it('Should settle the operation properly', async () => {
+      const preimage = ethers.getBytes('0x00')
+      const signature = ethers.getBytes('0x00')
+      const erc20 = ethers.getBytes(ethers.zeroPadBytes('0x00', 32))
+
+      try {
+        await adapter.contract.actions
+          .settle([{ token: erc20 }, { preimage, signature }])
+          .send(active(user))
+      } finally {
+        console.log(adapter.contract.bc.console)
+      }
     })
   })
 })
