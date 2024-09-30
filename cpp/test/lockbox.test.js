@@ -108,7 +108,7 @@ describe('Lockbox testing', () => {
         .send(active(lockbox.account))
 
       const after = lockbox.contract.tables
-        .registry(getAccountCodeRaw(lockbox.account))
+        .reglockbox(getAccountCodeRaw(lockbox.account))
         .getTableRow(getSymbolCodeRaw(token.maxSupply))
 
       expect(after).to.be.deep.equal({
