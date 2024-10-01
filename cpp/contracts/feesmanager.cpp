@@ -6,7 +6,9 @@ void feesmanager::setallowance( name node, name token, const asset& value ) {
     require_auth(get_self());
 
     auto balance = getbalance(token, value.symbol);
-    check(balance.amount >= value.amount, "balance is lower than the allowance to be set");
+
+    total_allowance_table total_allowance(get_self(), token.value);
+    auto total_token_allowance = total_allowance.get_or_create(get_self(), {asset(0, value.symbol)}).allowance.amount;
 
     allowances_table allowances(get_self(), node.value);
     auto allowance_itr = allowances.find(value.symbol.code().raw());
@@ -14,15 +16,20 @@ void feesmanager::setallowance( name node, name token, const asset& value ) {
     auto allowance_name_itr = allowance_name_idx.find(token.value);
 
     if (allowance_itr == allowances.end() && allowance_name_itr == allowance_name_idx.end()) {
+        check(balance.amount >= total_token_allowance + value.amount, "balance is lower than the allowance to be set");
         allowances.emplace(get_self(), [&](auto& a) {
-            a.allowance_data = value;
+            a.node_allowance = value;
             a.token = token;
         });
+        total_allowance.set({asset(total_token_allowance + value.amount , value.symbol)}, get_self());
     } else {
         check(allowance_itr->token == token, "symbol and token do not match");
+        check(balance.amount >= (total_token_allowance - allowance_itr->node_allowance.amount) + value.amount, "balance is lower than the allowance to be set");
         allowances.modify(allowance_itr, get_self(), [&](auto& a) {
-            a.allowance_data = value;
+            a.node_allowance = value;
+            a.token = token;
         });
+        total_allowance.set({asset(total_token_allowance + value.amount , value.symbol)}, get_self());
     }
 }
 
@@ -32,11 +39,14 @@ void feesmanager::incallowance( name node, name token, const asset& value ) {
     allowances_table allowances(get_self(), node.value);
     const auto& allowance_table = allowances.get(value.symbol.code().raw(), "No allowance set for this node");
 
+    total_allowance_table total_allowance(get_self(), token.value);
+    auto total_token_allowance = total_allowance.get().allowance.amount;
+
     auto balance = getbalance(token, value.symbol);
-    check(balance.amount >= value.amount + allowance_table.allowance_data.amount, "balance is lower than the allowance to be set");
+    check(balance.amount >= total_token_allowance + value.amount, "balance is lower than the allowance to be set");
 
     allowances.modify(allowance_table, get_self(), [&](auto& a) {
-        a.allowance_data.amount += value.amount;
+        a.node_allowance.amount += value.amount;
     });
 }
 
@@ -44,10 +54,10 @@ void feesmanager::withdrawto( name node, name token, symbol token_symbol ) {
     allowances_table allowances(get_self(), node.value);
 
     const auto& allowance_table = allowances.get(token_symbol.code().raw(), "No allowance set for this node");
-    asset asset_data = asset(allowance_table.allowance_data.amount, token_symbol);
+    asset asset_data = asset(allowance_table.node_allowance.amount, token_symbol);
 
     allowances.modify(allowance_table, node, [&](auto& a) {
-        a.allowance_data.amount = 0;
+        a.node_allowance.amount = 0;
     });
    
     action(
