@@ -8,16 +8,19 @@ namespace eosio {
 
    struct operation {
    public:
-      // bytes blockId;
-      // bytes txId;
-      // uint64_t nonce;
+      // TODO: enable all the fields when
+      // working on the PAM
+      //
+      bytes blockId;
+      bytes txId;
+      uint64_t nonce;
       checksum256 token; // erc20 on EVM
-      // bytes originChainId;
-      // bytes destinationChainId;
-      asset quantity; // amount on EVM
-      // bytes sender;
+      bytes originChainId;
+      bytes destinationChainId;
+      uint128_t amount;
+      bytes sender;
       name recipient;
-      // bytes data;
+      bytes data;
 
       // constexpr operation() : value(42) {}
 

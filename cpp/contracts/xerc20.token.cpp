@@ -31,6 +31,8 @@ void token::mint( const name& caller, const name& to, const asset& quantity, con
     check( sym.is_valid(), "invalid symbol name" );
     check( memo.size() <= 256, "memo has more than 256 bytes" );
 
+    print("\nsym.code()\n");
+    print(sym.code());
     stats statstable( get_self(), sym.code().raw() );
     auto existing = statstable.find( sym.code().raw() );
     check( existing != statstable.end(), "token with symbol does not exist, create token before issue" );

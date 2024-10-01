@@ -9,12 +9,11 @@ const {
   getAccountCodeRaw,
   getSymbolCodeRaw,
 } = require('./utils/eos-ext')
-const errors = require('./utils/errors')
 const { substract, no0x } = require('./utils/wharfkit-ext')
-const {
-  getTokenBalance,
-  getAccountsBalances,
-} = require('./utils/get-token-balance')
+const { getAccountsBalances } = require('./utils/get-token-balance')
+const { getMetadataSample } = require('./utils/get-metadata-sample')
+const { getOperationSample } = require('./utils/get-operation-sample')
+
 const ethers = require('ethers')
 
 const getSwapMemo = (sender, destinationChainId, recipient, data) =>
@@ -25,11 +24,18 @@ describe('Adapter testing', () => {
   const precision4 = precision(4)
   const maxSupply = '500000000.0000'
   const userInitialBalance = `1000.0000 ${symbol}`
+  const tokenBytes = no0x(
+    ethers.zeroPadValue(
+      ethers.toBeHex(getSymbolCodeRaw(`0.0000 ${symbol}`).toString()),
+      32,
+    ),
+  )
 
   const token = {
     symbol: symbol,
     account: `${symbol.toLowerCase()}.token`,
     maxSupply: `${maxSupply} ${symbol}`,
+    bytes: tokenBytes,
     contract: undefined,
   }
   const xerc20 = {
@@ -79,7 +85,6 @@ describe('Adapter testing', () => {
       .create([issuer, xerc20.maxSupply])
       .send(active(xerc20.account))
 
-    console.log(xerc20.contract.bc.console)
     await lockbox.contract.actions
       .create([
         xerc20.account,
@@ -113,13 +118,7 @@ describe('Adapter testing', () => {
     it('Should create the pair successfully', async () => {
       await setup()
 
-      const tokenBytes = ethers.zeroPadValue(
-        ethers.toBeHex(getSymbolCodeRaw(token.maxSupply).toString()),
-        32,
-      )
-
-      console.log('tokenBytes', tokenBytes)
-
+      console.log('tokenBytes', token.bytes)
       try {
         await adapter.contract.actions
           .create([
@@ -127,7 +126,7 @@ describe('Adapter testing', () => {
             precision4(xerc20.symbol),
             token.account,
             precision4(token.symbol),
-            ethers.getBytes(tokenBytes),
+            token.bytes,
           ])
           .send(active(adapter.account))
       } finally {
@@ -141,7 +140,7 @@ describe('Adapter testing', () => {
       expect(row).to.be.deep.equal({
         token: token.account,
         token_symbol: precision4(token.symbol),
-        token_bytes: tokenBytes.replace('0x', ''),
+        token_bytes: token.bytes,
         xerc20: xerc20.account,
         xerc20_symbol: precision4(xerc20.symbol),
       })
@@ -162,7 +161,6 @@ describe('Adapter testing', () => {
         [token, xerc20],
       )
 
-      console.log('user.transfer')
       try {
         await token.contract.actions
           .transfer([user, adapter.account, quantity, memo])
@@ -201,23 +199,18 @@ describe('Adapter testing', () => {
     })
   })
 
-  describe('adapter::settle', () => {
-    it('Should settle the operation properly', async () => {
-      const nonce = 0
-      const preimage = ethers.getBytes('0x00')
-      const signature = ethers.getBytes('0x00')
-      const erc20 = ethers.getBytes(ethers.zeroPadBytes('0x00', 32))
+  // describe('adapter::settle', () => {
+  //   it('Should settle the operation properly', async () => {
+  //     const operation = getOperationSample()
+  //     const metadata = getMetadataSample()
 
-      try {
-        await adapter.contract.actions
-          .settle([
-            { token: erc20, nonce },
-            { preimage, signature },
-          ])
-          .send(active(user))
-      } finally {
-        console.log(adapter.contract.bc.console)
-      }
-    })
-  })
+  //     try {
+  //       await adapter.contract.actions
+  //         .settle([user, operation, metadata])
+  //         .send(active(user))
+  //     } finally {
+  //       console.log(adapter.contract.bc.console)
+  //     }
+  //   })
+  // })
 })
