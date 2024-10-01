@@ -28,6 +28,9 @@ namespace eosio {
          [[eosio::on_notify("*::transfer")]]
          void ontransfer(const name& from, const name& to, const asset& quantity, const string& memo);
 
+         [[eosio::on_notify("*::mint")]]
+         void onmint(const name& from, const name& to, const asset& quantity, const string& memo);
+
       private:
          typedef eosio::multi_index<"stat"_n, token_stats_table > stats;
          typedef eosio::multi_index<

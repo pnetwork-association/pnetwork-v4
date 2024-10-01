@@ -203,13 +203,17 @@ describe('Adapter testing', () => {
 
   describe('adapter::settle', () => {
     it('Should settle the operation properly', async () => {
+      const nonce = 0
       const preimage = ethers.getBytes('0x00')
       const signature = ethers.getBytes('0x00')
       const erc20 = ethers.getBytes(ethers.zeroPadBytes('0x00', 32))
 
       try {
         await adapter.contract.actions
-          .settle([{ token: erc20 }, { preimage, signature }])
+          .settle([
+            { token: erc20, nonce },
+            { preimage, signature },
+          ])
           .send(active(user))
       } finally {
         console.log(adapter.contract.bc.console)
