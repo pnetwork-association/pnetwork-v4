@@ -87,4 +87,8 @@ void lockbox::ontransfer(
       ).send();
    }
 }
+
+void lockbox::onmint(const name& from, const name& to, const asset& quantity, const string& memo) {
+   ontransfer(from, to, quantity, memo);
+}
 }

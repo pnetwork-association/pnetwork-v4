@@ -285,22 +285,64 @@ void adapter::onmint(const name& caller, const name& to, const asset& quantity, 
 }
 
 
-void adapter::settle(const operation& operation, const metadata& metadata) {
-   print("\nsettle!\n");
-   print("\nblockid\n");
+void adapter::settle(const name& caller, const operation& operation, const metadata& metadata) {
+   print("\nadapter::settle!\n");
+
+   require_auth(caller);
 
    registry_adapter _registry(get_self(), get_self().value);
-   auto idx = _registry.get_index<adapter_registry_idx_token_bytes>();
-   auto search_token_bytes = idx.find(operation.token);
+   auto idx_registry = _registry.get_index<adapter_registry_idx_token_bytes>();
+   auto search_token_bytes = idx_registry.find(operation.token);
    // auto y = operation.token.extract_as_byte_array();
    // auto x = search_token_bytes->token_bytes.extract_as_byte_array();
-   check(search_token_bytes != idx.end(), "invalid token");
+   check(search_token_bytes != idx_registry.end(), "invalid token");
 
-   // check()
+   checksum256 event_id;
+   check(pam::is_authorized(operation, metadata, event_id), "unauthorized");
 
-   // printhex(operation.blockId.data(), operation.blockId.size());
 
 
+   past_events _past_events(get_self(), get_self().value);
+   auto idx_past_events = _past_events.get_index<adapter_registry_idx_eventid>();
+   auto itr = idx_past_events.find(event_id);
+
+   check(itr == idx_past_events.end(), "event already processed");
+
+   _past_events.emplace(caller, [&](auto& r) {
+      r.notused = 0;
+      r.event_id = event_id;
+   });
+
+   // TODO?: check quantity symbols against the
+   // operation token
+
+   // TODO: check recipient is a valid account
+
+   lockbox_singleton _lockbox(search_token_bytes->xerc20, search_token_bytes->xerc20.value);
+   // check(_lockbox.exists(), "lockbox not found for the specified token");
+   // auto lockbox = _lockbox.get();
+
+   if (operation.quantity.amount > 0) {
+      if (_lockbox.exists()) {
+         // Local chain only
+         action(
+            permission_level{ get_self(), "active"_n },
+            search_token_bytes->xerc20,
+            "mint"_n,
+            make_tuple(get_self(), _lockbox.get(), operation.quantity, string(""))
+         ).send();
+
+         // Inline actions flow from here (get_self() := this contract):
+         // lockbox::onmint -> lockbox::ontransfer -> xerc20::burn -> token::transfer(lockbox, get_self(), quantity, memo)
+      } else {
+         action(
+            permission_level{ get_self(), "active"_n },
+            search_token_bytes->xerc20,
+            "mint"_n,
+            make_tuple(get_self(), operation.recipient, operation.quantity, string(""))
+         ).send();
+      }
+   }
 }
 
 

@@ -9,12 +9,14 @@
 
 #include <string>
 
-#include "operation.hpp"
+#include "pam.hpp"
 #include "metadata.hpp"
+#include "operation.hpp"
 
 #include "tables/token_stats.table.hpp"
-#include "tables/adapter_registry.table.hpp"
 #include "tables/lockbox_registry.table.hpp"
+#include "tables/adapter_registry.table.hpp"
+#include "tables/adapter_past_events.table.hpp"
 
 namespace eosio {
    using std::string;
@@ -58,29 +60,18 @@ namespace eosio {
          void onmint(const name& caller, const name& to, const asset& quantity, const string& memo);
 
          [[eosio::action]]
-         void settle(const operation& operation, const metadata& metadata);
+         void settle(const name& caller, const operation& operation, const metadata& metadata);
 
-         // [[eosio::on_notify("*::transfer")]]
-         // void ontransfer(const name& from, const name& to, const asset& quantity, const string& memo);
       private:
-         struct [[eosio::table]] past_events_model {
-            uint64_t      nonce;
-            checksum256   event_id;
-
-            uint64_t    primary_key()   const { return nonce; }
-            checksum256 secondary_key() const { return event_id; }
-         };
-
          struct [[eosio::table]] global_storage_model {
+            uint64_t   nonce;
             name       pam;
             name       minfee;
             name       feesmanager;
          };
 
          typedef eosio::multi_index<"stat"_n, token_stats_table> stats;
-
-         using byeventid = indexed_by<"byeventid"_n, const_mem_fun<past_events_model, checksum256, &past_events_model::secondary_key> >;
-         typedef eosio::multi_index<"pastevents"_n, past_events_model, byeventid> past_events;
+         typedef eosio::multi_index<"pastevents"_n, adapter_past_events_table, adapter_past_events_byeventid> past_events;
          typedef eosio::multi_index<"reglockbox"_n, lockbox_registry_table, lockbox_registry_byxtoken> registry_lockbox;
          typedef eosio::multi_index<
             "regadapter"_n,
@@ -93,6 +84,7 @@ namespace eosio {
          using storage = singleton<"storage"_n, global_storage_model>;
 
          global_storage_model empty_storage = {
+            .nonce = 0,
             .pam = ""_n,
             .feesmanager = ""_n,
             .minfee = ""_n
