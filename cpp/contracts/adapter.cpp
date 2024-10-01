@@ -150,25 +150,30 @@ void adapter::extract_memo_args(
    }
 }
 
-
-bytes to_bytes(uint64_t value, size_t size) {
+template<typename T>
+bytes to_bytes(T value, size_t size) {
    bytes vec(size, 0);
 
-   for (size_t i = 0; i < 8; ++i) {
-      uint64_t v = (value >> (i * 8)) & 0xFF;
+   size_t num_bytes = sizeof(T);
+   check(num_bytes <= 32, "unable to convert to bytes32");
+
+   for (size_t i = 0; i < num_bytes;i++) {
+      T v = (value >> (i * 8)) & 0xFF;
       vec[size - i - 1] = static_cast<uint8_t>(v);
    }
 
    return vec;
 }
 
-bytes to_bytes32(uint64_t value) {
-   return to_bytes(value, 32);
+template<typename T>
+bytes to_bytes32(T value) {
+   return to_bytes<T>(value, 32);
 }
+
 
 // Ascii to hex convertion of the account name
 // Example:
-// to_bytes32("tkn.token") => 0000000000000000000000000000000000000000000000746b6e2e746f6b656e
+// to_bytes32("TKN") => 00000000000000000000000000000000000000000000000000000000004e4b54
 //
 // NOTE: last string character positioned at the end of the bytearray
 bytes to_bytes32(string value) {
@@ -192,9 +197,15 @@ bytes to_bytes(string str) {
    return vec;
 }
 
-uint64_t to_wei(asset quantity) {
+uint128_t to_wei(asset quantity) {
    auto exp = 18 - quantity.symbol.precision();
-   return quantity.amount * pow(10.0, exp);
+   uint128_t value = static_cast<uint128_t>(quantity.amount);
+   return value * static_cast<uint128_t>(10.0, exp);
+}
+
+asset from_wei(uint128_t amount, const symbol& sym) {
+   auto divisor = pow(10.0, 18 - sym.precision());
+   return asset(amount / divisor, sym);
 }
 
 // Concat a set of bytes together
@@ -229,7 +240,6 @@ void adapter::onmint(const name& caller, const name& to, const asset& quantity, 
    registry_lockbox _registry(lockbox, lockbox.value);
    auto idx = _registry.get_index<lockbox_registry_idx_xtoken_name>();
 
-   print("\nciao\n");
    auto search_xerc20 = idx.lower_bound(quantity.symbol.code().raw());
    print(quantity.to_string());
 
@@ -259,7 +269,7 @@ void adapter::onmint(const name& caller, const name& to, const asset& quantity, 
 
    auto recipient_bytes = to_bytes(recipient);
 
-   bytes event_bytes = concat(
+   bytes event_bytes  = concat(
       32 * 6 + recipient_bytes.size() + userdata.size(),
       to_bytes32(nonce),
       to_bytes32(search_xerc20->token.to_string()),
@@ -270,6 +280,7 @@ void adapter::onmint(const name& caller, const name& to, const asset& quantity, 
       recipient_bytes,
       userdata
    );
+
 
    print("\nadapter.swap\n");
    print("\nevent_bytes\n");
@@ -293,14 +304,20 @@ void adapter::settle(const name& caller, const operation& operation, const metad
    registry_adapter _registry(get_self(), get_self().value);
    auto idx_registry = _registry.get_index<adapter_registry_idx_token_bytes>();
    auto search_token_bytes = idx_registry.find(operation.token);
+
    // auto y = operation.token.extract_as_byte_array();
    // auto x = search_token_bytes->token_bytes.extract_as_byte_array();
+
+   // print("\nx\n");
+   // printhex(x.data(), x.size());
+
+   // print("\ny\n");
+   // printhex(y.data(), y.size());
+
    check(search_token_bytes != idx_registry.end(), "invalid token");
 
    checksum256 event_id;
    check(pam::is_authorized(operation, metadata, event_id), "unauthorized");
-
-
 
    past_events _past_events(get_self(), get_self().value);
    auto idx_past_events = _past_events.get_index<adapter_registry_idx_eventid>();
@@ -322,14 +339,25 @@ void adapter::settle(const name& caller, const operation& operation, const metad
    // check(_lockbox.exists(), "lockbox not found for the specified token");
    // auto lockbox = _lockbox.get();
 
-   if (operation.quantity.amount > 0) {
+   if (operation.amount > 0) {
+
+      print("\nheeeree\n");
+      print("\noperation.amount\n");
+      print(operation.amount);
+      auto quantity = from_wei(
+         operation.amount,
+         search_token_bytes->xerc20_symbol
+      );
+      print("\nquantity\n");
+      print(quantity);
+
       if (_lockbox.exists()) {
          // Local chain only
          action(
             permission_level{ get_self(), "active"_n },
             search_token_bytes->xerc20,
             "mint"_n,
-            make_tuple(get_self(), _lockbox.get(), operation.quantity, string(""))
+            make_tuple(get_self(), _lockbox.get(), quantity, string(""))
          ).send();
 
          // Inline actions flow from here (get_self() := this contract):
@@ -339,9 +367,19 @@ void adapter::settle(const name& caller, const operation& operation, const metad
             permission_level{ get_self(), "active"_n },
             search_token_bytes->xerc20,
             "mint"_n,
-            make_tuple(get_self(), operation.recipient, operation.quantity, string(""))
+            make_tuple(get_self(), operation.recipient, quantity, string(""))
          ).send();
       }
+   }
+
+   if (operation.data.size() > 0) {
+      // TODO?: apply try/catch
+      action(
+         permission_level{ get_self(), "active"_n },
+         operation.recipient,
+         "receiveudata"_n,
+         make_tuple(get_self(), operation.data)
+      ).send();
    }
 }
 
