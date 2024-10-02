@@ -16,7 +16,7 @@ void feesmanager::setallowance( name node, name token, const asset& value ) {
     auto allowance_name_itr = allowance_name_idx.find(token.value);
 
     if (allowance_itr == allowances.end() && allowance_name_itr == allowance_name_idx.end()) {
-        check(balance.amount >= total_token_allowance + value.amount, "balance is lower than the allowance to be set");
+        check(balance.amount >= total_token_allowance + value.amount, "[set allowance]: balance is lower than the allowance to be set");
         allowances.emplace(get_self(), [&](auto& a) {
             a.node_allowance = value;
             a.token = token;
@@ -43,7 +43,7 @@ void feesmanager::incallowance( name node, name token, const asset& value ) {
     auto total_token_allowance = total_allowance.get().allowance.amount;
 
     auto balance = getbalance(token, value.symbol);
-    check(balance.amount >= total_token_allowance + value.amount, "balance is lower than the allowance to be set");
+    check(balance.amount >= total_token_allowance + value.amount, "[increase allowance]: balance is lower than the allowance to be set");
 
     allowances.modify(allowance_table, get_self(), [&](auto& a) {
         a.node_allowance.amount += value.amount;
@@ -68,6 +68,7 @@ void feesmanager::withdrawto( name node, name token, symbol token_symbol ) {
     ).send();
 }
 
+// FIXME: multiple withdraw do not work currently
 void feesmanager::withdrawto(name node, const std::vector<name>& tokens, const std::vector<symbol>& token_symbols) {
     check(tokens.size() == token_symbols.size(), "Token names and symbol size mismatch");
     for (size_t i = 0; i < tokens.size(); ++i) {
