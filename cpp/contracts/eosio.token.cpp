@@ -124,6 +124,7 @@ void token::add_balance( const name& owner, const asset& value, const name& ram_
         a.balance += value;
       });
    }
+   // print("\ntoken.add_balance(", value.to_string(), ")->", owner.to_string(), "\n");
 }
 
 void token::open( const name& owner, const symbol& symbol, const name& ram_payer )

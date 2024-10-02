@@ -100,5 +100,25 @@ namespace eosio {
             string& out_recipient,
             bytes& out_dat
          );
+         void token_transfer_from_lockbox(
+            const name& self,
+            const name& token,
+            const asset& quantity,
+            const string& memo
+         );
+         void token_transfer_from_user(
+            const name& self,
+            const name& token,
+            const name& lockbox,
+            const asset& quantity,
+            const string& memo
+         );
+         void xerc20_transfer_from_any(
+            const name& self,
+            const name& token,
+            const name& xerc20,
+            const asset& quantity,
+            const string& memo
+         );
    };
 }

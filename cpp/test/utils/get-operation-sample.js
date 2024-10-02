@@ -20,7 +20,7 @@ const getOperationSample = _injectedOperation =>
     destinationChainId: no0x(zeroPadValue('0x01', 32)), // ETH chain id
     amount: parseUnits('10', 18).toString(),
     sender: no0x(zeroPadValue(utf8HexString('user'), 32)),
-    recipient: no0x(zeroPadValue('0xC0FFEE', 20)),
+    recipient: 'recipient',
     data: '',
   })
 

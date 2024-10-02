@@ -65,14 +65,26 @@ describe('Adapter testing', () => {
 
   before(async () => {
     blockchain.createAccounts(user, evil, issuer, bridge, recipient)
-    lockbox.contract = deploy(blockchain, lockbox.account, 'contracts/lockbox')
-    token.contract = deploy(blockchain, token.account, 'contracts/eosio.token')
+    lockbox.contract = deploy(
+      blockchain,
+      lockbox.account,
+      'contracts/build/lockbox',
+    )
+    token.contract = deploy(
+      blockchain,
+      token.account,
+      'contracts/build/eosio.token',
+    )
     xerc20.contract = deploy(
       blockchain,
       xerc20.account,
-      'contracts/xerc20.token',
+      'contracts/build/xerc20.token',
     )
-    adapter.contract = deploy(blockchain, adapter.account, 'contracts/adapter')
+    adapter.contract = deploy(
+      blockchain,
+      adapter.account,
+      'contracts/build/adapter',
+    )
   })
 
   const setup = async () => {
@@ -118,20 +130,15 @@ describe('Adapter testing', () => {
     it('Should create the pair successfully', async () => {
       await setup()
 
-      console.log('tokenBytes', token.bytes)
-      try {
-        await adapter.contract.actions
-          .create([
-            xerc20.account,
-            precision4(xerc20.symbol),
-            token.account,
-            precision4(token.symbol),
-            token.bytes,
-          ])
-          .send(active(adapter.account))
-      } finally {
-        console.log(adapter.contract.bc.console)
-      }
+      await adapter.contract.actions
+        .create([
+          xerc20.account,
+          precision4(xerc20.symbol),
+          token.account,
+          precision4(token.symbol),
+          token.bytes,
+        ])
+        .send(active(adapter.account))
 
       const row = adapter.contract.tables
         .regadapter(getAccountCodeRaw(adapter.account))
@@ -201,8 +208,17 @@ describe('Adapter testing', () => {
 
   describe('adapter::settle', () => {
     it('Should settle the operation properly', async () => {
-      const operation = getOperationSample()
+      const quantity = `10.0000 TKN`
+      const operation = getOperationSample({
+        amount: ethers.parseUnits(Asset.from(quantity).units.toString(), 18),
+      })
+
       const metadata = getMetadataSample()
+
+      const before = getAccountsBalances(
+        [user, recipient, lockbox.account, adapter.account],
+        [token, xerc20],
+      )
 
       try {
         await adapter.contract.actions
@@ -211,6 +227,36 @@ describe('Adapter testing', () => {
       } finally {
         console.log(adapter.contract.bc.console)
       }
+
+      const after = getAccountsBalances(
+        [user, recipient, lockbox.account, adapter.account],
+        [token, xerc20],
+      )
+
+      expect(
+        substract(
+          after[recipient][token.symbol],
+          before[recipient][token.symbol],
+        ).toString(),
+      ).to.be.equal(quantity)
+
+      expect(
+        substract(
+          before[lockbox.account][token.symbol],
+          after[lockbox.account][token.symbol],
+        ).toString(),
+      ).to.be.equal(quantity)
+
+      expect(after[lockbox.account][xerc20.symbol]).to.be.equal(
+        `0.0000 ${xerc20.symbol}`,
+      )
+
+      expect(after[adapter.account][token.symbol]).to.be.equal(
+        `0.0000 ${token.symbol}`,
+      )
+      expect(after[adapter.account][xerc20.symbol]).to.be.equal(
+        `0.0000 ${xerc20.symbol}`,
+      )
     })
   })
 })
