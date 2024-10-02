@@ -89,6 +89,7 @@ void lockbox::ontransfer(
 }
 
 void lockbox::onmint(const name& from, const name& to, const asset& quantity, const string& memo) {
+   print("\nlockbox::onmint\n");
    ontransfer(from, to, quantity, memo);
 }
 }

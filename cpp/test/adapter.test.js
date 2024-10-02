@@ -199,18 +199,18 @@ describe('Adapter testing', () => {
     })
   })
 
-  // describe('adapter::settle', () => {
-  //   it('Should settle the operation properly', async () => {
-  //     const operation = getOperationSample()
-  //     const metadata = getMetadataSample()
+  describe('adapter::settle', () => {
+    it('Should settle the operation properly', async () => {
+      const operation = getOperationSample()
+      const metadata = getMetadataSample()
 
-  //     try {
-  //       await adapter.contract.actions
-  //         .settle([user, operation, metadata])
-  //         .send(active(user))
-  //     } finally {
-  //       console.log(adapter.contract.bc.console)
-  //     }
-  //   })
-  // })
+      try {
+        await adapter.contract.actions
+          .settle([user, operation, metadata])
+          .send(active(user))
+      } finally {
+        console.log(adapter.contract.bc.console)
+      }
+    })
+  })
 })
