@@ -1,4 +1,4 @@
-SRC = $(wildcard *.cpp)
+SRC = $(wildcard *.cpp) $(wildcard test/*.cpp)
 TARGETS = $(patsubst %.cpp,build/%.wasm,$(SRC))
 
 all: $(TARGETS)
