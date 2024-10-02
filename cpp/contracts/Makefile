@@ -1,10 +1,13 @@
 SRC = $(wildcard *.cpp)
-TARGETS = $(SRC:.cpp=.wasm)
+TARGETS = $(patsubst %.cpp,build/%.wasm,$(SRC))
 
 all: $(TARGETS)
 
-%.wasm: %.cpp
+build/%.wasm: %.cpp | build
 	cdt-cpp -o $@ $<
 
+build:
+	mkdir -p build
+
 clean:
-	rm -f *.abi *.wasm
+	rm -f ./build/*.abi ./build/*.wasm
