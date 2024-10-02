@@ -92,7 +92,7 @@ describe('Feesmanager testing', () => {
         .setallowance([node1, token.account, allowanceValue])
         .send(active(feesmanager.account))
 
-      await expectToThrow(action, errors.INSUFFICIENT_BALANCE)
+      await expectToThrow(action, errors.INSUFFICIENT_BALANCE_SET)
     })
 
     it('Should set the correct allowance', async () => {
@@ -193,7 +193,7 @@ describe('Feesmanager testing', () => {
         .incallowance([node1, token.account, updatedAllowanceValue])
         .send(active(feesmanager.account))
 
-      await expectToThrow(action, errors.INSUFFICIENT_BALANCE)
+      await expectToThrow(action, errors.INSUFFICIENT_BALANCE_INC)
     })
 
     it('Should increase the allowance', async () => {
@@ -299,7 +299,7 @@ describe('Feesmanager testing', () => {
     })
   })
   
-  describe('feesmanager::withdrawtomultiple', () => {
+  // describe('feesmanager::withdrawtomultiple', () => {
     // it('Should withdraw to the nodes', async () => {
     //   const feesmanagerBalance = "100.0000 TKN" 
     //   await token.contract.actions
@@ -368,5 +368,5 @@ describe('Feesmanager testing', () => {
       //   token: token.account,
       // })
     // })
-  })
+  // })
 })
