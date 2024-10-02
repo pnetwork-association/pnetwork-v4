@@ -7,9 +7,9 @@
 
 #include <string>
 
-#include "../pam.hpp"
-#include "../operation.hpp"
-#include "../metadata.hpp"
+#include "pam.hpp"
+#include "operation.hpp"
+#include "metadata.hpp"
 
 namespace eosio {
 
