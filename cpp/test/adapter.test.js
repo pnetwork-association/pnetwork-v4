@@ -65,14 +65,26 @@ describe('Adapter testing', () => {
 
   before(async () => {
     blockchain.createAccounts(user, evil, issuer, bridge, recipient)
-    lockbox.contract = deploy(blockchain, lockbox.account, 'contracts/lockbox')
-    token.contract = deploy(blockchain, token.account, 'contracts/eosio.token')
+    lockbox.contract = deploy(
+      blockchain,
+      lockbox.account,
+      'contracts/build/lockbox',
+    )
+    token.contract = deploy(
+      blockchain,
+      token.account,
+      'contracts/build/eosio.token',
+    )
     xerc20.contract = deploy(
       blockchain,
       xerc20.account,
-      'contracts/xerc20.token',
+      'contracts/build/xerc20.token',
     )
-    adapter.contract = deploy(blockchain, adapter.account, 'contracts/adapter')
+    adapter.contract = deploy(
+      blockchain,
+      adapter.account,
+      'contracts/build/adapter',
+    )
   })
 
   const setup = async () => {
