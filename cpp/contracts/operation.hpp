@@ -11,12 +11,12 @@ namespace eosio {
       // TODO: enable all the fields when
       // working on the PAM
       //
-      bytes blockId;
-      bytes txId;
+      bytes block_id;
+      bytes tx_id;
       uint64_t nonce;
       checksum256 token; // erc20 on EVM
-      bytes originChainId;
-      bytes destinationChainId;
+      bytes origin_chain_id;
+      bytes destination_chain_id;
       uint128_t amount;
       bytes sender;
       name recipient;
