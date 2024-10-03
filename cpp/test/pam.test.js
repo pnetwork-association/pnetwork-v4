@@ -11,7 +11,7 @@ describe('PAM testing', () => {
   const blockchain = new Blockchain()
   before(async () => {
     blockchain.createAccounts(user)
-    pam = deploy(blockchain, name, 'contracts/build/test-pam')
+    pam = deploy(blockchain, name, 'contracts/build/test.pam')
   })
   describe('pam::isauthorized', () => {
     it('Should authorize the operation successfully', async () => {
