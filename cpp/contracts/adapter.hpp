@@ -23,9 +23,6 @@ namespace eosio {
    using std::vector;
    using std::make_tuple;
    using eosio::operation;
-   using eosio::read_transaction;
-   using eosio::transaction_size;
-   using eosio::unpack;
    using bytes = std::vector<uint8_t>;
 
    class [[eosio::contract("adapter")]] adapter : public contract {
