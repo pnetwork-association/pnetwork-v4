@@ -61,7 +61,7 @@ void lockbox::ontransfer(
    if (search_token != _registry.end()) {
       check(search_token->token == token, "invalid first receiver");
       auto xerc20_quantity = asset(quantity.amount, search_token->xerc20_symbol);
-      print("\nxerc20.mint->", from, "\n");
+      print("\nxerc20.mint->", from.to_string(), "\n");
       action(
          permission_level{ get_self(), "active"_n },
          search_token->xerc20,
@@ -81,7 +81,7 @@ void lockbox::ontransfer(
       ).send();
 
       auto token_quantity = asset(quantity.amount, search_xerc20->token_symbol);
-      print("\ntoken.transfer->", from, "\n");
+      print("\ntoken.transfer->", from.to_string(), "\n");
 
       action(
          permission_level{ get_self(), "active"_n },
