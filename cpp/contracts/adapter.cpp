@@ -317,7 +317,7 @@ void adapter::settle(const name& caller, const operation& operation, const metad
    check(search_token_bytes != idx_registry.end(), "invalid token");
 
    checksum256 event_id;
-   check(pam::is_authorized(operation, metadata, event_id), "unauthorized");
+   check(is_authorized(operation, metadata), "unauthorized");
 
    past_events _past_events(get_self(), get_self().value);
    auto idx_past_events = _past_events.get_index<adapter_registry_idx_eventid>();

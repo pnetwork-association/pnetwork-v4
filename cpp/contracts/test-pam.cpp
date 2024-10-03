@@ -25,13 +25,13 @@ class [[eosio::contract("test.pam")]] test_pam : public contract {
       ) {
 
          print("\nciao!\n");
-         checksum256 event_id;
-         pam::is_authorized(operation, metadata, event_id);
+         // checksum256 event_id;
+         // pam::is_authorized(operation, metadata, event_id);
 
-         auto id = event_id.extract_as_byte_array();
+         // auto id = event_id.extract_as_byte_array();
 
-         print("\nevent_id\n");
-         printhex(id.data(), id.size());
+         // print("\nevent_id\n");
+         // printhex(id.data(), id.size());
       }
 };
 }
