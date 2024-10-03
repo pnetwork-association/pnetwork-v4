@@ -8,6 +8,7 @@ const {
   precision,
   getAccountCodeRaw,
   getSymbolCodeRaw,
+  getSingletonInstance,
 } = require('./utils/eos-ext')
 const { substract, no0x } = require('./utils/wharfkit-ext')
 const { getAccountsBalances } = require('./utils/get-token-balance')
@@ -30,6 +31,8 @@ describe('Adapter testing', () => {
       32,
     ),
   )
+
+  const TABLE_STORAGE = 'storage'
 
   const token = {
     symbol: symbol,
@@ -144,12 +147,20 @@ describe('Adapter testing', () => {
         .regadapter(getAccountCodeRaw(adapter.account))
         .getTableRow(getSymbolCodeRaw(token.maxSupply))
 
+      const storage = getSingletonInstance(adapter.contract, TABLE_STORAGE)
+
       expect(row).to.be.deep.equal({
         token: token.account,
         token_symbol: precision4(token.symbol),
         token_bytes: token.bytes,
         xerc20: xerc20.account,
         xerc20_symbol: precision4(xerc20.symbol),
+      })
+
+      expect(storage).be.deep.equal({
+        nonce: 0,
+        minfee: '',
+        feesmanager: '',
       })
     })
   })
@@ -168,18 +179,18 @@ describe('Adapter testing', () => {
         [token, xerc20],
       )
 
-      try {
-        await token.contract.actions
-          .transfer([user, adapter.account, quantity, memo])
-          .send(active(user))
-      } finally {
-        console.log(adapter.contract.bc.console)
-      }
+      before.storage = getSingletonInstance(adapter.contract, TABLE_STORAGE)
+
+      await token.contract.actions
+        .transfer([user, adapter.account, quantity, memo])
+        .send(active(user))
 
       const after = getAccountsBalances(
         [user, lockbox.account, adapter.account],
         [token, xerc20],
       )
+
+      after.storage = getSingletonInstance(adapter.contract, TABLE_STORAGE)
 
       expect(
         substract(
@@ -202,7 +213,7 @@ describe('Adapter testing', () => {
         ).toString(),
       ).to.be.equal(`0.0000 ${xerc20.symbol}`)
 
-      // TODO: check swap action inclusion here
+      expect(after.storage.nonce).to.be.equal(before.storage.nonce + 1)
     })
   })
 
@@ -220,13 +231,9 @@ describe('Adapter testing', () => {
         [token, xerc20],
       )
 
-      try {
-        await adapter.contract.actions
-          .settle([user, operation, metadata])
-          .send(active(user))
-      } finally {
-        console.log(adapter.contract.bc.console)
-      }
+      await adapter.contract.actions
+        .settle([user, operation, metadata])
+        .send(active(user))
 
       const after = getAccountsBalances(
         [user, recipient, lockbox.account, adapter.account],

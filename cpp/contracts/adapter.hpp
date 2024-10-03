@@ -5,7 +5,6 @@
 #include <eosio/system.hpp>
 #include <eosio/singleton.hpp>
 #include <eosio/fixed_bytes.hpp>
-#include <eosio/transaction.hpp>
 
 #include <string>
 
@@ -42,9 +41,6 @@ namespace eosio {
          void setfeemanagr(const name& fee_manager);
 
          [[eosio::action]]
-         void setpam(const name& pam);
-
-         [[eosio::action]]
          void adduserdata(std::vector<uint8_t> user_data);
 
          [[eosio::action]]
@@ -62,7 +58,6 @@ namespace eosio {
       private:
          struct [[eosio::table]] global_storage_model {
             uint64_t   nonce;
-            name       pam;
             name       minfee;
             name       feesmanager;
          };
@@ -82,9 +77,8 @@ namespace eosio {
 
          global_storage_model empty_storage = {
             .nonce = 0,
-            .pam = ""_n,
-            .feesmanager = ""_n,
-            .minfee = ""_n
+            .minfee = ""_n,
+            .feesmanager = ""_n
          };
 
 
@@ -112,6 +106,7 @@ namespace eosio {
          );
          void xerc20_transfer_from_any(
             const name& self,
+            const name& ram_payer,
             const name& token,
             const name& xerc20,
             const asset& quantity,

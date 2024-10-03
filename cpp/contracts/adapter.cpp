@@ -37,32 +37,20 @@ void adapter::create(
        r.token_symbol = token_symbol;
        r.token_bytes = token_bytes;
    });
+
+   storage _storage(get_self(), get_self().value);
+   _storage.get_or_create(get_self(), adapter::empty_storage);
 }
 
 void adapter::setfeemanagr(const name& fee_manager) {
    storage _storage(get_self(), get_self().value);
 
-   _storage.get_or_create(
-      get_self(),
-      adapter::empty_storage
-   );
+   check(_storage.exists(), "contract not initialized");
+   auto storage = _storage.get();
 
-   _storage.set(adapter::global_storage_model{
-      .feesmanager = fee_manager
-   }, get_self());
-}
+   storage.feesmanager = fee_manager;
 
-void adapter::setpam(const name& pam) {
-   storage _storage(get_self(), get_self().value);
-
-   _storage.get_or_create(
-      get_self(),
-      adapter::empty_storage
-   );
-
-   _storage.set(adapter::global_storage_model{
-      .pam = pam
-   }, get_self());
+   _storage.set(storage, get_self());
 }
 
 void adapter::extract_memo_args(
@@ -107,7 +95,6 @@ void adapter::extract_memo_args(
 void adapter::adduserdata(bytes user_data) {}
 
 void adapter::settle(const name& caller, const operation& operation, const metadata& metadata) {
-   print("\nadapter::settle\n");
 
    require_auth(caller);
 
@@ -128,11 +115,6 @@ void adapter::settle(const name& caller, const operation& operation, const metad
 
    _past_events.emplace(caller, [&](auto& r) { r.event_id = event_id; });
 
-   // TODO?: check quantity symbols against the
-   // operation token
-
-   // TODO: check recipient is a valid account
-
    auto xerc20 = search_token_bytes->xerc20;
 
    if (operation.amount > 0) {
@@ -146,7 +128,6 @@ void adapter::settle(const name& caller, const operation& operation, const metad
       if (_lockbox.exists()) {
          auto lockbox = _lockbox.get();
          // If the lockbox exists, we release the collateral
-         print("\nxerc20.mint->", lockbox.to_string(), "\n");
          action(
             permission_level{ get_self(), "active"_n },
             search_token_bytes->xerc20,
@@ -154,11 +135,16 @@ void adapter::settle(const name& caller, const operation& operation, const metad
             make_tuple(get_self(), lockbox, quantity, operation.recipient.to_string())
          ).send();
 
-         // Inline actions flow from here (get_self() := this contract):
-         // lockbox::onmint -> lockbox::ontransfer -> xerc20::burn -> token::transfer(lockbox, get_self(), quantity, memo)
+         // Inline actions flow from the one above:
+         // xerc20.mint(lockbox, quantity)
+         //                                           -> lockbox::onmint
+         //                                           -> lockbox::ontransfer
+         //                                           -> xerc20.burn(lockbox, quantity)
+         //                                           -> token.transfer(lockbox, adapter, quantity, memo)
+         // -> adapter::ontransfer
+         // -> adapter::token_transfer_from_lockbox
       } else {
          // If lockbox does not exist, we just mint the tokens
-         print("\nxerc20.mint->", operation.recipient, "\n");
          action(
             permission_level{ get_self(), "active"_n },
             search_token_bytes->xerc20,
@@ -189,11 +175,9 @@ void adapter::token_transfer_from_lockbox(
    const asset& quantity,
    const string& memo
 ) {
-   print("\ntoken_transfer_from_lockbox\n");
    auto to = name(memo);
 
    check(is_account(to), "invalid mint recipient");
-   print("\ntoken.transfer->", to.to_string(), "\n");
    action(
       permission_level{ self, "active"_n },
       token,
@@ -210,7 +194,6 @@ void adapter::token_transfer_from_user(
    const string& memo
 ) {
    // Deposit
-   print("\ntoken.transfer->", lockbox.to_string(), "\n");
    action(
       permission_level{ self, "active"_n },
       token,
@@ -221,14 +204,13 @@ void adapter::token_transfer_from_user(
 
 void adapter::xerc20_transfer_from_any(
    const name& self,
+   const name& ram_payer,
    const name& token,
    const name& xerc20,
    const asset& quantity,
    const string& memo
 ) {
-   print("\nadapter::xerc20_transfer_from_any\n");
 
-   print(self, "->xerc20.burn", "\n");
    action(
       permission_level{ self, "active"_n },
       xerc20,
@@ -243,14 +225,16 @@ void adapter::xerc20_transfer_from_any(
 
    extract_memo_args(self, memo, sender, dest_chainid, recipient, userdata);
 
-   // TODO: get the nonce from the table here
-   uint64_t nonce = 100000;
+   storage _storage(get_self(), get_self().value);
 
+   check(_storage.exists(), "contract not initialized");
+
+   auto storage = _storage.get();
    auto recipient_bytes = to_bytes(recipient);
 
    bytes event_bytes  = concat(
       32 * 6 + recipient_bytes.size() + userdata.size(),
-      to_bytes32(nonce),
+      to_bytes32(storage.nonce),
       to_bytes32(token.to_string()),
       hex_to_bytes(dest_chainid),
       to_bytes32(to_wei(quantity)),
@@ -260,19 +244,18 @@ void adapter::xerc20_transfer_from_any(
       userdata
    );
 
-   print("\nadapter.swap\n");
    action(
       permission_level{ self, "active"_n },
       self,
       "swap"_n,
-      make_tuple(nonce, event_bytes)
+      make_tuple(storage.nonce, event_bytes)
    ).send();
 
-   // TODO: increase nonce here
+   storage.nonce++;
+   _storage.set(storage, ram_payer);
 }
 
 void adapter::ontransfer(const name& from, const name& to, const asset& quantity, const string& memo) {
-   print("\nadapter::ontransfer\n");
    if (from == get_self()) return;
 
    check(to == get_self(), "recipient must be the contract");
@@ -306,7 +289,7 @@ void adapter::ontransfer(const name& from, const name& to, const asset& quantity
          token_transfer_from_user(get_self(), token, lockbox, quantity, memo);
       }
    } else {
-      xerc20_transfer_from_any(get_self(), token, xerc20, quantity, memo);
+      xerc20_transfer_from_any(get_self(), from, token, xerc20, quantity, memo);
    }
 }
 

@@ -12,9 +12,13 @@ const getAccountCodeRaw = _account => Name.from(_account).value.value
 
 const precision = R.curry((_precision, _symbol) => `${_precision},${_symbol}`)
 
+const getSingletonInstance = (_contract, _tableName) =>
+  _contract.tables[_tableName]().getTableRow(getAccountCodeRaw(_tableName))
+
 module.exports = {
   active,
   precision,
   getSymbolCodeRaw,
   getAccountCodeRaw,
+  getSingletonInstance,
 }
