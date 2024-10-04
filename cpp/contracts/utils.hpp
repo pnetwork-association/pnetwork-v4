@@ -8,9 +8,6 @@ namespace eosio {
    using std::string;
    using std::vector;
    using bytes = std::vector<uint8_t>;
-   using eosio::unpack;
-   using eosio::read_transaction;
-   using eosio::transaction_size;
 
    bool is_hex_notation(string const &s) {
       const string prefix = "0x";
@@ -47,15 +44,6 @@ namespace eosio {
          bytes.push_back(byte);
       }
       return bytes;
-   }
-
-   size_t get_num_of_actions() {
-      char tx_buffer[eosio::transaction_size()];
-      eosio::read_transaction(tx_buffer, eosio::transaction_size());
-      const std::vector<char> trx_vector(
-            tx_buffer, tx_buffer + sizeof tx_buffer / sizeof tx_buffer[0]);
-      transaction trx = eosio::unpack<transaction>(trx_vector);
-      return trx.actions.size();
    }
 
    template<typename T>
@@ -131,15 +119,12 @@ namespace eosio {
    }
 
    uint128_t to_wei(asset quantity) {
-      uint8_t exp = 18 - quantity.symbol.precision();
-      auto power = powint(10, exp);
-      uint128_t value = quantity.amount * power;
-      return value;
+      const uint8_t exp = 18 - quantity.symbol.precision();
+      return quantity.amount * powint(10, exp);
    }
 
    asset from_wei(uint128_t amount, const symbol& sym) {
-      uint128_t divisor = 1000000000000000000; // 1e18
-
+      const uint128_t divisor = 1000000000000000000; // 1e18
       return asset(amount / divisor, sym);
    }
 }
