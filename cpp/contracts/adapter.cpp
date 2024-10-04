@@ -134,7 +134,7 @@ void adapter::settle(const name& caller, const operation& operation, const metad
    auto idx_past_events = _past_events.get_index<adapter_registry_idx_eventid>();
    auto itr = idx_past_events.find(event_id);
 
-   // TODO: disable for tests, enable this when PAM is ready
+   // TODO: disabled for tests, enable this when PAM is ready
    // check(itr == idx_past_events.end(), "event already processed");
    // _past_events.emplace(caller, [&](auto& r) { r.event_id = event_id; });
 
@@ -147,34 +147,19 @@ void adapter::settle(const name& caller, const operation& operation, const metad
       );
 
       lockbox_singleton _lockbox(xerc20, xerc20.value);
-
+      action_mint _mint(search_token_bytes->xerc20, {get_self(), "active"_n});
       if (_lockbox.exists()) {
+         // If the lockbox exists, we release the collateral
          auto lockbox = _lockbox.get();
 
-         // If the lockbox exists, we release the collateral
-         action(
-            permission_level{ get_self(), "active"_n },
-            search_token_bytes->xerc20,
-            "mint"_n,
-            make_tuple(get_self(), lockbox, quantity, operation.recipient.to_string())
-         ).send();
-
+         _mint.send(get_self(), lockbox, quantity, operation.recipient.to_string());
          // Inline actions flow from the one above:
-         // xerc20.mint(lockbox, quantity)
-         //                                           -> lockbox::onmint
-         //                                           -> lockbox::ontransfer
-         //                                           -> xerc20.burn(lockbox, quantity)
-         //                                           -> token.transfer(lockbox, adapter, quantity, memo)
-         // -> adapter::ontransfer
-         // -> adapter::token_transfer_from_lockbox
+         // xerc20.mint(lockbox, quantity) -> lockbox::onmint -> lockbox::ontransfer
+         // -> xerc20.burn(lockbox, quantity) -> token.transfer(lockbox, adapter, quantity, memo)
+         // -> adapter::ontransfer -> adapter::token_transfer_from_lockbox
       } else {
          // If lockbox does not exist, we just mint the tokens
-         action(
-            permission_level{ get_self(), "active"_n },
-            search_token_bytes->xerc20,
-            "mint"_n,
-            make_tuple(get_self(), operation.recipient, quantity, operation.recipient.to_string())
-         ).send();
+         _mint.send(get_self(), operation.recipient, quantity, operation.recipient.to_string());
       }
    }
 
@@ -196,12 +181,8 @@ void adapter::token_transfer_from_lockbox(
    auto to = name(memo);
 
    check(is_account(to), "invalid mint recipient");
-   action(
-      permission_level{ self, "active"_n },
-      token,
-      "transfer"_n,
-      make_tuple(self, to, quantity, memo)
-   ).send();
+   action_transfer _transfer{token, {self, "active"_n}};
+   _transfer.send(self, to, quantity, memo);
 }
 
 void adapter::token_transfer_from_user(
@@ -212,12 +193,8 @@ void adapter::token_transfer_from_user(
    const string& memo
 ) {
    // Deposit
-   action(
-      permission_level{ self, "active"_n },
-      token,
-      "transfer"_n,
-      make_tuple(self, lockbox, quantity, memo)
-   ).send();
+   action_transfer _transfer{token, {self, "active"_n}};
+   _transfer.send(self, lockbox, quantity, memo);
 }
 
 void adapter::xerc20_transfer_from_any(
@@ -229,12 +206,8 @@ void adapter::xerc20_transfer_from_any(
    const string& memo
 ) {
 
-   action(
-      permission_level{ self, "active"_n },
-      xerc20,
-      "burn"_n,
-      make_tuple(self, quantity, memo)
-   ).send();
+   action_burn _burn{xerc20, {self, "active"_n}};
+   _burn.send(self, quantity, memo);
 
    string sender;
    string dest_chainid;
@@ -262,12 +235,8 @@ void adapter::xerc20_transfer_from_any(
       userdata
    );
 
-   action(
-      permission_level{ self, "active"_n },
-      self,
-      "swap"_n,
-      make_tuple(storage.nonce, event_bytes)
-   ).send();
+   action_swap _swap{self, {self, "active"_n}};
+   _swap.send(storage.nonce, event_bytes);
 
    storage.nonce++;
    _storage.set(storage, caller);

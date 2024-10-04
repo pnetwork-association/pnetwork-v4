@@ -10,6 +10,7 @@ const {
   getSymbolCodeRaw,
   getSingletonInstance,
   logExecutionTraces,
+  prettyTrace,
 } = require('./utils/eos-ext')
 const { substract, no0x } = require('./utils/wharfkit-ext')
 const { getAccountsBalances } = require('./utils/get-token-balance')
@@ -226,20 +227,16 @@ describe('Adapter testing', () => {
 
       expect(after.storage.nonce).to.be.equal(before.storage.nonce + 1)
 
+      const possibleSwap = prettyTrace(R.last(blockchain.executionTraces))
+      expect(possibleSwap['Contract']).to.be.equal(adapter.account)
+      expect(possibleSwap['Action']).to.be.equal('swap')
+      expect(possibleSwap['Inline']).to.be.equal(true)
+      expect(possibleSwap['Notification']).to.be.equal(false)
+      expect(possibleSwap['First Receiver']).to.be.equal(adapter.account)
+      expect(possibleSwap['Sender']).to.be.equal(adapter.account)
       // FIXME: event_bytes is correctly set inside the action
       // probably a deserialization bug of vert during
-      // expect(R.last(blockchain.executionTraces)).to.include.members({
-      //   Contract: adapter.account,
-      //   Action: 'swap',
-      //   Inline: true,
-      //   Notification: false,
-      //   Sender: adapter.account,
-      //   Authorization: [{ actor: adapter.account, permission: 'active' }],
-      //   Data: {
-      //     nonce: 0,
-      //     event_bytes: '', // <--- problem here!
-      //   },
-      // })
+      // expect(['Data']).to.be.equal()
     })
 
     // TODO: test adduserdata + swap actions in

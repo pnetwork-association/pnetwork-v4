@@ -11,6 +11,7 @@
 #include "pam.hpp"
 #include "metadata.hpp"
 #include "operation.hpp"
+#include "xerc20.token.hpp"
 
 #include "tables/token_stats.table.hpp"
 #include "tables/lockbox_registry.table.hpp"
@@ -22,6 +23,7 @@ namespace eosio {
    using std::vector;
    using std::make_tuple;
    using eosio::operation;
+   using eosio::action_wrapper;
    using bytes = std::vector<uint8_t>;
 
    class [[eosio::contract("adapter")]] adapter : public contract {
@@ -49,15 +51,19 @@ namespace eosio {
          [[eosio::action]]
          void swap(const uint64_t& nonce, const bytes& event_bytes);
 
-         [[eosio::on_notify("*::transfer")]]
-         void ontransfer(const name& from, const name& to, const asset& quantity, const string& memo);
+         [[eosio::action]]
+         void settle(const name& caller, const operation& operation, const metadata& metadata);
 
          [[eosio::on_notify("*::mint")]]
          void onmint(const name& caller, const name& to, const asset& quantity, const string& memo);
 
-         [[eosio::action]]
-         void settle(const name& caller, const operation& operation, const metadata& metadata);
+         [[eosio::on_notify("*::transfer")]]
+         void ontransfer(const name& from, const name& to, const asset& quantity, const string& memo);
 
+         using action_swap = action_wrapper<"swap"_n, &adapter::swap>;
+         using action_burn = action_wrapper<"burn"_n, &xtoken::burn>;
+         using action_mint = action_wrapper<"mint"_n, &xtoken::mint>;
+         using action_transfer = action_wrapper<"transfer"_n, &xtoken::transfer>;
       private:
          struct [[eosio::table]] global_storage_table {
             uint64_t   nonce;
