@@ -237,7 +237,7 @@ describe('Adapter testing', () => {
       //   Authorization: [{ actor: adapter.account, permission: 'active' }],
       //   Data: {
       //     nonce: 0,
-      //     event_bytes: '',
+      //     event_bytes: '', // <--- problem here!
       //   },
       // })
     })

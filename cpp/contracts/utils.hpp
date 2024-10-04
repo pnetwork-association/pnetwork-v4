@@ -120,10 +120,21 @@ namespace eosio {
       return res;
    }
 
+   uint128_t powint(uint128_t x, uint8_t p)
+   {
+      if (p == 0) return 1;
+      if (p == 1) return x;
+
+      uint128_t tmp = powint(x, p/2);
+      if (p % 2 == 0) return tmp * tmp;
+      else return x * tmp * tmp;
+   }
+
    uint128_t to_wei(asset quantity) {
-      auto exp = 18 - quantity.symbol.precision();
-      uint128_t value = static_cast<uint128_t>(quantity.amount);
-      return value * static_cast<uint128_t>(10.0, exp); // FIXME: put pow(10.0, exp), check why result wasn't detected in the tests
+      uint8_t exp = 18 - quantity.symbol.precision();
+      auto power = powint(10, exp);
+      uint128_t value = quantity.amount * power;
+      return value;
    }
 
    asset from_wei(uint128_t amount, const symbol& sym) {
