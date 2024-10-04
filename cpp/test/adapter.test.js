@@ -241,6 +241,10 @@ describe('Adapter testing', () => {
       //   },
       // })
     })
+
+    // TODO: test adduserdata + swap actions in
+    // succession once the above is fixed
+    // it('Should swap with userdata', async () => {})
   })
 
   describe('adapter::settle', () => {
