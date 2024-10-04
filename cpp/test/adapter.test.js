@@ -1,7 +1,7 @@
 const { expect } = require('chai')
-const { Blockchain, expectToThrow } = require('@eosnetwork/vert')
+const { Blockchain, expectToThrow, mintTokens } = require('@eosnetwork/vert')
 const { deploy } = require('./utils/deploy')
-const { Asset } = require('@wharfkit/antelope')
+const { Asset, Bytes } = require('@wharfkit/antelope')
 const R = require('ramda')
 const {
   active,
@@ -9,6 +9,7 @@ const {
   getAccountCodeRaw,
   getSymbolCodeRaw,
   getSingletonInstance,
+  logExecutionTraces,
 } = require('./utils/eos-ext')
 const { substract, no0x } = require('./utils/wharfkit-ext')
 const { getAccountsBalances } = require('./utils/get-token-balance')
@@ -39,23 +40,28 @@ describe('Adapter testing', () => {
     account: `${symbol.toLowerCase()}.token`,
     maxSupply: `${maxSupply} ${symbol}`,
     bytes: tokenBytes,
-    contract: undefined,
+    contract: null,
   }
   const xerc20 = {
     symbol: `X${symbol}`,
     account: `x${symbol.toLowerCase()}.token`,
     maxSupply: `${maxSupply} X${symbol}`,
-    contract: undefined,
+    contract: null,
   }
 
   const lockbox = {
     account: 'lockbox',
-    contract: undefined,
+    contract: null,
   }
 
   const adapter = {
     account: 'adapter',
-    contract: undefined,
+    contract: null,
+  }
+
+  const receiver = {
+    account: 'receiver',
+    contract: null,
   }
 
   const blockchain = new Blockchain()
@@ -87,6 +93,11 @@ describe('Adapter testing', () => {
       blockchain,
       adapter.account,
       'contracts/build/adapter',
+    )
+    receiver.contract = deploy(
+      blockchain,
+      receiver.account,
+      'contracts/build/test.receiver',
     )
   })
 
@@ -214,14 +225,33 @@ describe('Adapter testing', () => {
       ).to.be.equal(`0.0000 ${xerc20.symbol}`)
 
       expect(after.storage.nonce).to.be.equal(before.storage.nonce + 1)
+
+      // FIXME: event_bytes is correctly set inside the action
+      // probably a deserialization bug of vert during
+      // expect(R.last(blockchain.executionTraces)).to.include.members({
+      //   Contract: adapter.account,
+      //   Action: 'swap',
+      //   Inline: true,
+      //   Notification: false,
+      //   Sender: adapter.account,
+      //   Authorization: [{ actor: adapter.account, permission: 'active' }],
+      //   Data: {
+      //     nonce: 0,
+      //     event_bytes: '',
+      //   },
+      // })
     })
   })
 
   describe('adapter::settle', () => {
-    it('Should settle the operation properly', async () => {
+    it('Should settle the operation properly and send userdata', async () => {
       const quantity = `10.0000 TKN`
+      const normalizedAmount = ethers
+        .parseUnits(Asset.from(quantity).units.toString(), 18)
+        .toString()
+
       const operation = getOperationSample({
-        amount: ethers.parseUnits(Asset.from(quantity).units.toString(), 18),
+        amount: normalizedAmount,
       })
 
       const metadata = getMetadataSample()
@@ -264,6 +294,48 @@ describe('Adapter testing', () => {
       expect(after[adapter.account][xerc20.symbol]).to.be.equal(
         `0.0000 ${xerc20.symbol}`,
       )
+    })
+
+    it('Should send userdata to a receiver contract', async () => {
+      const quantity = `1.0000 ${token.symbol}`
+      const normalizedAmount = ethers
+        .parseUnits(Asset.from(quantity).units.toString(), 18)
+        .toString()
+
+      const metadata = getMetadataSample()
+      const operation = getOperationSample({
+        amount: normalizedAmount,
+        data: 'c0ffeec0ffeec0ffee',
+        recipient: receiver.account,
+      })
+
+      const before = getAccountsBalances([receiver.account], [token, xerc20])
+
+      // Fill in some tokens as collateral
+      await token.contract.actions
+        .transfer([user, lockbox.account, quantity, ''])
+        .send(active(user))
+
+      await adapter.contract.actions
+        .settle([user, operation, metadata])
+        .send(active(user))
+
+      const after = getAccountsBalances([receiver.account], [token, xerc20])
+      const receiverResults = receiver.contract.tables
+        .results(getAccountCodeRaw(receiver.account))
+        .getTableRow(0n)
+
+      expect(
+        substract(
+          after[receiver.account][token.symbol],
+          before[receiver.account][token.symbol],
+        ).toString(),
+      ).to.be.equal(quantity)
+
+      expect(receiverResults).to.be.deep.equal({
+        id: 0,
+        data: operation.data,
+      })
     })
   })
 })

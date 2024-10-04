@@ -124,7 +124,6 @@ void token::add_balance( const name& owner, const asset& value, const name& ram_
         a.balance += value;
       });
    }
-   // print("\ntoken.add_balance(", value.to_string(), ")->", owner.to_string(), "\n");
 }
 
 void token::open( const name& owner, const symbol& symbol, const name& ram_payer )
@@ -155,10 +154,6 @@ void token::close( const name& owner, const symbol& symbol )
    check( it != acnts.end(), "Balance row already deleted or never existed. Action won't have any effect." );
    check( it->balance.amount == 0, "Cannot close because the balance is not zero." );
    acnts.erase( it );
-}
-
-void token::ciao(const name& sender) {
-   eos:print("ciao");
 }
 
 } /// namespace eosio

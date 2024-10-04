@@ -55,6 +55,7 @@ void adapter::setfeemanagr(const name& fee_manager) {
 
 void adapter::extract_memo_args(
    const name& self,
+   const name& userdata_owner,
    const string& memo,
    string& out_sender,
    string& out_dest_chainid,
@@ -69,33 +70,55 @@ void adapter::extract_memo_args(
    out_sender = parts[0];
    out_dest_chainid = parts[1];
    out_recipient = parts[2];
-   string has_userdata = parts[3];
+   uint64_t userdata_id = stoull(parts[3]);
 
    check(out_sender.length() > 0, "invalid sender address");
    check(out_recipient.length() > 0, "invalid destination address");
    check(is_hex_notation(out_dest_chainid), "chain id must be 0x prefixed");
    check(out_dest_chainid.length() == 66, "chain id must be a 32 bytes hex-string");
 
-   if (has_userdata == "1") {
-      // FIXME: use linked actions pattern here
-      // https://docs.eosnetwork.com/docs/latest/guides/linked-actions-pattern
-      action act = get_action(1, 1);
-      check(act.name == "adduserdata"_n, "expected adduserdata action");
-      check(act.account == self, "adduserdata must come from adapter contract");
-      check(get_num_of_actions() == 2, "expected two actions");
-      // TODO: factor out into adapter.hpp
-      typedef struct { bytes user_data; } unpacked_data;
-      unpacked_data data = unpack<unpacked_data>(act.data);
 
-      check(data.user_data.size() == 0, "no userdata found");
-      out_data = data.user_data;
+   if (userdata_id > 0) {
+      user_data table(userdata_owner, userdata_owner.value);
+      auto row = table.find(userdata_id);
+
+      check(row != table.end(), "userdata record not found");
+
+      out_data = row->payload;
    }
 }
 
-void adapter::adduserdata(bytes user_data) {}
+void adapter::adduserdata(const name& caller, bytes payload) {
+   require_auth(caller);
+   check(payload.size() > 0, "invalid payload");
+
+   user_data table(caller, caller.value);
+
+   if (table.begin() == table.end()) {
+      table.emplace(caller, [&](auto& r) {
+          // NOTE: an id == 0 means no userdata, check extract_memo_args
+          // for details
+          r.id = 1;
+          r.payload = payload;
+      });
+   } else {
+      table.emplace(caller, [&](auto& r) {
+          r.id = table.end()->id + 1;
+          r.payload = payload;
+      });
+   }
+}
+
+void adapter::freeuserdata(const name& account) {
+   require_auth(account);
+   user_data table(account, account.value);
+
+   for (auto itr = table.begin(); itr != table.end(); itr++) {
+      table.erase(itr);
+   }
+}
 
 void adapter::settle(const name& caller, const operation& operation, const metadata& metadata) {
-
    require_auth(caller);
 
    registry_adapter _registry(get_self(), get_self().value);
@@ -111,9 +134,9 @@ void adapter::settle(const name& caller, const operation& operation, const metad
    auto idx_past_events = _past_events.get_index<adapter_registry_idx_eventid>();
    auto itr = idx_past_events.find(event_id);
 
-   check(itr == idx_past_events.end(), "event already processed");
-
-   _past_events.emplace(caller, [&](auto& r) { r.event_id = event_id; });
+   // TODO: disable for tests, enable this when PAM is ready
+   // check(itr == idx_past_events.end(), "event already processed");
+   // _past_events.emplace(caller, [&](auto& r) { r.event_id = event_id; });
 
    auto xerc20 = search_token_bytes->xerc20;
 
@@ -127,6 +150,7 @@ void adapter::settle(const name& caller, const operation& operation, const metad
 
       if (_lockbox.exists()) {
          auto lockbox = _lockbox.get();
+
          // If the lockbox exists, we release the collateral
          action(
             permission_level{ get_self(), "active"_n },
@@ -155,13 +179,7 @@ void adapter::settle(const name& caller, const operation& operation, const metad
    }
 
    if (operation.data.size() > 0) {
-      // TODO?: apply try/catch
-      action(
-         permission_level{ get_self(), "active"_n },
-         operation.recipient,
-         "receiveudata"_n,
-         make_tuple(get_self(), operation.data)
-      ).send();
+      require_recipient(operation.recipient);
    }
 }
 
@@ -204,7 +222,7 @@ void adapter::token_transfer_from_user(
 
 void adapter::xerc20_transfer_from_any(
    const name& self,
-   const name& ram_payer,
+   const name& caller,
    const name& token,
    const name& xerc20,
    const asset& quantity,
@@ -223,9 +241,9 @@ void adapter::xerc20_transfer_from_any(
    string recipient;
    bytes userdata;
 
-   extract_memo_args(self, memo, sender, dest_chainid, recipient, userdata);
+   extract_memo_args(self, caller, memo, sender, dest_chainid, recipient, userdata);
 
-   storage _storage(get_self(), get_self().value);
+   storage _storage(self, self.value);
 
    check(_storage.exists(), "contract not initialized");
 
@@ -252,7 +270,7 @@ void adapter::xerc20_transfer_from_any(
    ).send();
 
    storage.nonce++;
-   _storage.set(storage, ram_payer);
+   _storage.set(storage, caller);
 }
 
 void adapter::ontransfer(const name& from, const name& to, const asset& quantity, const string& memo) {

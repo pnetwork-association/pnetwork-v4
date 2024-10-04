@@ -120,13 +120,9 @@ describe('xerc20.token', () => {
       .bridges(getAccountCodeRaw(account))
       .getTableRows(getAccountCodeRaw(bridge))
 
-    try {
-      await xerc20.actions
-        .mint([bridge, recipient, quantity, memo])
-        .send(active(bridge))
-    } finally {
-      console.log(xerc20.bc.console)
-    }
+    await xerc20.actions
+      .mint([bridge, recipient, quantity, memo])
+      .send(active(bridge))
 
     const balance = xerc20.tables
       .accounts(getAccountCodeRaw(recipient))

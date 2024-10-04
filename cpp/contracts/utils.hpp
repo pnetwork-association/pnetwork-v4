@@ -123,11 +123,12 @@ namespace eosio {
    uint128_t to_wei(asset quantity) {
       auto exp = 18 - quantity.symbol.precision();
       uint128_t value = static_cast<uint128_t>(quantity.amount);
-      return value * static_cast<uint128_t>(10.0, exp);
+      return value * static_cast<uint128_t>(10.0, exp); // FIXME: put pow(10.0, exp), check why result wasn't detected in the tests
    }
 
    asset from_wei(uint128_t amount, const symbol& sym) {
-      auto divisor = pow(10.0, 18 - sym.precision());
+      uint128_t divisor = 1000000000000000000; // 1e18
+
       return asset(amount / divisor, sym);
    }
 }

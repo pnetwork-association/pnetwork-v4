@@ -18,11 +18,7 @@ describe('PAM testing', () => {
       const operation = getOperationSample()
       const metadata = getMetadataSample()
 
-      try {
-        await pam.actions.isauthorized([operation, metadata]).send(active(user))
-      } finally {
-        console.log(pam.bc.console)
-      }
+      await pam.actions.isauthorized([operation, metadata]).send(active(user))
     })
   })
 })

@@ -41,7 +41,10 @@ namespace eosio {
          void setfeemanagr(const name& fee_manager);
 
          [[eosio::action]]
-         void adduserdata(std::vector<uint8_t> user_data);
+         void adduserdata(const name& caller, bytes payload);
+
+         [[eosio::action]]
+         void freeuserdata(const name& account);
 
          [[eosio::action]]
          void swap(const uint64_t& nonce, const bytes& event_bytes);
@@ -56,13 +59,22 @@ namespace eosio {
          void settle(const name& caller, const operation& operation, const metadata& metadata);
 
       private:
-         struct [[eosio::table]] global_storage_model {
+         struct [[eosio::table]] global_storage_table {
             uint64_t   nonce;
             name       minfee;
             name       feesmanager;
          };
 
+         // Scoped with user account
+         struct [[eosio::table]] user_data_table {
+            uint64_t id;
+            bytes payload;
+
+            uint64_t primary_key() const { return id; }
+         };
+
          typedef eosio::multi_index<"stat"_n, token_stats_table> stats;
+         typedef eosio::multi_index<"userdata"_n, user_data_table> user_data;
          typedef eosio::multi_index<"pastevents"_n, adapter_past_events_table, adapter_past_events_byeventid> past_events;
          typedef eosio::multi_index<"reglockbox"_n, lockbox_registry_table, lockbox_registry_byxtoken> registry_lockbox;
          typedef eosio::multi_index<
@@ -72,10 +84,11 @@ namespace eosio {
             adapter_registry_bytokenbytes
          > registry_adapter;
 
+         // TODO: include into global storage
          using lockbox_singleton = singleton<"lockbox"_n, name>;
-         using storage = singleton<"storage"_n, global_storage_model>;
+         using storage = singleton<"storage"_n, global_storage_table>;
 
-         global_storage_model empty_storage = {
+         global_storage_table empty_storage = {
             .nonce = 0,
             .minfee = ""_n,
             .feesmanager = ""_n
@@ -85,6 +98,7 @@ namespace eosio {
          void check_symbol_is_valid(const name& account, const symbol& sym);
          void extract_memo_args(
             const name& self,
+            const name& userdata_owner,
             const string& memo,
             string& out_sender,
             string& out_dest_chainid,
@@ -106,7 +120,7 @@ namespace eosio {
          );
          void xerc20_transfer_from_any(
             const name& self,
-            const name& ram_payer,
+            const name& caller,
             const name& token,
             const name& xerc20,
             const asset& quantity,

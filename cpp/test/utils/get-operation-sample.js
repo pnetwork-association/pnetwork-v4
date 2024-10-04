@@ -4,7 +4,7 @@ const { getSymbolCodeRaw } = require('./eos-ext')
 const { no0x, utf8HexString } = require('./wharfkit-ext')
 
 const getOperationSample = _injectedOperation =>
-  R.mergeDeepRight(_injectedOperation, {
+  R.mergeLeft(_injectedOperation, {
     blockId: no0x(zeroPadValue('0x00', 32)),
     txId: no0x(zeroPadValue('0x00', 32)),
     nonce: 0,
