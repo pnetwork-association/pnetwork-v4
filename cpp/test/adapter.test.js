@@ -16,6 +16,7 @@ const { substract, no0x } = require('./utils/wharfkit-ext')
 const { getAccountsBalances } = require('./utils/get-token-balance')
 const { getMetadataSample } = require('./utils/get-metadata-sample')
 const { getOperationSample } = require('./utils/get-operation-sample')
+const errors = require('./utils/errors')
 
 const ethers = require('ethers')
 
@@ -178,6 +179,16 @@ describe('Adapter testing', () => {
   })
 
   describe('adapter::swap', () => {
+    it('Should revert when calling the swap function directly', async () => {
+      const nonce = 3
+      const eventBytes = '00000666'
+      const action = adapter.contract.actions
+        .swap([nonce, eventBytes])
+        .send(active(evil))
+
+      await expectToThrow(action, errors.AUTH_MISSING(adapter.account))
+    })
+
     it('Should swap correctly', async () => {
       const data = ''
       const recipient = '0x68bbed6a47194eff1cf514b50ea91895597fc91e'

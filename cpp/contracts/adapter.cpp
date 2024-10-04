@@ -169,7 +169,9 @@ void adapter::settle(const name& caller, const operation& operation, const metad
 }
 
 
-void adapter::swap(const uint64_t& nonce, const bytes& event_bytes) {}
+void adapter::swap(const uint64_t& nonce, const bytes& event_bytes) {
+   require_auth(get_self());
+}
 
 
 void adapter::token_transfer_from_lockbox(
