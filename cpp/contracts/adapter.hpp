@@ -95,7 +95,6 @@ namespace eosio {
             adapter_registry_bytokenbytes
          > registry_adapter;
 
-         // TODO: include into global storage
          using lockbox_singleton = singleton<"lockbox"_n, name>;
          using storage = singleton<"storage"_n, global_storage_table>;
 

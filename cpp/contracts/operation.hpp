@@ -8,9 +8,6 @@ namespace eosio {
 
    struct operation {
    public:
-      // TODO: enable all the fields when
-      // working on the PAM
-      //
       bytes blockId;
       bytes txId;
       uint64_t nonce;
@@ -21,11 +18,5 @@ namespace eosio {
       bytes sender;
       name recipient;
       bytes data;
-
-      // constexpr operation() : value(42) {}
-
-      // std::string to_string() const {
-      //    return std::string("Operation is ") + std::to_string(value);
-      // }
    };
 }
