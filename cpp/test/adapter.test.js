@@ -25,6 +25,7 @@ const getSwapMemo = (sender, destinationChainId, recipient, data) =>
 
 describe('Adapter testing', () => {
   const symbol = 'TKN'
+  const minFee = `0.0018 X${symbol}`
   const precision4 = precision(4)
   const maxSupply = '500000000.0000'
   const userInitialBalance = `1000.0000 ${symbol}`
@@ -36,6 +37,8 @@ describe('Adapter testing', () => {
   )
 
   const TABLE_STORAGE = 'storage'
+  const FEE_BASIS_POINTS = 1750
+  const FEE_BASIS_POINTS_DIVISOR = 1000000
 
   const token = {
     symbol: symbol,
@@ -73,9 +76,10 @@ describe('Adapter testing', () => {
   const issuer = 'issuer'
   const bridge = 'bridge'
   const recipient = 'recipient'
+  const feemanager = 'feemanager'
 
   before(async () => {
-    blockchain.createAccounts(user, evil, issuer, bridge, recipient)
+    blockchain.createAccounts(user, evil, issuer, bridge, recipient, feemanager)
     lockbox.contract = deploy(
       blockchain,
       lockbox.account,
@@ -153,7 +157,12 @@ describe('Adapter testing', () => {
           token.account,
           precision4(token.symbol),
           token.bytes,
+          minFee,
         ])
+        .send(active(adapter.account))
+
+      await adapter.contract.actions
+        .setfeemanagr([feemanager])
         .send(active(adapter.account))
 
       const row = adapter.contract.tables
@@ -168,12 +177,12 @@ describe('Adapter testing', () => {
         token_bytes: token.bytes,
         xerc20: xerc20.account,
         xerc20_symbol: precision4(xerc20.symbol),
+        min_fee: minFee,
       })
 
       expect(storage).be.deep.equal({
         nonce: 0,
-        minfee: '',
-        feesmanager: '',
+        feesmanager: feemanager,
       })
     })
   })
@@ -198,7 +207,7 @@ describe('Adapter testing', () => {
       const quantity = `${amount} ${symbol}`
 
       const before = getAccountsBalances(
-        [user, lockbox.account, adapter.account],
+        [user, lockbox.account, adapter.account, feemanager],
         [token, xerc20],
       )
 
@@ -209,7 +218,7 @@ describe('Adapter testing', () => {
         .send(active(user))
 
       const after = getAccountsBalances(
-        [user, lockbox.account, adapter.account],
+        [user, lockbox.account, adapter.account, feemanager],
         [token, xerc20],
       )
 
@@ -235,6 +244,18 @@ describe('Adapter testing', () => {
           before.lockbox[xerc20.symbol],
         ).toString(),
       ).to.be.equal(`0.0000 ${xerc20.symbol}`)
+
+      const fees = `${(
+        (parseInt(amount) * FEE_BASIS_POINTS) /
+        FEE_BASIS_POINTS_DIVISOR
+      ).toFixed(4)} ${xerc20.symbol}`
+
+      expect(
+        substract(
+          after.feemanager[xerc20.symbol],
+          before.feemanager[xerc20.symbol],
+        ).toString(),
+      ).to.be.equal(fees)
 
       expect(after.storage.nonce).to.be.equal(before.storage.nonce + 1)
 

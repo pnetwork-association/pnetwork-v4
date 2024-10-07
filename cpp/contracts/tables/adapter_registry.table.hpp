@@ -31,6 +31,7 @@ namespace eosio {
       checksum256          token_bytes;
       name                 xerc20;
       symbol               xerc20_symbol;
+      asset                min_fee;
 
       uint64_t primary_key()    const { return token_symbol.code().raw(); }
       uint64_t secondary_key()  const { return xerc20_symbol.code().raw(); }

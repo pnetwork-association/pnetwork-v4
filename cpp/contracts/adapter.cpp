@@ -3,6 +3,31 @@
 
 namespace eosio {
 
+asset adapter::calculate_fees(const asset& quantity) {
+   registry_adapter _registry(get_self(), get_self().value);
+   auto idx = _registry.get_index<adapter_registry_idx_xtoken>();
+   auto search_token = _registry.find(quantity.symbol.code().raw());
+   auto search_xerc20 = idx.find(quantity.symbol.code().raw());
+
+   asset min_fee;
+   if (search_token != _registry.end()) {
+      min_fee = search_token->min_fee;
+   } else if (search_xerc20 != idx.end()) {
+      min_fee = search_xerc20->min_fee;
+   } else {
+      check(false, "invalid quantity given for calculating the fees");
+   }
+
+   // Fees are expressed in the wrapped token (xerc20), hence why
+   // the min_fee.symbol
+   auto ref_symbol = min_fee.symbol;
+
+   uint128_t fee_amount = (FEE_BASIS_POINTS * quantity.amount) / FEE_BASIS_POINTS_DIVISOR;
+   asset fee = asset(fee_amount, ref_symbol);
+
+   return fee < min_fee ? min_fee : fee;
+}
+
 void adapter::check_symbol_is_valid(const name& account, const symbol& sym) {
    stats _stats(account, sym.code().raw());
    auto itr = _stats.find(sym.code().raw());
@@ -14,7 +39,8 @@ void adapter::create(
    const symbol& xerc20_symbol,
    const name& token,
    const symbol& token_symbol,
-   const checksum256& token_bytes
+   const checksum256& token_bytes,
+   const asset& min_fee
 ) {
    require_auth(get_self());
 
@@ -22,6 +48,8 @@ void adapter::create(
    check(_token_bytes.size() == 32, "token bytes length must be 32");
    check(is_account(token), "token account does not exist");
    check(is_account(xerc20), "xERC20 account does not exist");
+   check(token_symbol.precision() == xerc20_symbol.precision(), "invalid xerc20 precision");
+   check(min_fee.symbol == xerc20_symbol, "invalid minimum fee symbol");
 
    registry_adapter _registry(get_self(), get_self().value);
    auto itr = _registry.find(token_symbol.code().raw());
@@ -36,6 +64,7 @@ void adapter::create(
        r.token = token;
        r.token_symbol = token_symbol;
        r.token_bytes = token_bytes;
+       r.min_fee = min_fee;
    });
 
    storage _storage(get_self(), get_self().value);
@@ -207,9 +236,20 @@ void adapter::xerc20_transfer_from_any(
    const asset& quantity,
    const string& memo
 ) {
+   storage _storage(self, self.value);
+   check(_storage.exists(), "contract not initialized");
+   auto storage = _storage.get();
+
+   check(is_account(storage.feesmanager), "invalid fees manager account");
+
+   asset fees = calculate_fees(quantity);
+   asset net_amount = quantity - fees;
+
+   action_transfer _transfer{xerc20, {self, "active"_n}};
+   _transfer.send(self, storage.feesmanager, fees, string(""));
 
    action_burn _burn{xerc20, {self, "active"_n}};
-   _burn.send(self, quantity, memo);
+   _burn.send(self, net_amount, memo);
 
    string sender;
    string dest_chainid;
@@ -218,11 +258,7 @@ void adapter::xerc20_transfer_from_any(
 
    extract_memo_args(self, caller, memo, sender, dest_chainid, recipient, userdata);
 
-   storage _storage(self, self.value);
 
-   check(_storage.exists(), "contract not initialized");
-
-   auto storage = _storage.get();
    auto recipient_bytes = to_bytes(recipient);
 
    bytes event_bytes  = concat(
@@ -230,7 +266,7 @@ void adapter::xerc20_transfer_from_any(
       to_bytes32(storage.nonce),
       to_bytes32(token.to_string()),
       hex_to_bytes(dest_chainid),
-      to_bytes32(to_wei(quantity)),
+      to_bytes32(to_wei(net_amount)),
       to_bytes32(sender),
       to_bytes32(recipient_bytes.size()),
       recipient_bytes,

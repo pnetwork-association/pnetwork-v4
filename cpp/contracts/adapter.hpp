@@ -36,7 +36,8 @@ namespace eosio {
             const symbol& xerc20_symbol,
             const name& token,
             const symbol& token_symbol,
-            const checksum256& token_bytes
+            const checksum256& token_bytes,
+            const asset& min_fee
          );
 
          [[eosio::action]]
@@ -60,15 +61,19 @@ namespace eosio {
          [[eosio::on_notify("*::transfer")]]
          void ontransfer(const name& from, const name& to, const asset& quantity, const string& memo);
 
+         asset calculate_fees(const asset& quantity);
+
          using action_swap = action_wrapper<"swap"_n, &adapter::swap>;
          using action_burn = action_wrapper<"burn"_n, &xtoken::burn>;
          using action_mint = action_wrapper<"mint"_n, &xtoken::mint>;
          using action_transfer = action_wrapper<"transfer"_n, &xtoken::transfer>;
       private:
+         uint128_t FEE_BASIS_POINTS = 1750;
+         uint128_t FEE_BASIS_POINTS_DIVISOR = 1000000; // 4 decimals for basis point + 2 decimals for percentage
+
          struct [[eosio::table]] global_storage_table {
-            uint64_t   nonce;
-            name       minfee;
-            name       feesmanager;
+            uint128_t   nonce;
+            name        feesmanager;
          };
 
          // Scoped with user account
@@ -96,7 +101,6 @@ namespace eosio {
 
          global_storage_table empty_storage = {
             .nonce = 0,
-            .minfee = ""_n,
             .feesmanager = ""_n
          };
 
