@@ -181,6 +181,8 @@ void adapter::settle(const name& caller, const operation& operation, const metad
          // If the lockbox exists, we release the collateral
          auto lockbox = _lockbox.get();
 
+         check(is_account(lockbox), "lockbox must be a valid account");
+
          _mint.send(get_self(), lockbox, quantity, operation.recipient.to_string());
          // Inline actions flow from the one above:
          // xerc20.mint(lockbox, quantity) -> lockbox::onmint -> lockbox::ontransfer
@@ -310,6 +312,7 @@ void adapter::ontransfer(const name& from, const name& to, const asset& quantity
       lockbox_singleton _lockbox(xerc20, xerc20.value);
       check(_lockbox.exists(), "lockbox is not set for the underlying token");
       auto lockbox = _lockbox.get();
+      check(is_account(lockbox), "lockbox must be a valid account");
       if (from == lockbox) {
          token_transfer_from_lockbox(get_self(), token, quantity, memo);
       } else {
