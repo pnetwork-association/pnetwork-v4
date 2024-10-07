@@ -243,6 +243,9 @@ void adapter::xerc20_transfer_from_any(
    check(is_account(storage.feesmanager), "invalid fees manager account");
 
    asset fees = calculate_fees(quantity);
+
+   check(quantity.amount >= fees.amount, "quantity can't cover fees");
+
    asset net_amount = quantity - fees;
 
    action_transfer _transfer{xerc20, {self, "active"_n}};
@@ -257,7 +260,6 @@ void adapter::xerc20_transfer_from_any(
    bytes userdata;
 
    extract_memo_args(self, caller, memo, sender, dest_chainid, recipient, userdata);
-
 
    auto recipient_bytes = to_bytes(recipient);
 
