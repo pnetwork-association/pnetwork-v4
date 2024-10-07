@@ -306,7 +306,7 @@ void adapter::ontransfer(const name& from, const name& to, const asset& quantity
    if (is_token_transfer) check(quantity.symbol == token_symbol, "invalid token quantity symbol");
    if (is_xerc20_transfer) check(quantity.symbol == xerc20_symbol, "invalid xerc20 quantity symbol");
 
-   if(is_token_transfer) {
+   if (is_token_transfer) {
       lockbox_singleton _lockbox(xerc20, xerc20.value);
       check(_lockbox.exists(), "lockbox is not set for the underlying token");
       auto lockbox = _lockbox.get();
@@ -324,5 +324,5 @@ void adapter::onmint(const name& caller, const name& to, const asset& quantity, 
    ontransfer(caller, to, quantity, memo);
 }
 
-}
+} // namespace eosio
 
