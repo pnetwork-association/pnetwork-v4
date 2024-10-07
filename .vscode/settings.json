@@ -58,6 +58,7 @@
     },
     "files.exclude": {
         "**/node_modules": true,
+        "**/build": true,
         "**/*.abi": {
             "when": "$(basename).cpp"
         },

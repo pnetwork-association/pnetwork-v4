@@ -8,7 +8,7 @@ void lockbox::check_symbol_is_valid(const name& account, const symbol& sym) {
    check(itr != _stats.end(), "symbol not found");
 }
 
-void lockbox::init(
+void lockbox::create(
    const name& xerc20,
    const symbol& xerc20_symbol,
    const name& token,
@@ -20,7 +20,7 @@ void lockbox::init(
    check(is_account(xerc20), "xERC20 account does not exist");
 
    registry _registry(get_self(), get_self().value);
-   auto itr = _registry.find(token.value);
+   auto itr = _registry.find(token_symbol.code().raw());
    check(itr == _registry.end(), "token already registered");
    check_symbol_is_valid(xerc20, xerc20_symbol);
    check_symbol_is_valid(token, token_symbol);
@@ -34,7 +34,6 @@ void lockbox::init(
    });
 }
 
-[[eosio::on_notify("*::transfer")]]
 void lockbox::ontransfer(
    const name& from,
    const name& to,
@@ -48,9 +47,9 @@ void lockbox::ontransfer(
 
    name token = get_first_receiver();
    registry _registry(get_self(), get_self().value);
-   auto search_token = _registry.find(token.value);
-   auto idx = _registry.get_index<name("byxtoken")>();
-   auto search_xerc20 = idx.lower_bound(token.value);
+   auto search_token = _registry.find(quantity.symbol.code().raw());
+   auto idx = _registry.get_index<lockbox_registry_idx_xtoken_name>();
+   auto search_xerc20 = idx.lower_bound(quantity.symbol.code().raw());
 
    check(
       search_token != _registry.end() ||
@@ -59,6 +58,7 @@ void lockbox::ontransfer(
    );
 
    if (search_token != _registry.end()) {
+      check(search_token->token == token, "invalid first receiver");
       auto xerc20_quantity = asset(quantity.amount, search_token->xerc20_symbol);
       action(
          permission_level{ get_self(), "active"_n },
@@ -67,6 +67,9 @@ void lockbox::ontransfer(
          std::make_tuple(get_self(), from, xerc20_quantity, memo)
       ).send();
    } else if (search_xerc20 != idx.end()) {
+
+      check(search_xerc20->xerc20 == token, "invalid first receiver");
+
       action(
          permission_level{ get_self(), "active"_n },
          token,
@@ -83,5 +86,9 @@ void lockbox::ontransfer(
          std::make_tuple(get_self(), from, token_quantity, memo)
       ).send();
    }
+}
+
+void lockbox::onmint(const name& from, const name& to, const asset& quantity, const string& memo) {
+   ontransfer(from, to, quantity, memo);
 }
 }

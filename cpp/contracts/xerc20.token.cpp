@@ -2,7 +2,7 @@
 
 namespace eosio {
 
-void token::create( const name&   issuer,
+void xtoken::create( const name&   issuer,
                     const asset&  maximum_supply )
 {
 
@@ -23,7 +23,7 @@ void token::create( const name&   issuer,
     });
 }
 
-void token::mint( const name& caller, const name& to, const asset& quantity, const string& memo )
+void xtoken::mint( const name& caller, const name& to, const asset& quantity, const string& memo )
 {
     require_auth(caller);
     auto sym = quantity.symbol;
@@ -64,9 +64,11 @@ void token::mint( const name& caller, const name& to, const asset& quantity, con
     });
 
     add_balance( to, quantity, caller );
+
+    require_recipient(to);
 }
 
-void token::burn( const name& caller, const asset& quantity, const string& memo )
+void xtoken::burn( const name& caller, const asset& quantity, const string& memo )
 {
    require_auth(caller);
    auto sym = quantity.symbol;
@@ -106,10 +108,13 @@ void token::burn( const name& caller, const asset& quantity, const string& memo 
       s.supply -= quantity;
    });
 
+
    sub_balance( caller, quantity );
+
 }
 
-void token::transfer( const name&    from,
+
+void xtoken::transfer( const name&    from,
                       const name&    to,
                       const asset&   quantity,
                       const string&  memo )
@@ -132,10 +137,11 @@ void token::transfer( const name&    from,
     auto payer = has_auth( to ) ? to : from;
 
     sub_balance( from, quantity );
+
     add_balance( to, quantity, payer );
 }
 
-void token::sub_balance( const name& owner, const asset& value ) {
+void xtoken::sub_balance( const name& owner, const asset& value ) {
    accounts from_acnts( get_self(), owner.value );
 
    const auto& from = from_acnts.get( value.symbol.code().raw(), "no balance object found" );
@@ -146,7 +152,7 @@ void token::sub_balance( const name& owner, const asset& value ) {
       });
 }
 
-void token::add_balance( const name& owner, const asset& value, const name& ram_payer )
+void xtoken::add_balance( const name& owner, const asset& value, const name& ram_payer )
 {
    accounts to_acnts( get_self(), owner.value );
    auto to = to_acnts.find( value.symbol.code().raw() );
@@ -159,9 +165,10 @@ void token::add_balance( const name& owner, const asset& value, const name& ram_
         a.balance += value;
       });
    }
+
 }
 
-void token::open( const name& owner, const symbol& symbol, const name& ram_payer )
+void xtoken::open( const name& owner, const symbol& symbol, const name& ram_payer )
 {
    require_auth( ram_payer );
 
@@ -181,7 +188,7 @@ void token::open( const name& owner, const symbol& symbol, const name& ram_payer
    }
 }
 
-void token::close( const name& owner, const symbol& symbol )
+void xtoken::close( const name& owner, const symbol& symbol )
 {
    require_auth( owner );
    accounts acnts( get_self(), owner.value );
@@ -191,13 +198,13 @@ void token::close( const name& owner, const symbol& symbol )
    acnts.erase( it );
 }
 
-void token::setlockbox(const name& account) {
+void xtoken::setlockbox(const name& account) {
    require_auth(get_self());
    lockbox_singleton lockbox(get_self(), get_self().value);
    lockbox.set(account, get_self());
 }
 
-void token::setlimits( const name& account, const asset& minting_limit, const asset& burning_limit ) {
+void xtoken::setlimits( const name& account, const asset& minting_limit, const asset& burning_limit ) {
    require_auth( get_self() );
    check( minting_limit.symbol == burning_limit.symbol, "minting and burning limits symbol does not match" );
    uint64_t symbol_code = minting_limit.symbol.code().raw();
@@ -234,7 +241,7 @@ void token::setlimits( const name& account, const asset& minting_limit, const as
    }
 }
 
-token::bridge_model token::get_empty_bridge_model(const name& account, const symbol& symbol) {
+xtoken::bridge_model xtoken::get_empty_bridge_model(const name& account, const symbol& symbol) {
    asset zeroedAsset = asset(0, symbol);
    bridge_model b = {
       .account = account,
@@ -250,7 +257,7 @@ token::bridge_model token::get_empty_bridge_model(const name& account, const sym
    return b;
 }
 
-asset token::calculate_new_current_limit(const asset& limit, const asset& old_limit, const asset& current_limit) {
+asset xtoken::calculate_new_current_limit(const asset& limit, const asset& old_limit, const asset& current_limit) {
    uint64_t difference = 0;
    uint64_t new_current_limit = 0;
    if (old_limit.amount > limit.amount) {
@@ -264,7 +271,7 @@ asset token::calculate_new_current_limit(const asset& limit, const asset& old_li
    return asset(new_current_limit, limit.symbol);
 }
 
-asset token::get_current_limit(const asset& current_limit, const asset& max_limit, const uint64_t timestamp, const uint64_t rate_per_second) {
+asset xtoken::get_current_limit(const asset& current_limit, const asset& max_limit, const uint64_t timestamp, const uint64_t rate_per_second) {
    asset limit = current_limit;
 
    uint64_t block_timestamp = current_block_time()
@@ -284,7 +291,7 @@ asset token::get_current_limit(const asset& current_limit, const asset& max_limi
    return limit;
 }
 
-asset token::minting_current_limit_of(bridge_model& bridge) {
+asset xtoken::minting_current_limit_of(bridge_model& bridge) {
    return get_current_limit(
       bridge.minting_current_limit,
       bridge.minting_max_limit,
@@ -293,7 +300,7 @@ asset token::minting_current_limit_of(bridge_model& bridge) {
    );
 }
 
-asset token::burning_current_limit_of(bridge_model& bridge) {
+asset xtoken::burning_current_limit_of(bridge_model& bridge) {
    return get_current_limit(
       bridge.burning_current_limit,
       bridge.burning_max_limit,
@@ -302,7 +309,7 @@ asset token::burning_current_limit_of(bridge_model& bridge) {
    );
 }
 
-void token::change_minter_limit(token::bridge_model& bridge, const asset& limit) {
+void xtoken::change_minter_limit(xtoken::bridge_model& bridge, const asset& limit) {
    asset old_limit = bridge.minting_max_limit;
    asset current_limit = minting_current_limit_of(bridge);
    bridge.minting_max_limit = limit;
@@ -311,7 +318,7 @@ void token::change_minter_limit(token::bridge_model& bridge, const asset& limit)
    bridge.minting_timestamp = current_block_time().to_time_point().sec_since_epoch();
 }
 
-void token::change_burner_limit(token::bridge_model& bridge, const asset& limit) {
+void xtoken::change_burner_limit(xtoken::bridge_model& bridge, const asset& limit) {
    asset old_limit = bridge.burning_max_limit;
    asset current_limit = burning_current_limit_of(bridge);
    bridge.burning_max_limit = limit;
@@ -320,13 +327,13 @@ void token::change_burner_limit(token::bridge_model& bridge, const asset& limit)
    bridge.burning_timestamp = current_block_time().to_time_point().sec_since_epoch();
 }
 
-void token::use_minter_limits(token::bridge_model& bridge, const asset& change) {
+void xtoken::use_minter_limits(xtoken::bridge_model& bridge, const asset& change) {
    asset current_limit = minting_current_limit_of(bridge);
    bridge.minting_timestamp = current_block_time().to_time_point().sec_since_epoch();
    bridge.minting_current_limit = current_limit - change;
 }
 
-void token::use_burner_limits(token::bridge_model& bridge, const asset& change) {
+void xtoken::use_burner_limits(xtoken::bridge_model& bridge, const asset& change) {
    asset current_limit = burning_current_limit_of(bridge);
    bridge.burning_timestamp = current_block_time().to_time_point().sec_since_epoch();
    bridge.burning_current_limit = current_limit - change;

@@ -22,9 +22,15 @@ const multiply = assetOperation(R.multiply)
 
 const divide = assetOperation(R.divide)
 
+const no0x = _0xValue => _0xValue.replace('0x', '')
+
+const utf8HexString = _str => '0x' + Buffer.from(_str, 'utf-8').toString('hex')
+
 module.exports = {
   sum,
+  no0x,
   divide,
   multiply,
   substract,
+  utf8HexString,
 }
