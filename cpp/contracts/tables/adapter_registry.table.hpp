@@ -17,7 +17,7 @@ namespace eosio {
    // | 'wram.token'  | bytes32(WRAM.symbol.code.raw) | 'xwram.token'  |
    //
    // NOTE: on destination chains we will set each adapter's registry
-   // with bytes32('wram.token') for WRAM
+   // with bytes32(WRAM.symbol.code.raw) for WRAM
    //
    // Example:
    // WETH ERC20 => local chain is Ethereum, then adapter's registry is
