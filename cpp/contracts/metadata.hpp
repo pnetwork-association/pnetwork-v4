@@ -1,5 +1,6 @@
 #pragma once
 
+#include <eosio/crypto.hpp>
 #include <vector>
 
 namespace eosio {

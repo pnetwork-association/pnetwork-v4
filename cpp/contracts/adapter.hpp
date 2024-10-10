@@ -62,6 +62,9 @@ namespace eosio {
          [[eosio::action]]
          void settle(const name& caller, const operation& operation, const metadata& metadata);
 
+         [[eosio::on_notify("*::finalsettle")]]
+         void on_finalsettle(const name& caller, const operation& operation, const metadata& metadata);
+
       private:
          struct [[eosio::table]] global_storage_model {
             uint64_t   nonce;

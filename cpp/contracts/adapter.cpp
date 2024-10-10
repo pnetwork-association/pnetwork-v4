@@ -86,6 +86,7 @@ void adapter::create(
 }
 
 void adapter::setfeemanagr(const name& fee_manager) {
+   require_auth(get_self());
    storage _storage(get_self(), get_self().value);
 
    _storage.get_or_create(
@@ -99,6 +100,7 @@ void adapter::setfeemanagr(const name& fee_manager) {
 }
 
 void adapter::setpam(const name& pam) {
+   require_auth(get_self());
    storage _storage(get_self(), get_self().value);
 
    _storage.get_or_create(
@@ -314,73 +316,87 @@ void adapter::settle(const name& caller, const operation& operation, const metad
    // print("\ny\n");
    // printhex(y.data(), y.size());
 
-   check(search_token_bytes != idx_registry.end(), "invalid token");
+   // check(search_token_bytes != idx_registry.end(), "invalid token");
 
-   checksum256 event_id;
-   check(is_authorized(operation, metadata), "unauthorized");
+   // checksum256 event_id;
+   storage _storage(get_self(), get_self().value);
+   name pam = _storage.get().pam;
+   // print(pam.pam());
+   action(
+      permission_level{get_self(), "active"_n}, // keep same permission
+      pam, 
+      "isauthorized"_n,  
+      std::make_tuple(get_self(), caller, operation, metadata)
+   ).send();
+}
 
-   past_events _past_events(get_self(), get_self().value);
-   auto idx_past_events = _past_events.get_index<adapter_registry_idx_eventid>();
-   auto itr = idx_past_events.find(event_id);
+void adapter::on_finalsettle(const name& caller, const operation& operation, const metadata& metadata) {
+   storage _storage(get_self(), get_self().value);
+   auto pam = _storage.get().pam;
+   require_auth(pam); // Only pam can call this action
 
-   check(itr == idx_past_events.end(), "event already processed");
+   // past_events _past_events(get_self(), get_self().value);
+   // auto idx_past_events = _past_events.get_index<adapter_registry_idx_eventid>();
+   // auto itr = idx_past_events.find(event_id);
 
-   _past_events.emplace(caller, [&](auto& r) {
-      r.notused = 0;
-      r.event_id = event_id;
-   });
+   // check(itr == idx_past_events.end(), "event already processed");
+
+   // _past_events.emplace(caller, [&](auto& r) {
+   //    r.notused = 0;
+   //    r.event_id = event_id;
+   // });
 
    // TODO?: check quantity symbols against the
    // operation token
 
    // TODO: check recipient is a valid account
 
-   lockbox_singleton _lockbox(search_token_bytes->xerc20, search_token_bytes->xerc20.value);
-   // check(_lockbox.exists(), "lockbox not found for the specified token");
-   // auto lockbox = _lockbox.get();
+   // lockbox_singleton _lockbox(search_token_bytes->xerc20, search_token_bytes->xerc20.value);
+   // // check(_lockbox.exists(), "lockbox not found for the specified token");
+   // // auto lockbox = _lockbox.get();
 
-   if (operation.amount > 0) {
+   // if (operation.amount > 0) {
 
-      print("\nheeeree\n");
-      print("\noperation.amount\n");
-      print(operation.amount);
-      auto quantity = from_wei(
-         operation.amount,
-         search_token_bytes->xerc20_symbol
-      );
-      print("\nquantity\n");
-      print(quantity);
+   //    print("\nheeeree\n");
+   //    print("\noperation.amount\n");
+   //    print(operation.amount);
+   //    auto quantity = from_wei(
+   //       operation.amount,
+   //       search_token_bytes->xerc20_symbol
+   //    );
+   //    print("\nquantity\n");
+   //    print(quantity);
 
-      if (_lockbox.exists()) {
-         // Local chain only
-         action(
-            permission_level{ get_self(), "active"_n },
-            search_token_bytes->xerc20,
-            "mint"_n,
-            make_tuple(get_self(), _lockbox.get(), quantity, string(""))
-         ).send();
+   //    if (_lockbox.exists()) {
+   //       // Local chain only
+   //       action(
+   //          permission_level{ get_self(), "active"_n },
+   //          search_token_bytes->xerc20,
+   //          "mint"_n,
+   //          make_tuple(get_self(), _lockbox.get(), quantity, string(""))
+   //       ).send();
 
-         // Inline actions flow from here (get_self() := this contract):
-         // lockbox::onmint -> lockbox::ontransfer -> xerc20::burn -> token::transfer(lockbox, get_self(), quantity, memo)
-      } else {
-         action(
-            permission_level{ get_self(), "active"_n },
-            search_token_bytes->xerc20,
-            "mint"_n,
-            make_tuple(get_self(), operation.recipient, quantity, string(""))
-         ).send();
-      }
-   }
+   //       // Inline actions flow from here (get_self() := this contract):
+   //       // lockbox::onmint -> lockbox::ontransfer -> xerc20::burn -> token::transfer(lockbox, get_self(), quantity, memo)
+   //    } else {
+   //       action(
+   //          permission_level{ get_self(), "active"_n },
+   //          search_token_bytes->xerc20,
+   //          "mint"_n,
+   //          make_tuple(get_self(), operation.recipient, quantity, string(""))
+   //       ).send();
+   //    }
+   // }
 
-   if (operation.data.size() > 0) {
-      // TODO?: apply try/catch
-      action(
-         permission_level{ get_self(), "active"_n },
-         operation.recipient,
-         "receiveudata"_n,
-         make_tuple(get_self(), operation.data)
-      ).send();
-   }
+   // if (operation.data.size() > 0) {
+   //    // TODO?: apply try/catch
+   //    action(
+   //       permission_level{ get_self(), "active"_n },
+   //       operation.recipient,
+   //       "receiveudata"_n,
+   //       make_tuple(get_self(), operation.data)
+   //    ).send();
+   // }
 }
 
 

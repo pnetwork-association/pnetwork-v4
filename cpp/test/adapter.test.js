@@ -31,6 +31,9 @@ describe('Adapter testing', () => {
     ),
   )
 
+  const tee_pub_key = '0480472f799469d9af8790307a022802785c2b1e2f9c0930bdf9bafe193245e7a37cf43c720edc0892a2a97050005207e412f2227b1d92a78b8ee366fe4fea5ac9'
+  const attestation = 'deadbeef'
+
   const token = {
     symbol: symbol,
     account: `${symbol.toLowerCase()}.token`,
@@ -52,6 +55,11 @@ describe('Adapter testing', () => {
 
   const adapter = {
     account: 'adapter',
+    contract: undefined,
+  }
+
+  const pam = {
+    account: 'pam',
     contract: undefined,
   }
 
@@ -84,6 +92,11 @@ describe('Adapter testing', () => {
       blockchain,
       adapter.account,
       'contracts/build/adapter',
+    )
+    pam.contract = deploy(
+      blockchain,
+      pam.account,
+      'contracts/build/pam',
     )
   })
 
@@ -159,6 +172,20 @@ describe('Adapter testing', () => {
     })
   })
 
+  describe('adapter::setpam', () => {
+    it('Should set PAM contract correctly', async () => {
+      try {
+        await adapter.contract.actions
+          .setpam([
+            pam.account,
+          ])
+          .send(active(adapter.account))
+      } finally {
+        console.log(adapter.contract.bc.console)
+      }
+    })  
+  })
+
   describe('adapter::swap', () => {
     it('Should swap correctly', async () => {
       const data = ''
@@ -215,8 +242,11 @@ describe('Adapter testing', () => {
     it('Should settle the operation properly', async () => {
       const operation = getOperationSample()
       const metadata = getMetadataSample()
-
       try {
+        // await pam.contract.actions
+        //   .settee([tee_pub_key, attestation])
+        //   .send(active(pam.account))
+
         await adapter.contract.actions
           .settle([user, operation, metadata])
           .send(active(user))
