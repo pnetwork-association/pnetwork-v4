@@ -26,7 +26,7 @@ bool pam::context_checks(const operation& operation, const metadata& metadata) {
       return false;
    }
 
-   offset += 32; 
+   offset += 32;
    bytes block_id = extract_32bytes(metadata, offset);
 
    offset += 32;
@@ -49,7 +49,7 @@ void pam::settee(public_key pub_key, bytes attestation) {
    );
 
    _tee_pubkey.set(pam::tee{
-      .key = pub_key 
+      .key = pub_key
    }, get_self());
 
    // print("attestation: ")
@@ -72,7 +72,7 @@ void pam::isauthorized(name adapter, name caller, const operation& operation, co
 
    // tee_pubkey _tee_pubkey(get_self(), get_self().value);
    // auto provided_pubkey = _tee_pubkey.get().key;
-   
+
    // check(recovered_pubkey == provided_pubkey, "Signature hasn't been provided by the expected TEE.");
    print("event_id\n");
    printhex(event_id.extract_as_byte_array().data(), event_id.extract_as_byte_array().size());

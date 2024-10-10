@@ -1,7 +1,7 @@
 const { expect } = require('chai')
 const { Blockchain, expectToThrow } = require('@eosnetwork/vert')
 const { deploy } = require('./utils/deploy')
-const { Asset } = require('@wharfkit/antelope')
+const { Asset, crypto, PublicKey } = require('@wharfkit/antelope')
 const R = require('ramda')
 const {
   active,
@@ -31,7 +31,8 @@ describe('Adapter testing', () => {
     ),
   )
 
-  const tee_pub_key = '0480472f799469d9af8790307a022802785c2b1e2f9c0930bdf9bafe193245e7a37cf43c720edc0892a2a97050005207e412f2227b1d92a78b8ee366fe4fea5ac9'
+  const tee_pub_key =
+    '0480472f799469d9af8790307a022802785c2b1e2f9c0930bdf9bafe193245e7a37cf43c720edc0892a2a97050005207e412f2227b1d92a78b8ee366fe4fea5ac9'
   const attestation = 'deadbeef'
 
   const token = {
@@ -93,11 +94,7 @@ describe('Adapter testing', () => {
       adapter.account,
       'contracts/build/adapter',
     )
-    pam.contract = deploy(
-      blockchain,
-      pam.account,
-      'contracts/build/pam',
-    )
+    pam.contract = deploy(blockchain, pam.account, 'contracts/build/pam')
   })
 
   const setup = async () => {
@@ -176,14 +173,12 @@ describe('Adapter testing', () => {
     it('Should set PAM contract correctly', async () => {
       try {
         await adapter.contract.actions
-          .setpam([
-            pam.account,
-          ])
+          .setpam([pam.account])
           .send(active(adapter.account))
       } finally {
         console.log(adapter.contract.bc.console)
       }
-    })  
+    })
   })
 
   describe('adapter::swap', () => {
@@ -242,10 +237,19 @@ describe('Adapter testing', () => {
     it('Should settle the operation properly', async () => {
       const operation = getOperationSample()
       const metadata = getMetadataSample()
+      const compressed = Uint8Array.from(
+        Buffer.from(
+          '0380472f799469d9af8790307a022802785c2b1e2f9c0930bdf9bafe193245e7a3',
+          'hex',
+        ),
+      )
+      const pubKey = PublicKey.from({ type: 'K1', compressed })
+
+      console.log('pubKey', pubKey.toString())
       try {
-        // await pam.contract.actions
-        //   .settee([tee_pub_key, attestation])
-        //   .send(active(pam.account))
+        await pam.contract.actions
+          .settee([pubKey, attestation])
+          .send(active(pam.account))
 
         await adapter.contract.actions
           .settle([user, operation, metadata])
