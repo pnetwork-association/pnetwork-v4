@@ -9,7 +9,8 @@
   "scripts": {
     "build": "make all",
     "clean": "make clean",
-    "test": "yarn build && mocha"
+    "test": "yarn build && mocha",
+    "postinstall": "./scripts/crlf2lf.sh ../node_modules/fuckyea/src/index.js"
   },
   "devDependencies": {
     "@eosnetwork/vert": "^1.0.0",
@@ -17,6 +18,7 @@
     "@wharfkit/antelope": "^1.0.12",
     "chai": "^4.3.10",
     "ethers": "^6.13.2",
+    "fuckyea": "^1.3.0",
     "mocha": "^10.2.0",
     "ramda": "^0.30.1"
   }

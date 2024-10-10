@@ -1,4 +1,5 @@
 all: contracts
+	mv contracts/build .
 
 .PHONY: test clean contracts
 

@@ -2064,6 +2064,7 @@ __metadata:
     "@wharfkit/antelope": "npm:^1.0.12"
     chai: "npm:^4.3.10"
     ethers: "npm:^6.13.2"
+    fuckyea: "npm:^1.3.0"
     mocha: "npm:^10.2.0"
     ramda: "npm:^0.30.1"
   languageName: unknown
@@ -2822,7 +2823,33 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@wharfkit/antelope@npm:^1.0.12":
+"@wharfkit/abicache@npm:^1.2.0, @wharfkit/abicache@npm:^1.2.1":
+  version: 1.2.2
+  resolution: "@wharfkit/abicache@npm:1.2.2"
+  dependencies:
+    "@wharfkit/antelope": "npm:^1.0.2"
+    "@wharfkit/signing-request": "npm:^3.1.0"
+    pako: "npm:^2.0.4"
+    tslib: "npm:^2.1.0"
+  checksum: 10c0/596e42974413fa802e623896233cf1ad76c689ff8953e9a8ecc8ca5a92e73de79332d19a173a5174316c7ebffad644fdd015ce07b164231f0db591f49a41777f
+  languageName: node
+  linkType: hard
+
+"@wharfkit/account@npm:^1.0.0":
+  version: 1.2.0
+  resolution: "@wharfkit/account@npm:1.2.0"
+  dependencies:
+    "@wharfkit/antelope": "npm:^1.0.7"
+    "@wharfkit/common": "npm:^1.2.0"
+    "@wharfkit/contract": "npm:^1.0.0"
+    "@wharfkit/resources": "npm:^1.2.3"
+    "@wharfkit/token": "npm:^1.1.2"
+    tslib: "npm:^2.1.0"
+  checksum: 10c0/c2422221d243dbd905f0ab68f6db76a891201a31d617040a2509e12ed74e14178c7f81e33cbe92b9ba32d97f47caedbd4a4725130ff776bd3b90582789ec0d9e
+  languageName: node
+  linkType: hard
+
+"@wharfkit/antelope@npm:^1.0.0, @wharfkit/antelope@npm:^1.0.11, @wharfkit/antelope@npm:^1.0.12, @wharfkit/antelope@npm:^1.0.2, @wharfkit/antelope@npm:^1.0.4, @wharfkit/antelope@npm:^1.0.7":
   version: 1.0.12
   resolution: "@wharfkit/antelope@npm:1.0.12"
   dependencies:
@@ -2833,6 +2860,100 @@ __metadata:
     pako: "npm:^2.1.0"
     tslib: "npm:^2.0.3"
   checksum: 10c0/272fd8c7848bb3f78c7cea1f38fa898a574d32a8e14edfc04d5b27249d0d191883ea116341ce8cc09027e0574ee93ae4494cec8925d724f0c33775e79e11624d
+  languageName: node
+  linkType: hard
+
+"@wharfkit/common@npm:^1.2.0":
+  version: 1.4.0
+  resolution: "@wharfkit/common@npm:1.4.0"
+  dependencies:
+    tslib: "npm:^2.1.0"
+  peerDependencies:
+    "@wharfkit/antelope": ^1.0.0
+  checksum: 10c0/5067b8a56c2422c7005ca46ce2edabaa8b66af2f47687300aae5a0d7c9cd4038a84a7d44e206b8bdbf338ce44336047f1d9b24a42e28b237e11ad64c526f16cc
+  languageName: node
+  linkType: hard
+
+"@wharfkit/contract@npm:^1.0.0, @wharfkit/contract@npm:^1.1.4, @wharfkit/contract@npm:^1.1.5":
+  version: 1.1.5
+  resolution: "@wharfkit/contract@npm:1.1.5"
+  dependencies:
+    "@wharfkit/abicache": "npm:^1.2.0"
+    "@wharfkit/antelope": "npm:^1.0.4"
+    "@wharfkit/signing-request": "npm:^3.1.0"
+    tslib: "npm:^2.1.0"
+  checksum: 10c0/bdf2361ebc5f6bdf9909006d24be4d2981c0314dc1cd2a55e2fc8491be48bbce1a58a5afb145d6299afa88aee8c9dd9961028972fdae52a7000c7f4ef7f75e4c
+  languageName: node
+  linkType: hard
+
+"@wharfkit/resources@npm:^1.2.3":
+  version: 1.3.0
+  resolution: "@wharfkit/resources@npm:1.3.0"
+  dependencies:
+    "@wharfkit/antelope": "npm:^1.0.0"
+    bn.js: "npm:^4.11.9"
+    js-big-decimal: "npm:^2.0.7"
+    tslib: "npm:^2.1.0"
+  checksum: 10c0/992b24a0c464ac6b89fc12b70c999c206fb55ec4eb86880d9ae6196a72e01ecdb7e0b0c7564ba32796125cac2f0bc2c9496cba47428a2f9bcbc4bbc0e9b9bc17
+  languageName: node
+  linkType: hard
+
+"@wharfkit/session@npm:^1.3.0":
+  version: 1.4.0
+  resolution: "@wharfkit/session@npm:1.4.0"
+  dependencies:
+    "@wharfkit/abicache": "npm:^1.2.1"
+    "@wharfkit/account": "npm:^1.0.0"
+    "@wharfkit/antelope": "npm:^1.0.11"
+    "@wharfkit/common": "npm:^1.2.0"
+    "@wharfkit/signing-request": "npm:^3.1.0"
+    pako: "npm:^2.0.4"
+    tslib: "npm:^2.1.0"
+  checksum: 10c0/c7ae72b03f6519ee8f6a5f852f1456e49ebbf78fce87222170c3f156391705fcd285c4a1f44a30cd721612a1349684c67742b0685953c4d48353e7b7591f63d1
+  languageName: node
+  linkType: hard
+
+"@wharfkit/signing-request@npm:^3.1.0":
+  version: 3.2.0
+  resolution: "@wharfkit/signing-request@npm:3.2.0"
+  dependencies:
+    "@wharfkit/antelope": "npm:^1.0.7"
+    tslib: "npm:^2.0.3"
+  checksum: 10c0/4c1212060a8cba57d4e0c227eec1cb7b582a4df934af54abe00aa024a49e00ed7d7cb9827c00c949a763ef059b0d203e5e8c4fe4ddb25f942562eccdd5569892
+  languageName: node
+  linkType: hard
+
+"@wharfkit/token@npm:^1.1.2":
+  version: 1.1.2
+  resolution: "@wharfkit/token@npm:1.1.2"
+  dependencies:
+    "@wharfkit/antelope": "npm:^1.0.4"
+    "@wharfkit/contract": "npm:^1.1.4"
+    bn.js: "npm:^4.11.9"
+    tslib: "npm:^2.1.0"
+  checksum: 10c0/52f3edaf5af5bcee0d938c701b5d7ae257373b0680bebf1617bdb1d79eabfe6b5cdbfb0b9fbb03eff5414bf1bb844161ef01dc465b79a81b487bc4c7cd735850
+  languageName: node
+  linkType: hard
+
+"@wharfkit/transact-plugin-resource-provider@npm:^1.1.1":
+  version: 1.1.1
+  resolution: "@wharfkit/transact-plugin-resource-provider@npm:1.1.1"
+  dependencies:
+    tslib: "npm:^2.1.0"
+  peerDependencies:
+    "@wharfkit/session": ^1.1.0
+  checksum: 10c0/f1e7a24d876b0b5b312da06262b97faff24fbc3d493fed87fc6506393107725919eeb8a00ecf716da144e5541ed2eed279b9c9a2fdf4bcec2bf9b0b9d0096d61
+  languageName: node
+  linkType: hard
+
+"@wharfkit/wallet-plugin-privatekey@npm:^1.1.0":
+  version: 1.1.0
+  resolution: "@wharfkit/wallet-plugin-privatekey@npm:1.1.0"
+  dependencies:
+    tslib: "npm:^2.1.0"
+  peerDependencies:
+    "@wharfkit/session": ^1.1.0
+  checksum: 10c0/4b023bc7de3ce0bc9a96a8bd6efe617deb38364c84bc2abfa90d7a5da5b68254cb3116d112d1d3cb4e05e0c7699d4e3ad85e0e015eac464774267e71c64f2272
   languageName: node
   linkType: hard
 
@@ -3182,7 +3303,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"axios@npm:^1.6.7, axios@npm:^1.7.2":
+"axios@npm:^1.6.5, axios@npm:^1.6.7, axios@npm:^1.7.2":
   version: 1.7.7
   resolution: "axios@npm:1.7.7"
   dependencies:
@@ -3877,6 +3998,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"commander@npm:^11.1.0":
+  version: 11.1.0
+  resolution: "commander@npm:11.1.0"
+  checksum: 10c0/13cc6ac875e48780250f723fb81c1c1178d35c5decb1abb1b628b3177af08a8554e76b2c0f29de72d69eef7c864d12613272a71fabef8047922bc622ab75a179
+  languageName: node
+  linkType: hard
+
 "commander@npm:^12.1.0":
   version: 12.1.0
   resolution: "commander@npm:12.1.0"
@@ -4196,7 +4324,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"dotenv@npm:^16.4.5":
+"dotenv@npm:^16.3.1, dotenv@npm:^16.4.5":
   version: 16.4.5
   resolution: "dotenv@npm:16.4.5"
   checksum: 10c0/48d92870076832af0418b13acd6e5a5a3e83bb00df690d9812e94b24aff62b88ade955ac99a05501305b8dc8f1b0ee7638b18493deb6fe93d680e5220936292f
@@ -4894,6 +5022,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"figlet@npm:^1.7.0":
+  version: 1.8.0
+  resolution: "figlet@npm:1.8.0"
+  bin:
+    figlet: bin/index.js
+  checksum: 10c0/65c4eafa489e9c34e01f44c7813c0c90ec41fbf716ba5c48fff6d17290fc0bbe32c278eb1bbc2c1a705f59e77f82eb81f5a6c2f5d5022431f2d6ad90fe19ee26
+  languageName: node
+  linkType: hard
+
 "file-entry-cache@npm:^6.0.1":
   version: 6.0.1
   resolution: "file-entry-cache@npm:6.0.1"
@@ -5124,6 +5261,28 @@ __metadata:
   dependencies:
     node-gyp: "npm:latest"
   conditions: os=darwin
+  languageName: node
+  linkType: hard
+
+"fuckyea@npm:^1.3.0":
+  version: 1.3.0
+  resolution: "fuckyea@npm:1.3.0"
+  dependencies:
+    "@eosnetwork/vert": "npm:^1.0.0"
+    "@wharfkit/contract": "npm:^1.1.5"
+    "@wharfkit/session": "npm:^1.3.0"
+    "@wharfkit/transact-plugin-resource-provider": "npm:^1.1.1"
+    "@wharfkit/wallet-plugin-privatekey": "npm:^1.1.0"
+    axios: "npm:^1.6.5"
+    commander: "npm:^11.1.0"
+    dotenv: "npm:^16.3.1"
+    figlet: "npm:^1.7.0"
+    glob: "npm:^10.3.10"
+    mocha: "npm:^10.2.0"
+    ws: "npm:^8.16.0"
+  bin:
+    fuckyea: src/index.js
+  checksum: 10c0/b6def270ad5c1ec78d27a64afe89379ab9d977a027ff387836b3b230149222157f51dcce0d233d0f6b2989858c54d9549511a678e74278eec684a24d5fe55a25
   languageName: node
   linkType: hard
 
@@ -6492,6 +6651,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"js-big-decimal@npm:^2.0.7":
+  version: 2.1.0
+  resolution: "js-big-decimal@npm:2.1.0"
+  checksum: 10c0/1e15674b2740d71d7b02ee4d0b16aa5b3b4c5ef24592e347b97149a6d5ccd9351787b0c59595efe6192014e160d2d41c54a287b06be11ee4e67756dc80035ac7
+  languageName: node
+  linkType: hard
+
 "js-cookie@npm:^2.2.1":
   version: 2.2.1
   resolution: "js-cookie@npm:2.2.1"
@@ -7598,7 +7764,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"pako@npm:^2.1.0":
+"pako@npm:^2.0.4, pako@npm:^2.1.0":
   version: 2.1.0
   resolution: "pako@npm:2.1.0"
   checksum: 10c0/8e8646581410654b50eb22a5dfd71159cae98145bd5086c9a7a816ec0370b5f72b4648d08674624b3870a521e6a3daffd6c2f7bc00fdefc7063c9d8232ff5116
@@ -9031,7 +9197,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"tslib@npm:^2.0.3, tslib@npm:^2.3.1, tslib@npm:^2.6.2":
+"tslib@npm:^2.0.3, tslib@npm:^2.1.0, tslib@npm:^2.3.1, tslib@npm:^2.6.2":
   version: 2.7.0
   resolution: "tslib@npm:2.7.0"
   checksum: 10c0/469e1d5bf1af585742128827000711efa61010b699cb040ab1800bcd3ccdd37f63ec30642c9e07c4439c1db6e46345582614275daca3e0f4abae29b0083f04a6
@@ -9594,6 +9760,21 @@ __metadata:
     utf-8-validate:
       optional: true
   checksum: 10c0/bd7d5f4aaf04fae7960c23dcb6c6375d525e00f795dd20b9385902bd008c40a94d3db3ce97d878acc7573df852056ca546328b27b39f47609f80fb22a0a9b61d
+  languageName: node
+  linkType: hard
+
+"ws@npm:^8.16.0":
+  version: 8.18.0
+  resolution: "ws@npm:8.18.0"
+  peerDependencies:
+    bufferutil: ^4.0.1
+    utf-8-validate: ">=5.0.2"
+  peerDependenciesMeta:
+    bufferutil:
+      optional: true
+    utf-8-validate:
+      optional: true
+  checksum: 10c0/25eb33aff17edcb90721ed6b0eb250976328533ad3cd1a28a274bd263682e7296a6591ff1436d6cbc50fa67463158b062f9d1122013b361cec99a05f84680e06
   languageName: node
   linkType: hard
 

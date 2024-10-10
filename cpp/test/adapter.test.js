@@ -268,7 +268,7 @@ describe('Adapter testing', () => {
       expect(possibleSwap['Sender']).to.be.equal(adapter.account)
       // FIXME: event_bytes is correctly set inside the action
       // probably a deserialization bug of vert during
-      // expect(['Data']).to.be.equal()
+      expect(['Data']).to.be.equal()
     })
 
     // TODO: test adduserdata + swap actions in

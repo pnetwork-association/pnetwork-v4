@@ -1,7 +1,10 @@
+*.env
+!.env.example
 *.wasm
 *.abi
 *.log
 *.pwd
+*.fuckyea_id
 
 protocol_features/
 build

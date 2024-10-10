@@ -13,7 +13,7 @@ start_nodeos() {
     # Run nodeos (https://developers.eos.io/manuals/eos/v2.1/nodeos/usage/development-environment/local-single-node-testnet-consensus)
     nodeos \
         --data-dir $dir_data \
-        --config-dir . \
+        --config-dir $dir_name \
         --config config.ini \
         --delete-all-blocks > /dev/null 2>&1 &
 }
