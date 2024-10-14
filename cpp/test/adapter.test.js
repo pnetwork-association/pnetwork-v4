@@ -12,6 +12,7 @@ const {
   logExecutionTraces,
   prettyTrace,
 } = require('./utils/eos-ext')
+const { getEventBytes } = require('./utils/get-event-bytes')
 const { substract, no0x } = require('./utils/wharfkit-ext')
 const { getAccountsBalances } = require('./utils/get-token-balance')
 const { getMetadataSample } = require('./utils/get-metadata-sample')
@@ -266,9 +267,11 @@ describe('Adapter testing', () => {
       expect(possibleSwap['Notification']).to.be.equal(false)
       expect(possibleSwap['First Receiver']).to.be.equal(adapter.account)
       expect(possibleSwap['Sender']).to.be.equal(adapter.account)
-      // FIXME: event_bytes is correctly set inside the action
-      // probably a deserialization bug of vert during
-      // expect(['Data']).to.be.equal()
+
+      // TODO: parse each field with the Event Attestator simulator
+      const expectedEventBytes =
+        '00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000746b6e2e746f6b656e0000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000008a88f6dc465640000000000000000000000000000000000000000000000000000000000075736572000000000000000000000000000000000000000000000000000000000000002a307836386262656436613437313934656666316366353134623530656139313839353539376663393165'
+      expect(getEventBytes(adapter.contract)).to.be.equal(expectedEventBytes)
     })
 
     // TODO: test adduserdata + swap actions in
