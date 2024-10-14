@@ -1,12 +1,12 @@
 #!/bin/bash
 dir_name=$(dirname $(realpath $BASH_SOURCE))
 
+source "$dir_name/constants.sh"
 source "$dir_name/utils.sh"
 
-start_nodeos() {
-    dir_data=$dir_name/eosio-data-dir
-    wallet=test_wallet.pwd
-    path_wallet=$dir_data/$wallet
+function start_nodeos {
+    local dir_data
+    dir_data==$dir_name/$FOLDER_EOS_DATA
 
     abort_if_nodeos_in_background
 

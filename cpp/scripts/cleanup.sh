@@ -2,17 +2,24 @@
 
 dir_name=$(dirname $(realpath $BASH_SOURCE))
 
+source "$dir_name/constants.sh"
 source "$dir_name/stop-nodeos.sh"
 
-cleanup() {
-    dir_data=$dir_name/eosio-data-dir
-    wallet=test_wallet.pwd
-    path_wallet=$dir_data/$wallet
-    rm -rf $dir_data
-    rm -rf $dir_name/protocol_features
-    rm -f $HOME/eosio-wallet/test.wallet
+function cleanup {
+    local dir_data
+    dir_data="$dir_name/$FOLDER_EOS_DATA"
+    echo "$dir_data"
+    read -p "This will erase all your local wallets, proceed? [Y/n] " answer
+    if [[ "$answer" == "Y" || "$answer" == "y" ]]; then
+        rm -rf $dir_data
+        rm -rf $dir_name/protocol_features
+        rm -rf $HOME/eosio-wallet
+        stop_nodeos
+    else
+        echo "Aborted!"
+        exit 0
+    fi
 
-    stop_nodeos
 }
 
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then

@@ -2,6 +2,10 @@
 *.abi
 *.log
 *.pwd
+*.env
 
+*.wallet
+
+eosio-data-dir
 protocol_features/
 build
