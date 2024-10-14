@@ -1,0 +1,4 @@
+*.pid
+
+eosio-data-dir
+protocol_features
