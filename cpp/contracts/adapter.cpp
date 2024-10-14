@@ -202,6 +202,13 @@ void adapter::settle(const name& caller, const operation& operation, const metad
 
 void adapter::swap(const uint64_t& nonce, const bytes& event_bytes) {
    require_auth(get_self());
+
+   // IMPORTANT: this is for the tests, vert doesn't correctly
+   // deserialize the event_bytes arg, so we'll get it from
+   // the bc.console
+   // NOTE: performance are not affected by this
+   print("adapter_swap_event_bytes:");
+   printhex(event_bytes.data(), event_bytes.size());
 }
 
 
