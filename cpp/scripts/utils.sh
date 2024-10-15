@@ -16,11 +16,15 @@ function exit_if_empty {
 }
 
 function get_privkey {
-    cat $keypath | grep -i private | awk '{print $3}'
+    local keypath
+    keypath=$1
+    grep -i private "$keypath" | awk '{print $3}'
 }
 
 function get_pubkey {
-    cat $keypath | grep -i public | awk '{print $3}'
+    local keypath
+    keypath=$1
+    grep -i public "$keypath" | awk '{print $3}'
 }
 
 function is_permission {
@@ -31,7 +35,7 @@ function get_permission {
     if is_permission "$1"; then
         echo "$1"
     else
-        echo $2
+        echo "$2"
     fi
 }
 
@@ -41,11 +45,11 @@ function log_contract_details {
     local permission
     local params
 
-    contract=$1
-    action=$2
-    permission=$3
+    contract="$1"
+    action="$2"
+    permission="$3"
     shift 3
-    params=$@
+    params="$*"
     echo "====== $contract ====== "
     echo "action:     $action"
     echo "permission: $permission"
@@ -58,7 +62,7 @@ function invalid_action {
 }
 
 function check_cmd_exists {
-    if ! command -v $1 2>&1 >/dev/null; then
+    if ! command -v "$1" >/dev/null 2>&1; then
         raise "$1 not installed!"
     fi
 }
@@ -79,6 +83,8 @@ function add_key_value_string {
 
     _json=$(jq -ce ". += {\"$key\": \"$value\"}" <<< "$_json")
 
+
+    # shellcheck disable=SC2181
     if [[ $? -gt 0 ]]; then
         raise "Failed to add string '$value' to \"$key\""
         _json=""
@@ -102,6 +108,7 @@ function add_key_value_number {
 
     _json=$(jq -ce ". += {\"$key\": \"$value\"}" <<< "$_json")
 
+# shellcheck disable=SC2181
     if [[ $? -gt 0 ]]; then
         raise "Failed to add number '$value' to \"$key\""
         _json=""

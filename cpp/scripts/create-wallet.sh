@@ -1,5 +1,5 @@
 #!/bin/bash
-dir_name=$(dirname $(realpath $BASH_SOURCE))
+dir_name=$(dirname "$(realpath "${BASH_SOURCE[0]}")")
 
 source "$dir_name/constants.sh"
 source "$dir_name/utils.sh"
@@ -9,19 +9,19 @@ function create_wallet {
     local keypath
     local privkey
     name="$1"
-    keypath=$FOLDER_EOS_DATA/$name.key
-    passpath=$FOLDER_EOS_DATA/$name.pwd
+    keypath="$FOLDER_EOS_DATA/$name.key"
+    passpath="$FOLDER_EOS_DATA/$name.pwd"
 
     mkdir -p "$FOLDER_EOS_DATA"
 
     exit_if_empty "$name" "Invalid wallet name"
 
-    cleos create key -f $keypath
-    cleos wallet create --name $name --file $passpath
+    cleos create key -f "$keypath"
+    cleos wallet create --name "$name" --file "$passpath"
 
     privkey=$(get_privkey "$keypath")
 
-    cleos wallet import --name $name --private-key $privkey
+    cleos wallet import --name "$name" --private-key "$privkey"
 }
 
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then

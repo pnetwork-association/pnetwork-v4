@@ -1,6 +1,6 @@
 #!/bin/bash
 
-dir_name=$(dirname $(realpath $BASH_SOURCE))
+dir_name=$(dirname "$(realpath "${BASH_SOURCE[0]}")")
 
 source "$dir_name/constants.sh"
 source "$dir_name/utils.sh"
@@ -10,7 +10,7 @@ function usage {
 	local n # normal
 	b=$(tput bold)
 	n=$(tput sgr0)
-	name=./$(basename $0)
+	name=./$(basename "$0")
 
 	echo "${b}Usage:${n} $name <CONTRACT> [ACCOUNT]
 
@@ -53,13 +53,13 @@ function deploy {
     local contract
     local account
 
-    contract=$1
+    contract="$1"
 
     exit_if_empty "$contract" "Contract name is required"
 
-    account=${2:-$contract}
+    account="${2:-$contract}"
 
-    cleos set contract $account $FOLDER_BUILD $contract.wasm $contract.abi -p $account@active
+    cleos set contract "$account" "$FOLDER_BUILD" "$contract.wasm" "$contract.abi" -p "$account@active"
 }
 
 

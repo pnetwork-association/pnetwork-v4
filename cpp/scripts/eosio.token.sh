@@ -1,6 +1,6 @@
 #!/bin/bash
 
-dir_name=$(dirname $(realpath $BASH_SOURCE))
+dir_name=$(dirname "$(realpath "${BASH_SOURCE[0]}")")
 
 source "$dir_name/constants.sh"
 source "$dir_name/utils.sh"
@@ -10,10 +10,10 @@ source "$dir_name/push-action.sh"
 function get_create_params {
     local json
     local issuer
-    local max_supply
+    local maximum_supply
 
-    issuer=$1
-    maximum_supply=$2
+    issuer="$1"
+    maximum_supply="$2"
 
     add_key_value_string json "$json" "issuer" "$issuer"
     add_key_value_string json "$json" "maximum_supply" "$maximum_supply"
@@ -23,11 +23,10 @@ function get_create_params {
 
 function get_json_params {
     local action
-    local params
-    action=$1
+    action="$1"
     shift 1
 
-    case $action in
+    case "$action" in
 
     create) get_create_params "$@" ;;
 
@@ -38,11 +37,10 @@ function get_json_params {
 function eosio.token {
     local action
     local permission
-    local default
     local contract
     local json
 
-    contract=$FUNCNAME
+    contract="${FUNCNAME[0]}"
 
     contract_script_init action permission "$contract" "$@"
 

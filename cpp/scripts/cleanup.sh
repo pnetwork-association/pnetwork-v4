@@ -1,6 +1,6 @@
 #!/bin/bash
 
-dir_name=$(dirname $(realpath $BASH_SOURCE))
+dir_name=$(dirname "$(realpath "${BASH_SOURCE[0]}")")
 
 source "$dir_name/constants.sh"
 source "$dir_name/stop-nodeos.sh"
@@ -9,11 +9,11 @@ function cleanup {
     local dir_data
     dir_data="$dir_name/$FOLDER_EOS_DATA"
     echo "$dir_data"
-    read -p "This will erase all your local wallets, proceed? [Y/n] " answer
+    read -rp "This will erase all your local wallets, proceed? [Y/n] " answer
     if [[ "$answer" == "Y" || "$answer" == "y" ]]; then
-        rm -rf $dir_data
-        rm -rf $dir_name/protocol_features
-        rm -rf $HOME/eosio-wallet
+        rm -rf "$dir_data"
+        rm -rf "$dir_name/protocol_features"
+        rm -rf "$HOME/eosio-wallet"
         stop_nodeos
     else
         echo "Aborted!"

@@ -1,5 +1,5 @@
 #!/bin/bash
-dir_name=$(dirname $(realpath $BASH_SOURCE))
+dir_name=$(dirname "$(realpath "${BASH_SOURCE[0]}")")
 
 source "$dir_name/constants.sh"
 source "$dir_name/utils.sh"
@@ -9,13 +9,13 @@ source "$dir_name/create-wallet.sh"
 set -e
 
 # Folder data is defined inside utils.sh
-dir_data=$dir_name/$FOLDER_EOS_DATA
+dir_data="$dir_name/$FOLDER_EOS_DATA"
 
 echo "Starting nodeos..."
 
 abort_if_nodeos_in_background
 
-mkdir -p $dir_data
+mkdir -p "$dir_data"
 
 start_nodeos
 
@@ -41,7 +41,7 @@ create_wallet "local"
 # NOTE: bootstrap private key related to the eosio account
 # reference https://developers.eos.io/welcome/latest/tutorials/tic-tac-toe-game-smart-contract-single-node/#procedure-for-accounts
 pk=5KQwrPbwdL6PhXujxW37FSSQZ1JiwsST4cqQzDeyXtP79zkvFD3
-output=$(cleos wallet import -n local --private-key "$pk")
+cleos wallet import -n local --private-key "$pk"
 
 echo "Installing eosio.boot"
 # Install eosio.boot

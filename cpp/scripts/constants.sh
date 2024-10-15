@@ -1,6 +1,6 @@
 #!/bin/bash
 
-dir_name=$(dirname $(realpath $BASH_SOURCE))
+dir_name=$(dirname "$(realpath "${BASH_SOURCE[0]}")")
 
 export FILE_ENV="$dir_name/../.env"
 
