@@ -17,7 +17,7 @@ function create_account {
     exit_if_empty "$account" "Account name is required"
     exit_if_empty "$wallet" wallet name is required
 
-    keypath=$"FOLDER_EOS_DATA/$wallet.key"
+    keypath="$FOLDER_EOS_DATA/$wallet.key"
     pubkey=$(get_pubkey "$keypath")
 
     cleos create account eosio "$account" "$pubkey"
