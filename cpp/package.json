@@ -9,7 +9,8 @@
   "scripts": {
     "build": "make all",
     "clean": "make clean",
-    "test": "yarn build && mocha"
+    "test": "yarn build && mocha",
+    "lint": "./lint scripts/*.sh"
   },
   "devDependencies": {
     "@eosnetwork/vert": "^1.0.0",

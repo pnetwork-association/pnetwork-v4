@@ -18,6 +18,9 @@ jobs:
         with:
           submodules: recursive
 
+      - name: Install shellcheck
+        run: sudo apt-get install -y shellcheck
+
       - name: Install eosio.cdt
         run: wget -q https://github.com/AntelopeIO/cdt/releases/download/v4.1.0/cdt_4.1.0-1_amd64.deb && sudo apt install ./cdt_4.1.0-1_amd64.deb
 
