@@ -67,22 +67,30 @@ function check_cmd_exists {
     fi
 }
 
-
-function add_key_value_string {
+function add_key_value {
     local __json
     local _json
+    local type
     local key
     local value
 
-    __json="$1"
-    _json="$2"
-    key="$3"
-    value="$4"
+    type="$1"
+    __json="$2"
+    _json="$3"
+    key="$4"
+    value="$5"
 
     if [[ -z "$_json" ]]; then _json="{}"; fi
 
-    _json=$(jq -ce ". += {\"$key\": \"$value\"}" <<< "$_json")
+    case "$type" in
 
+    string) _json=$(jq -ce ". += { \"$key\": \"$value\" }" <<< "$_json") ;;
+
+    number) _json=$(jq -ce ". += {\"$key\": $value }" <<< "$_json") ;;
+
+    *) raise "Invalid type" ;;
+
+    esac
 
     # shellcheck disable=SC2181
     if [[ $? -gt 0 ]]; then
@@ -93,26 +101,10 @@ function add_key_value_string {
     eval "$__json"="'$_json'"
 }
 
+function add_key_value_string {
+    add_key_value "string" "$@"
+}
+
 function add_key_value_number {
-    local __json
-    local _json
-    local key
-    local value
-
-    __json="$1"
-    _json="$2"
-    key="$3"
-    value="$4"
-
-    if [[ -z "$_json" ]]; then _json="{}"; fi
-
-    _json=$(jq -ce ". += {\"$key\": \"$value\"}" <<< "$_json")
-
-# shellcheck disable=SC2181
-    if [[ $? -gt 0 ]]; then
-        raise "Failed to add number '$value' to \"$key\""
-        _json=""
-    fi
-
-    eval "$__json"="'$_json'"
+    add_key_value "number" "$@"
 }
