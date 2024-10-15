@@ -4,8 +4,6 @@ dir_name=$(dirname $(realpath $BASH_SOURCE))
 source "$dir_name/constants.sh"
 source "$dir_name/utils.sh"
 
-echo "$FOLDER_EOS_DATA"
-
 function create_wallet {
     local name
     local keypath
@@ -21,7 +19,7 @@ function create_wallet {
     cleos create key -f $keypath
     cleos wallet create --name $name --file $passpath
 
-    privkey=$(cat $keypath | grep -i private | awk '{print $3}')
+    privkey=$(get_privkey "$keypath")
 
     cleos wallet import --name $name --private-key $privkey
 }

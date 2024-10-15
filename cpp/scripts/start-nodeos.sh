@@ -6,7 +6,7 @@ source "$dir_name/utils.sh"
 
 function start_nodeos {
     local dir_data
-    dir_data==$dir_name/$FOLDER_EOS_DATA
+    dir_data=$dir_name/$FOLDER_EOS_DATA
 
     abort_if_nodeos_in_background
 

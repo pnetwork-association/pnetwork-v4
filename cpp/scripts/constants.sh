@@ -9,3 +9,4 @@ source "$FILE_ENV"
 # Constants
 export FOLDER_EOS_DATA=eosio-data-dir
 export DIR_DATA="$dir_name/$FOLDER_EOS_DATA"
+export FOLDER_BUILD="$dir_name/../contracts/build"
