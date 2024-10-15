@@ -41,6 +41,13 @@ key of the first pair generated when the wallet was created.
 - Create an account through the `create-account.sh` script. This will create an account assigning the public key relative to
   the specified wallet.
 
+**Example:**
+
+```bash
+# Create the account eosio.token with the owner public key (you need to create the owner first)
+./create-account.sh eosio.token owner
+```
+
 - Use the `deploy.sh` script to deploy a contract to a specified account (check the help for more info on the usage).
 
 ## Add a new contract script
