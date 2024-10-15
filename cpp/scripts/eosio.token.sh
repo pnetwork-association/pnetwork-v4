@@ -8,27 +8,37 @@ source "$dir_name/contract-script.sh"
 source "$dir_name/push-action.sh"
 
 function get_create_params {
-    local json
+    local __output
+    local _output
     local issuer
     local maximum_supply
 
-    issuer="$1"
-    maximum_supply="$2"
+    __output="$1"
+    issuer="$2"
+    maximum_supply="$3"
 
-    add_key_value_string json "$json" "issuer" "$issuer"
-    add_key_value_string json "$json" "maximum_supply" "$maximum_supply"
+    exit_if_empty "$issuer" "issuer param missing"
+    exit_if_empty "$maximum_supply" "maximum_supply param missing"
 
-    echo "$json"
+    add_key_value_string _output "$_output" "issuer" "$issuer"
+    add_key_value_string _output "$_output" "maximum_supply" "$maximum_supply"
+
+    eval "$__output"="'$_output'"
 }
 
 function get_json_params {
+    local __params # output
     local action
-    action="$1"
-    shift 1
+    __params=$1
+    action="$2"
+    shift 2
 
+    # NOTE: we pass the output (__params) over
+    # here, it'll get a value in the first
+    # eval in the function calls
     case "$action" in
 
-    create) get_create_params "$@" ;;
+    create) get_create_params "$__params" "$@" ;;
 
     *) invalid_action "$action" ;;
     esac
@@ -46,7 +56,8 @@ function eosio.token {
 
     shift 1 # skip the action name
 
-    json=$(get_json_params "$action" "$@")
+    get_json_params json "$action" "$@"
+
 
     # If it's empty, it means an error happened, so better stop
     # here, otherwise it ends up in the push action call
