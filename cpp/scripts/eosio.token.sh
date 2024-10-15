@@ -26,6 +26,28 @@ function get_create_params {
     eval "$__output"="'$_output'"
 }
 
+function get_issue_params {
+    local __output
+    local _output
+    local to
+    local quantity
+    local memo
+
+    __output="$1"
+    to="$2"
+    quantity="$3"
+    memo="$4"
+
+    exit_if_empty "$to" "to account missing"
+    exit_if_empty "$quantity" "quantity asset missing"
+
+    add_key_value_string _output "$_output" "to" "$to"
+    add_key_value_string _output "$_output" "quantity" "$quantity"
+    add_key_value_string _output "$_output" "memo" "$memo"
+
+    eval "$__output"="'$_output'"
+}
+
 function get_json_params {
     local __params # output
     local action
@@ -40,6 +62,8 @@ function get_json_params {
 
     create) get_create_params "$__params" "$@" ;;
 
+    issue) get_issue_params "$__params" "$@" ;;
+
     *) invalid_action "$action" ;;
     esac
 }
@@ -47,15 +71,15 @@ function get_json_params {
 function eosio.token {
     local action
     local permission
+    local shifting_pos
     local contract
     local json
 
     contract="${FUNCNAME[0]}"
 
-    contract_script_init action permission "$contract" "$@"
+    contract_script_init action permission shifting_pos "$contract" "$@"
 
-    shift 1 # skip the action name
-
+    shift "$shifting_pos"
     get_json_params json "$action" "$@"
 
 
