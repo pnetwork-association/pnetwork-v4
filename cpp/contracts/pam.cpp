@@ -6,9 +6,9 @@
 using namespace eosio;
 using bytes = std::vector<uint8_t>;
 
-bytes pam::extract_32bytes(const metadata& metadata, uint8_t offset) {
-   bytes data(metadata.preimage.begin() + offset, metadata.preimage.begin() + offset + 32);
-   return data;
+bytes pam::extract_32bytes(const bytes& data, uint128_t offset) {
+   bytes _data(data.begin() + offset, data.begin() + offset + 32);
+   return _data;
 }
 
 signature pam::convert_bytes_to_signature(const bytes& input_bytes) {
@@ -20,17 +20,17 @@ signature pam::convert_bytes_to_signature(const bytes& input_bytes) {
 
 bool pam::context_checks(const operation& operation, const metadata& metadata) {
    uint8_t offset = 2; // Skip protocol, verion
-   bytes origin_chain_id = extract_32bytes(metadata, offset);
+   bytes origin_chain_id = extract_32bytes(metadata.preimage, offset);
 
    if (origin_chain_id != operation.originChainId) {
       return false;
    }
 
    offset += 32; 
-   bytes block_id = extract_32bytes(metadata, offset);
+   bytes block_id = extract_32bytes(metadata.preimage, offset);
 
    offset += 32;
-   bytes tx_id = extract_32bytes(metadata, offset);
+   bytes tx_id = extract_32bytes(metadata.preimage, offset);
 
    if (block_id != operation.blockId || tx_id != operation.txId) {
       return false;
@@ -55,6 +55,104 @@ void pam::settee(public_key pub_key, bytes attestation) {
    // print("attestation: ")
 }
 
+uint64_t pam::get_mappings_key(const bytes& chain_id) {
+   eosio::check(chain_id.size() == 32, "Chain ID must be 32 bytes long.");
+   return (static_cast<uint64_t>(chain_id[24]) << 56) |
+      (static_cast<uint64_t>(chain_id[25]) << 48) |
+      (static_cast<uint64_t>(chain_id[26]) << 40) |
+      (static_cast<uint64_t>(chain_id[27]) << 32) |
+      (static_cast<uint64_t>(chain_id[28]) << 24) |
+      (static_cast<uint64_t>(chain_id[29]) << 16) |
+      (static_cast<uint64_t>(chain_id[30]) << 8)  |
+      (static_cast<uint64_t>(chain_id[31]));
+}
+
+void pam::setemitter(bytes chain_id , bytes emitter) {
+   require_auth(get_self());
+   print("emitter", emitter.size());
+   check(emitter.size() == 32, "Expected 32 bytes emitter");
+   check(chain_id.size() == 32, "Expected 32 bytes chain_id");
+   mappings_table _mappings_table(get_self(), get_self().value);
+
+   auto mappings_itr = _mappings_table.find(get_mappings_key(chain_id));
+
+   if (mappings_itr == _mappings_table.end()) {
+      _mappings_table.emplace(get_self(), [&](auto& row) {
+         row.chain_id = chain_id;
+         row.emitter = emitter;
+      });
+
+      print("Added a new mapping for chain_id: ", get_mappings_key(chain_id));
+   } else {
+      _mappings_table.modify(mappings_itr, get_self(), [&](auto& row) {
+         row.emitter = emitter;
+      });
+
+      print("Updated the emitter for chain_id: ", get_mappings_key(chain_id));
+   }
+}
+
+bool pam::is_all_zeros(const bytes& emitter) {
+   return std::all_of(emitter.begin(), emitter.end(), [](uint8_t byte) {
+      return byte == 0x00;
+   });
+}
+
+uint128_t pam::bytes32_to_uint128(const bytes& data) {
+   check(data.size() == 32, "The input must be 32 bytes long.");
+   // Check for overflow (first 16 bytes must be 0, bigger numbers not supported)
+   for (size_t i = 0; i < 16; ++i) {
+      if (data[i] != 0) {
+            check(false, "Overflow: The number exceeds 128 bits.");
+      }
+   }
+
+   uint128_t result = 0;
+   for (size_t i = 16; i < 32; ++i) {
+      result <<= 8;
+      result |= data[i];
+   }
+
+   return result;
+}
+
+uint64_t pam::bytes32_to_uint64(const bytes& data) {
+   check(data.size() == 32, "The input must be 32 bytes long.");
+   // Check for overflow (first 8 bytes must be 0, bigger numbers not supported)
+   for (size_t i = 0; i < 8; ++i) {
+      if (data[i] != 0) {
+            check(false, "Overflow: The number exceeds 64 bits.");
+      }
+   }
+
+   uint64_t result = 0;
+   for (size_t i = 8; i < 32; ++i) {
+      result <<= 8;
+      result |= data[i];
+   }
+
+   return result;
+}
+
+checksum256 pam::bytes32_to_checksum256(const bytes& data) {
+   check(data.size() == 32, "The input must be 32 bytes long.");
+   std::array<uint8_t, 32> byte_array;
+   std::copy(data.begin(), data.end(), byte_array.begin());
+   return checksum256(byte_array);
+}
+
+name pam::bytes_to_name(const bytes& data) {
+   // check(data.size() <= 12, "Input is too long for EOSIO name (max 12 characters).");
+   uint8_t length = std::min(static_cast<uint8_t>(data.size()), static_cast<uint8_t>(8));
+   std::string name_str;
+   for (uint8_t byte : data) {
+      char eosio_char = static_cast<char>(byte);
+      name_str += eosio_char;
+   }
+   name name_value(name_str);
+   return name_value;
+}
+
 void pam::isauthorized(name adapter, name caller, const operation& operation, const metadata& metadata) {
    require_auth(adapter);
    check(context_checks(operation, metadata), "Unexpected context");
@@ -62,28 +160,61 @@ void pam::isauthorized(name adapter, name caller, const operation& operation, co
    checksum256 event_id = sha256((const char*)metadata.preimage.data(), metadata.preimage.size());
    signature sig = convert_bytes_to_signature(metadata.signature);
    checksum256 digest = event_id;
-   // signature sig = signature:: ::from_string("1da6f43a51140df1bc151b5500415ba80d53e5d21ed9b3b6092d0ab6a6a20fa370f555dea8558d61d6b93035e1b94c5497c82ef97a223466594fb280f51603c61c");
-   // const char* sig = "1da6f43a51140df1bc151b5500415ba80d53e5d21ed9b3b6092d0ab6a6a20fa370f555dea8558d61d6b93035e1b94c5497c82ef97a223466594fb280f51603c61c";
-   // size_t siglen = 65;
-   // const char* pub = "04c3b70ff20e8fb97dd0880baa0dac540374fb9d41af5d09c51c0cd89b3f25f69675c8446ad450804cb5211cd3e0229bd6e93f59c47f2532b9613d5ff0397de900";
-   // size_t publen = 65;
-   // assert_recover_key( digest, sig, siglen, pub, publen );
    public_key recovered_pubkey = recover_key(event_id, sig);
 
-   // tee_pubkey _tee_pubkey(get_self(), get_self().value);
-   // auto provided_pubkey = _tee_pubkey.get().key;
-   
-   // check(recovered_pubkey == provided_pubkey, "Signature hasn't been provided by the expected TEE.");
-   print("event_id\n");
-   printhex(event_id.extract_as_byte_array().data(), event_id.extract_as_byte_array().size());
-   print("\n");
+   tee_pubkey _tee_pubkey(get_self(), get_self().value);
+   public_key tee_key = _tee_pubkey.get().key;
+   check(recovered_pubkey == tee_key, "Key are not matching");
 
-   // action(
-   //    permission_level{get_self(), "active"_n},
-   //    adapter,  // Send back to the caller (e.g., your contract)
-   //    "finalsettle"_n,  // Action name in the caller contract
-   //    std::make_tuple(caller, operation, metadata)
-   // ).send();
+   uint128_t offset = 2; // Skip protocol, verion
+   bytes origin_chain_id = extract_32bytes(metadata.preimage, offset);
 
+   mappings_table _mappings_table(get_self(), get_self().value);
+   auto itr = _mappings_table.find(get_mappings_key(origin_chain_id));
+   check(itr != _mappings_table.end(), "Origin chain_id not registered");
+   bytes exp_emitter = itr->emitter;
+   bytes exp_topic_zero =  itr->topic_zero;
 
+   offset = 0;
+   bytes event_payload(metadata.preimage.begin() + 98, metadata.preimage.end());
+   bytes emitter = extract_32bytes(event_payload, offset);
+   check(emitter == exp_emitter && !is_all_zeros(emitter), "Unexpected Emitter");
+
+   offset += 32;
+   bytes topic_zero = extract_32bytes(event_payload, offset);
+   // check(topic_zero == exp_topic_zero && !is_all_zeros(topic_zero), "Unexpected Topic Zero");
+
+   offset += 32 * 3; // skip other topics
+   bytes event_data(event_payload.begin() + offset, event_payload.end());
+   bytes nonce = extract_32bytes(event_data, offset);
+   uint64_t nonce_int = bytes32_to_uint64(nonce);
+   check(operation.nonce == nonce_int, "Nonce do not match");
+   offset += 32;
+   bytes token = extract_32bytes(event_data, offset);
+   checksum256 token_hash = bytes32_to_checksum256(token);
+   check(operation.token == token_hash, "token adddress do not match");
+   offset += 32;
+   bytes dest_chain_id = extract_32bytes(event_data, offset);
+   check(operation.destinationChainId == dest_chain_id, "destination chain Id do not match");
+   offset += 32;
+   bytes amount = extract_32bytes(event_data, offset);
+   uint128_t amount_num = bytes32_to_uint128(amount);
+   check(operation.amount == amount_num, "amount do not match");
+   offset += 32;
+   bytes sender = extract_32bytes(event_data, offset);
+   check(operation.sender == sender, "sender do not match");
+   offset += 32;
+   bytes recipient_len = extract_32bytes(event_data, offset);
+   offset += 32;
+   uint128_t recipient_len_num = bytes32_to_uint128(recipient_len);
+   const uint128_t UINT128_MAX = (uint128_t)-1;
+   check(recipient_len_num <= UINT128_MAX - offset, "Overflow detected in data field");
+   bytes recipient(event_data.begin() + offset, event_data.begin() + offset + recipient_len_num);
+   offset += recipient_len_num;
+   name recipient_name = bytes_to_name(recipient);
+   check(operation.recipient == recipient_name, "Recipient do not match");
+   bytes user_data(event_data.begin() + offset, event_data.end());
+   // TODO fix user data decoding
+   checksum256 data256 = sha256((const char*)user_data.data(), user_data.size());
+   checksum256 op_data256 = sha256((const char*)operation.data.data(), operation.data.size());
 }
