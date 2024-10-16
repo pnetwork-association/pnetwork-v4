@@ -80,12 +80,8 @@ function eosio.token {
     contract_script_init action permission shifting_pos "$contract" "$@"
 
     shift "$shifting_pos"
+
     get_json_params json "$action" "$@"
-
-
-    # If it's empty, it means an error happened, so better stop
-    # here, otherwise it ends up in the push action call
-    if [[ -z "$json" ]]; then exit 1; fi
 
     # We call the action
     push_action "$contract" "$action" "$json" "--permission" "$permission"

@@ -37,7 +37,7 @@ function contract_script_init {
     _action="$5"
     _shift=1
 
-    shift 5
+    shift 5 # out_action out_permission out_shift contract (action|permission) action
 
     _permission=$(get_permission "$_permission" "$default_permission")
 
