@@ -48,6 +48,32 @@ function get_issue_params {
     eval "$__output"="'$_output'"
 }
 
+function get_transfer_params {
+    local __output
+    local _output
+    local from
+    local to
+    local quantity
+    local memo
+
+    __output="$1"
+    from="$2"
+    to="$3"
+    quantity="$4"
+    memo="$5"
+
+    exit_if_empty "$from" "from account missing"
+    exit_if_empty "$to" "to account missing"
+    exit_if_empty "$quantity" "quantity asset missing"
+
+    add_key_value_string _output "$_output" "from" "$from"
+    add_key_value_string _output "$_output" "to" "$to"
+    add_key_value_string _output "$_output" "quantity" "$quantity"
+    add_key_value_string _output "$_output" "memo" "$memo"
+
+    eval "$__output"="'$_output'"
+}
+
 function get_json_params {
     local __params # output
     local action
@@ -55,14 +81,15 @@ function get_json_params {
     action="$2"
     shift 2
 
-    # NOTE: we pass the output (__params) over
-    # here, it'll get a value in the first
-    # eval in the function calls
+    # NOTE: what do we return here? __params will get
+    # the value in the eval inside get_xxx_params function
     case "$action" in
 
     create) get_create_params "$__params" "$@" ;;
 
     issue) get_issue_params "$__params" "$@" ;;
+
+    transfer) get_transfer_params "$__params" "$@" ;;
 
     *) invalid_action "$action" ;;
     esac
