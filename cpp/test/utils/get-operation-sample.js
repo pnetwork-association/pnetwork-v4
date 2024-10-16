@@ -9,7 +9,7 @@ const getOperationSample = _injectedOperation =>
     txId: no0x(zeroPadValue('0x6be2de7375ad7c18fd5ca3ecc8b70e60c535750b042200070dc36f84175a16d6', 32)),
     nonce: 0,
     token: no0x(
-      zeroPadValue(toBeHex(getSymbolCodeRaw('0.0000 TKN').toString()), 32),
+      zeroPadValue(toBeHex('0x3ca5269b5c54d4c807ca0df7eeb2cb7a5327e77d'), 32),
     ),
     originChainId: no0x(
       zeroPadValue(
@@ -18,9 +18,10 @@ const getOperationSample = _injectedOperation =>
       ),
     ), // ETH chain id
     destinationChainId: no0x(zeroPadValue('0xaca376f206b8fc25a6ed44dbdc66547c36c6c33e3a119ffbeaef943642f0e906', 32)), // EOS chain id
-    amount: parseUnits('10', 18).toString(),
-    sender: no0x(zeroPadValue(utf8HexString('user'), 32)),
-    recipient: no0x(zeroPadValue('0xC0FFEE', 20)),
+    amount: parseUnits('5.889675', 18).toString(),
+    // sender: no0x(zeroPadValue(utf8HexString('user'), 32)),
+    sender: no0x(zeroPadValue('0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266', 32)),
+    recipient: 'destinatieos',//no0x(zeroPadValue('0xC0FFEE', 20)),
     data: '',
   })
 

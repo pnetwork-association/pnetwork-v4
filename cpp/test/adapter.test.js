@@ -1,7 +1,7 @@
 const { expect } = require('chai')
 const { Blockchain, expectToThrow } = require('@eosnetwork/vert')
 const { deploy } = require('./utils/deploy')
-const { Asset } = require('@wharfkit/antelope')
+const { Asset, crypto, PublicKey } = require('@wharfkit/antelope')
 const R = require('ramda')
 const {
   active,
@@ -18,6 +18,20 @@ const ethers = require('ethers')
 
 const getSwapMemo = (sender, destinationChainId, recipient, data) =>
   `${sender},${destinationChainId},${recipient},${R.isEmpty(data) ? '0' : '1'}`
+
+const hexStringToBytes = (hex) => {
+    // Ensure the input string is valid
+    if (hex.length % 2 !== 0) {
+        throw new Error("Hex string must have an even length.");
+    }
+
+    const bytes = [];
+    for (let i = 0; i < hex.length; i += 2) {
+        // Parse two hex characters at a time and convert to a byte (0-255)
+        bytes.push(parseInt(hex.substr(i, 2), 16));
+    }
+    return bytes;
+}
 
 describe('Adapter testing', () => {
   const symbol = 'TKN'
@@ -243,9 +257,24 @@ describe('Adapter testing', () => {
       const operation = getOperationSample()
       const metadata = getMetadataSample()
       try {
-        // await pam.contract.actions
-        //   .settee([tee_pub_key, attestation])
-        //   .send(active(pam.account))
+        const compressed = Uint8Array.from(
+          Buffer.from(
+            '0380472f799469d9af8790307a022802785c2b1e2f9c0930bdf9bafe193245e7a3',
+            'hex',
+          ),
+        )
+        const pubKey = PublicKey.from({ type: 'K1', compressed }) 
+        await pam.contract.actions
+          .settee([pubKey, attestation])
+          .send(active(pam.account))
+       
+
+        const a = hexStringToBytes('0000000000000000000000000000000000000000000000000000000000000001')
+        const b = hexStringToBytes('000000000000000000000000cc9676b9bf25ce45a3a5f88205239afddecf1bc7')
+        // console.log(a, b)
+        await pam.contract.actions
+          .setemitter([a, b])
+          .send(active(pam.account))
 
         await adapter.contract.actions
           .settle([user, operation, metadata])
