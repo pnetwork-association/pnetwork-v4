@@ -25,7 +25,7 @@ namespace eosio {
    // |_____token_____|______token_bytes_______|_____xerc20_____|
    // |      ''       | bytes32(address(WETH)) | 'xweth.token'  |
    //
-   struct [[eosio::table]] adapter_registry_table {
+   TABLE adapter_registry_table {
       name                 token;
       symbol               token_symbol;
       checksum256          token_bytes;
