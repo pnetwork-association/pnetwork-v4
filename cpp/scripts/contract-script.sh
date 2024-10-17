@@ -37,19 +37,19 @@ function contract_script_init {
     _action="$5"
     _shift=1
 
-    shift 5 # out_action out_permission out_shift contract (action|permission) action
-
     _permission=$(get_permission "$_permission" "$default_permission")
 
-    # If a permission was found in the given args
+    # If a permission (i.e. xtoken@active) was found in the given args
     # the action is the next position
-    if [[ "$_permission" != "$default_permission" ]]; then
-        _action="$1"
+    if grep '@' <<< "$@" > /dev/null; then
+        _action="$6"
         shift 1
         # NOTE: means permission + action name had been given
         # as parameters, so we skip both
         _shift=2
     fi
+
+    shift 5 # skip out_action out_permission out_shift contract (action|permission)
 
     exit_if_empty "$_action" "Action name parameter is required"
 
