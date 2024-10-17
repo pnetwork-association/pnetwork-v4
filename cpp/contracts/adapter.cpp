@@ -46,16 +46,21 @@ void adapter::create(
 
    auto _token_bytes = token_bytes.extract_as_byte_array();
    check(_token_bytes.size() == 32, "token bytes length must be 32");
-   check(is_account(token), "token account does not exist");
+
+   // Do not check token validity if token is not EOS native
+   if (token != name(0)) check(is_account(token), "token account does not exist");
    check(is_account(xerc20), "xERC20 account does not exist");
-   check(token_symbol.precision() == xerc20_symbol.precision(), "invalid xerc20 precision");
+
+   // Difference in precision allowed if token is not EOS native
+   if (token != name(0)) check(token_symbol.precision() == xerc20_symbol.precision(), "invalid xerc20 precision");
+
    check(min_fee.symbol == xerc20_symbol, "invalid minimum fee symbol");
 
    registry_adapter _registry(get_self(), get_self().value);
    auto itr = _registry.find(token_symbol.code().raw());
    check(itr == _registry.end(), "token already registered");
    check_symbol_is_valid(xerc20, xerc20_symbol);
-   check_symbol_is_valid(token, token_symbol);
+   if (token != name(0)) check_symbol_is_valid(token, token_symbol);
 
    checksum256 c;
    _registry.emplace( get_self(), [&]( auto& r ) {
@@ -147,28 +152,104 @@ void adapter::freeuserdata(const name& account) {
    }
 }
 
+void adapter::settee(public_key pub_key, bytes attestation) {
+   print("set tee");
+   require_auth(get_self());
+   tee_pubkey _tee_pubkey(get_self(), get_self().value);
+
+   _tee_pubkey.get_or_create(
+      get_self(),
+      pam::tee{.key = public_key()}
+   );
+
+   _tee_pubkey.set(pam::tee{
+      .key = pub_key 
+   }, get_self());
+
+   // print("attestation: ")
+}
+
+void adapter::settopiczero(bytes chain_id, bytes topic_zero) {
+   require_auth(get_self());
+   check(topic_zero.size() == 32, "Expected 32 bytes emitter");
+   check(chain_id.size() == 32, "Expected 32 bytes chain_id");
+   mappings_table _mappings_table(get_self(), get_self().value);
+
+   auto mappings_itr = _mappings_table.find(pam::get_mappings_key(chain_id));
+
+   if (mappings_itr == _mappings_table.end()) {
+      _mappings_table.emplace(get_self(), [&](auto& row) {
+         row.chain_id = chain_id;
+         row.topic_zero = topic_zero;
+      });
+
+      print("Added a new mapping for chain_id: ", pam::get_mappings_key(chain_id));
+   } else {
+      _mappings_table.modify(mappings_itr, get_self(), [&](auto& row) {
+         row.topic_zero = topic_zero;
+      });
+
+      print("Updated the topic zero for chain_id: ", pam::get_mappings_key(chain_id));
+   }
+}
+
+void adapter::setemitter(bytes chain_id , bytes emitter) {
+   print("set emitter");
+   require_auth(get_self());
+   check(emitter.size() == 32, "Expected 32 bytes emitter");
+   check(chain_id.size() == 32, "Expected 32 bytes chain_id");
+   mappings_table _mappings_table(get_self(), get_self().value);
+
+   auto mappings_itr = _mappings_table.find(pam::get_mappings_key(chain_id));
+   if (mappings_itr == _mappings_table.end()) {
+      _mappings_table.emplace(get_self(), [&](auto& row) {
+         row.chain_id = chain_id;
+         row.emitter = emitter;
+      });
+
+      print("Added a new mapping for chain_id: ", pam::get_mappings_key(chain_id));
+   } else {
+      _mappings_table.modify(mappings_itr, get_self(), [&](auto& row) {
+         row.emitter = emitter;
+      });
+
+      print("Updated the emitter for chain_id: ", pam::get_mappings_key(chain_id));
+   }
+}
+
 void adapter::settle(const name& caller, const operation& operation, const metadata& metadata) {
    require_auth(caller);
 
    registry_adapter _registry(get_self(), get_self().value);
    auto idx_registry = _registry.get_index<adapter_registry_idx_token_bytes>();
    auto search_token_bytes = idx_registry.find(operation.token);
-
    check(search_token_bytes != idx_registry.end(), "invalid token");
 
-   checksum256 event_id;
-   check(pam::is_authorized(operation, metadata, event_id), "unauthorized");
+   checksum256 event_id = sha256((const char*)metadata.preimage.data(), metadata.preimage.size());
+   tee_pubkey _tee_pubkey(get_self(), get_self().value);
+   public_key tee_key = _tee_pubkey.get().key;
+
+   uint128_t a = 2;
+   bytes origin_chain_id = pam::extract_32bytes(metadata.preimage, a);
+
+   mappings_table _mappings_table(get_self(), get_self().value);
+
+   auto itr_mappings = _mappings_table.find(pam::get_mappings_key(origin_chain_id));
+   check(itr_mappings != _mappings_table.end(), "Unauthorized: origin chain_id not registered");
+   bytes exp_emitter = itr_mappings->emitter;
+   bytes exp_topic_zero =  itr_mappings->topic_zero;
+   pam::check_authorization(operation, metadata, event_id, tee_key, exp_emitter, exp_topic_zero);
 
    past_events _past_events(get_self(), get_self().value);
    auto idx_past_events = _past_events.get_index<adapter_registry_idx_eventid>();
    auto itr = idx_past_events.find(event_id);
 
    // TODO: disabled for tests, enable this when PAM is ready
-   // check(itr == idx_past_events.end(), "event already processed");
-   // _past_events.emplace(caller, [&](auto& r) { r.event_id = event_id; });
+   check(itr == idx_past_events.end(), "event already processed");
+   _past_events.emplace(caller, [&](auto& r) { r.event_id = event_id; });
 
-   auto xerc20 = search_token_bytes->xerc20;
-
+   name xerc20 = search_token_bytes->xerc20;
+   check(is_account(xerc20), "Not valid xerc20 name");
    if (operation.amount > 0) {
       auto quantity = from_wei(
          operation.amount,
@@ -198,7 +279,6 @@ void adapter::settle(const name& caller, const operation& operation, const metad
       require_recipient(operation.recipient);
    }
 }
-
 
 void adapter::swap(const uint64_t& nonce, const bytes& event_bytes) {
    require_auth(get_self());
@@ -334,5 +414,174 @@ void adapter::onmint(const name& caller, const name& to, const asset& quantity, 
    ontransfer(caller, to, quantity, memo);
 }
 
-} // namespace eosio
+bytes pam::extract_32bytes(const bytes& data, uint128_t offset) {
+   bytes _data(data.begin() + offset, data.begin() + offset + 32);
+   return _data;
+}
 
+signature pam::convert_bytes_to_signature(const bytes& input_bytes) {
+   check(input_bytes.size() == 65, "Signature must be exactly 65 bytes");
+   std::array<char, 65> sig_data;
+   std::copy(input_bytes.begin(), input_bytes.end(), sig_data.begin());
+   return signature(std::in_place_index<0>, sig_data);
+}
+
+bool pam::context_checks(const operation& operation, const metadata& metadata) {
+   uint8_t offset = 2; // Skip protocol, verion
+   bytes origin_chain_id = extract_32bytes(metadata.preimage, offset);
+
+   if (origin_chain_id != operation.originChainId) {
+      return false;
+   }
+
+   offset += 32; 
+   bytes block_id = extract_32bytes(metadata.preimage, offset);
+
+   offset += 32;
+   bytes tx_id = extract_32bytes(metadata.preimage, offset);
+
+   if (block_id != operation.blockId || tx_id != operation.txId) {
+      return false;
+   }
+
+   return true;
+}
+
+uint64_t pam::get_mappings_key(const bytes& chain_id) {
+   eosio::check(chain_id.size() == 32, "Chain ID must be 32 bytes long.");
+   return (static_cast<uint64_t>(chain_id[24]) << 56) |
+      (static_cast<uint64_t>(chain_id[25]) << 48) |
+      (static_cast<uint64_t>(chain_id[26]) << 40) |
+      (static_cast<uint64_t>(chain_id[27]) << 32) |
+      (static_cast<uint64_t>(chain_id[28]) << 24) |
+      (static_cast<uint64_t>(chain_id[29]) << 16) |
+      (static_cast<uint64_t>(chain_id[30]) << 8)  |
+      (static_cast<uint64_t>(chain_id[31]));
+}
+
+bool pam::is_all_zeros(const bytes& emitter) {
+   return std::all_of(emitter.begin(), emitter.end(), [](uint8_t byte) {
+      return byte == 0x00;
+   });
+}
+
+uint128_t pam::bytes32_to_uint128(const bytes& data) {
+   check(data.size() == 32, "The input must be 32 bytes long.");
+   // Check for overflow (first 16 bytes must be 0, bigger numbers not supported)
+   for (size_t i = 0; i < 16; ++i) {
+      if (data[i] != 0) {
+            check(false, "Overflow: The number exceeds 128 bits.");
+      }
+   }
+
+   uint128_t result = 0;
+   for (size_t i = 16; i < 32; ++i) {
+      result <<= 8;
+      result |= data[i];
+   }
+
+   return result;
+}
+
+uint64_t pam::bytes32_to_uint64(const bytes& data) {
+   check(data.size() == 32, "The input must be 32 bytes long.");
+   // Check for overflow (first 8 bytes must be 0, bigger numbers not supported)
+   for (size_t i = 0; i < 8; ++i) {
+      if (data[i] != 0) {
+            check(false, "Overflow: The number exceeds 64 bits.");
+      }
+   }
+
+   uint64_t result = 0;
+   for (size_t i = 8; i < 32; ++i) {
+      result <<= 8;
+      result |= data[i];
+   }
+
+   return result;
+}
+
+checksum256 pam::bytes32_to_checksum256(const bytes& data) {
+   check(data.size() == 32, "The input must be 32 bytes long.");
+   std::array<uint8_t, 32> byte_array;
+   std::copy(data.begin(), data.end(), byte_array.begin());
+   return checksum256(byte_array);
+}
+
+name pam::bytes_to_name(const bytes& data) {
+   // check(data.size() <= 12, "Input is too long for EOSIO name (max 12 characters).");
+   uint8_t length = std::min(static_cast<uint8_t>(data.size()), static_cast<uint8_t>(8));
+   std::string name_str;
+   for (uint8_t byte : data) {
+      char eosio_char = static_cast<char>(byte);
+      name_str += eosio_char;
+   }
+   name name_value(name_str);
+   return name_value;
+}
+
+void pam::check_authorization(const operation& operation, const metadata& metadata, checksum256 event_id, const public_key& tee_key, const bytes& exp_emitter, const bytes& exp_topic_zero) {
+   check(context_checks(operation, metadata), "Unauthorized: Unexpected context");
+
+   signature sig = convert_bytes_to_signature(metadata.signature);
+   public_key recovered_pubkey = recover_key(event_id, sig);
+   check(recovered_pubkey == tee_key, "Unauthorized: Key are not matching");
+
+   uint128_t offset = 0; 
+   bytes event_payload(metadata.preimage.begin() + 98, metadata.preimage.end());
+   bytes emitter = extract_32bytes(event_payload, offset);
+   check(emitter == exp_emitter && !is_all_zeros(emitter), "Unauthorized: Unexpected Emitter");
+   offset += 32;
+
+   bytes topic_zero = extract_32bytes(event_payload, offset);
+   check(topic_zero == exp_topic_zero && !is_all_zeros(topic_zero), "Unauthorized: unexpected Topic Zero");
+   offset += 32 * 3; // skip other topics
+
+   // check nonce
+   bytes event_data(event_payload.begin() + offset, event_payload.end());
+   bytes nonce = extract_32bytes(event_data, offset);
+   uint64_t nonce_int = bytes32_to_uint64(nonce);
+   check(operation.nonce == nonce_int, "Unauthorized: nonce do not match");
+   offset += 32;
+
+   // check origin token
+   bytes token = extract_32bytes(event_data, offset);
+   checksum256 token_hash = bytes32_to_checksum256(token);
+   check(operation.token == token_hash, "Unauthorized: token adddress do not match");
+   offset += 32;
+
+   // check destination chain id
+   bytes dest_chain_id = extract_32bytes(event_data, offset);
+   check(operation.destinationChainId == dest_chain_id, "Unauthorized: destination chain Id do not match");
+   offset += 32;
+
+   // check amount
+   bytes amount = extract_32bytes(event_data, offset);
+   uint128_t amount_num = bytes32_to_uint128(amount);
+   check(operation.amount == amount_num, "Unauthorized: amount do not match");
+   offset += 32;
+   
+   // check sender address
+   bytes sender = extract_32bytes(event_data, offset);
+   check(operation.sender == sender, "Unauthorized: sender do not match");
+   offset += 32;
+
+   // check recipient address
+   bytes recipient_len = extract_32bytes(event_data, offset);
+   offset += 32;
+   uint128_t recipient_len_num = bytes32_to_uint128(recipient_len);
+   const uint128_t UINT128_MAX = (uint128_t)-1;
+   check(recipient_len_num <= UINT128_MAX - offset, "Unauthorized: overflow detected in data field");
+   bytes recipient(event_data.begin() + offset, event_data.begin() + offset + recipient_len_num);
+   name recipient_name = bytes_to_name(recipient);
+   check(operation.recipient == recipient_name, "Unauthorized: recipient do not match");
+   offset += recipient_len_num;
+
+   //check user data -- FIXME --
+   bytes user_data(event_data.begin() + offset, event_data.end());
+   // TODO fix user data decoding
+   checksum256 data256 = sha256((const char*)user_data.data(), user_data.size());
+   checksum256 op_data256 = sha256((const char*)operation.data.data(), operation.data.size());
+}
+
+} // namespace eosio
