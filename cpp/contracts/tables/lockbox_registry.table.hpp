@@ -4,7 +4,7 @@
 #include <eosio/eosio.hpp>
 
 namespace eosio {
-   struct [[eosio::table]] lockbox_registry_table {
+   TABLE lockbox_registry_table {
       // NOTE: EVM XERC20Lockbox contract includes
       // a isNative boolean in the storage marking
       // if the relative xERC20 wraps the native currency.
