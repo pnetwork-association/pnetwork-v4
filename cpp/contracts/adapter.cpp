@@ -46,16 +46,21 @@ void adapter::create(
 
    auto _token_bytes = token_bytes.extract_as_byte_array();
    check(_token_bytes.size() == 32, "token bytes length must be 32");
-   check(is_account(token), "token account does not exist");
+
+   // Do not check token validity if token is not EOS local
+   if (token != name(0)) check(is_account(token), "token account does not exist");
    check(is_account(xerc20), "xERC20 account does not exist");
-   check(token_symbol.precision() == xerc20_symbol.precision(), "invalid xerc20 precision");
+
+   // Difference in precision allowed if token is not EOS local
+   if (token != name(0)) check(token_symbol.precision() == xerc20_symbol.precision(), "invalid xerc20 precision");
+
    check(min_fee.symbol == xerc20_symbol, "invalid minimum fee symbol");
 
    registry_adapter _registry(get_self(), get_self().value);
    auto itr = _registry.find(token_symbol.code().raw());
    check(itr == _registry.end(), "token already registered");
    check_symbol_is_valid(xerc20, xerc20_symbol);
-   check_symbol_is_valid(token, token_symbol);
+   if (token != name(0)) check_symbol_is_valid(token, token_symbol);
 
    checksum256 c;
    _registry.emplace( get_self(), [&]( auto& r ) {
@@ -284,6 +289,8 @@ void adapter::swap(const uint64_t& nonce, const bytes& event_bytes) {
    // NOTE: performance are not affected by this
    print("adapter_swap_event_bytes:");
    printhex(event_bytes.data(), event_bytes.size());
+   
+
 }
 
 
