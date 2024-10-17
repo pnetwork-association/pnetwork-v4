@@ -218,22 +218,33 @@ void adapter::settle(const name& caller, const operation& operation, const metad
    registry_adapter _registry(get_self(), get_self().value);
    auto idx_registry = _registry.get_index<adapter_registry_idx_token_bytes>();
    auto search_token_bytes = idx_registry.find(operation.token);
-
    check(search_token_bytes != idx_registry.end(), "invalid token");
 
-   checksum256 event_id;
-   check(pam::is_authorized(operation, metadata, event_id), "unauthorized");
+   checksum256 event_id = sha256((const char*)metadata.preimage.data(), metadata.preimage.size());
+   tee_pubkey _tee_pubkey(get_self(), get_self().value);
+   public_key tee_key = _tee_pubkey.get().key;
+
+   uint128_t a = 2;
+   bytes origin_chain_id = pam::extract_32bytes(metadata.preimage, a);
+
+   mappings_table _mappings_table(get_self(), get_self().value);
+
+   auto itr_mappings = _mappings_table.find(pam::get_mappings_key(origin_chain_id));
+   check(itr_mappings != _mappings_table.end(), "Unauthorized: origin chain_id not registered");
+   bytes exp_emitter = itr_mappings->emitter;
+   bytes exp_topic_zero =  itr_mappings->topic_zero;
+   pam::check_authorization(operation, metadata, event_id, tee_key, exp_emitter, exp_topic_zero);
 
    past_events _past_events(get_self(), get_self().value);
    auto idx_past_events = _past_events.get_index<adapter_registry_idx_eventid>();
    auto itr = idx_past_events.find(event_id);
 
    // TODO: disabled for tests, enable this when PAM is ready
-   // check(itr == idx_past_events.end(), "event already processed");
-   // _past_events.emplace(caller, [&](auto& r) { r.event_id = event_id; });
+   check(itr == idx_past_events.end(), "event already processed");
+   _past_events.emplace(caller, [&](auto& r) { r.event_id = event_id; });
 
-   auto xerc20 = search_token_bytes->xerc20;
-
+   name xerc20 = search_token_bytes->xerc20;
+   check(is_account(xerc20), "Not valid xerc20 name");
    if (operation.amount > 0) {
       auto quantity = from_wei(
          operation.amount,
