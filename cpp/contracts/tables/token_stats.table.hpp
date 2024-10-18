@@ -4,7 +4,7 @@
 #include <eosio/eosio.hpp>
 
 namespace eosio {
-   struct [[eosio::table]] token_stats_table {
+   TABLE token_stats_table {
       asset    supply;
       asset    max_supply;
       name     issuer;
