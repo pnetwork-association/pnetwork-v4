@@ -14,8 +14,7 @@ function start_nodeos {
     nodeos \
         --data-dir "$dir_data" \
         --config-dir "$dir_name" \
-        --config config.ini \
-        --delete-all-blocks > /dev/null 2>&1 &
+        --config config.ini > /dev/null 2>&1 &
 }
 
 
