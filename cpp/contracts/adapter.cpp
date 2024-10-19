@@ -288,7 +288,7 @@ void adapter::xerc20_transfer_from_any(
    _swap.send(storage.nonce, event_bytes);
 
    storage.nonce++;
-   _storage.set(storage, caller);
+   _storage.set(storage, self);
 }
 
 void adapter::ontransfer(const name& from, const name& to, const asset& quantity, const string& memo) {
