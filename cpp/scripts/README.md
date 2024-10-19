@@ -17,7 +17,7 @@ Please enjoy these scripts facilitating the interaction with EOSIO chains.
   (i.e. eos wallets, keys, data).
 
 - You may find few scripts useless since they just wrap around a simple eos command (i.e. `get-table.sh`), BUT
-  they are not, because globals variables (like `--url`) is automatically read from the .env file and placed
+  they are not, because globals variables (like `--url`) is supposed to be automatically read from the .env file and placed
   to the correct position so you don't have to remember that :D
 
 ## Common usage
@@ -34,7 +34,7 @@ Please enjoy these scripts facilitating the interaction with EOSIO chains.
   the specified name.
 
 **Note:** every time you create a new wallet a new keypair is generated, if you want to assign more keypairs to a single
-wallet you'll need to it manually through nodeos.
+wallet you'll need to it manually through `cleos`.
 
 **Note:** if you add a new keypair to a wallet, `create-account.sh` may not work as expected as it would consider the public
 key of the first pair generated when the wallet was created.
