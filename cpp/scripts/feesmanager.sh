@@ -7,74 +7,75 @@ source "$dir_name/utils.sh"
 source "$dir_name/contract-script.sh"
 source "$dir_name/push-action.sh"
 
-function feesmanager.get_setallowance_params {
-    local __output
-    local _output
-    local node
-    local token
-    local value
+# TODO: wire up the following functions
+# function feesmanager.get_setallowance_params {
+#     local __output
+#     local _output
+#     local node
+#     local token
+#     local value
 
-    __output="$1"
-    shift 1
+#     __output="$1"
+#     shift 1
 
-    eval "$__output"="'$_output'"
-}
+#     eval "$__output"="'$_output'"
+# }
 
-function feesmanager.get_incallowance_params {
-    local __output
-    local _output
-    local node
-    local token
-    local value
+# function feesmanager.get_incallowance_params {
+#     local __output
+#     local _output
+#     local node
+#     local token
+#     local value
 
-    __output="$1"
-    shift 1
+#     __output="$1"
+#     shift 1
 
-    eval "$__output"="'$_output'"
-}
+#     eval "$__output"="'$_output'"
+# }
 
-function feesmanager.get_withdrawto_params {
-    local __output
-    local _output
-    local node
-    local token
-    local token_symbol
+# function feesmanager.get_withdrawto_params {
+#     local __output
+#     local _output
+#     local node
+#     local token
+#     local token_symbol
 
-    __output="$1"
-    shift 1
+#     __output="$1"
+#     shift 1
 
-    eval "$__output"="'$_output'"
-}
+#     eval "$__output"="'$_output'"
+# }
 
-function feesmanager.get_withdrawto_params {
-    local __output
-    local _output
-    local node
-    local tokens # FIXME: std::vector<name>&
-    local token_symbols # FIXME: std::vector<name>&
+# function feesmanager.get_withdrawto_params {
+#     local __output
+#     local _output
+#     local node
+#     local tokens # FIXME: std::vector<name>&
+#     local token_symbols # FIXME: std::vector<name>&
 
-    __output="$1"
-    shift 1
+#     __output="$1"
+#     shift 1
 
-    eval "$__output"="'$_output'"
-}
+#     eval "$__output"="'$_output'"
+# }
 
-function feesmanager.get_json_params {
-    local __params # output
-    local action
-    __params=$1
-    action="$2"
-    shift 2
+# function feesmanager.get_json_params {
+#     local __params # output
+#     local action
+#     __params=$1
+#     action="$2"
+#     shift 2
 
-    # NOTE: what do we return here? __params will get
-    # the value in the eval inside get_xxx_params function
-    case "$action" in
+#     # NOTE: what do we return here? __params will get
+#     # the value in the eval inside get_xxx_params function
+#     case "$action" in
 
-    create) feesmanager.get_create_params "$__params" "$@" ;;
+#     create) feesmanager.get_create_params "$__params" "$@" ;;
 
-    *) invalid_action "$action" ;;
-    esac
-}
+#     *) invalid_action "$action" ;;
+#     esac
+# }
 
 function feesmanager {
     local action
