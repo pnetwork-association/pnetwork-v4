@@ -100,3 +100,12 @@ You need to unlock the `local` wallet which has the `eosio@active` permissions.
 2. `3090003 unsatisfied_authorization: Provided keys, permissions, and delays do not satisfy declared authorizations`
 
 Check the contract has the `eosio.code` permission as it's needed to execute inline actions
+
+3. eosio::history_api_plugin can't be used, you will get
+
+```
+3060005 bad_database_version_exception: Database is an unknown or unsupported version
+state database version pre-dates versioning, please restore from a compatible snapshot or replay
+```
+
+when starting nodeos.
