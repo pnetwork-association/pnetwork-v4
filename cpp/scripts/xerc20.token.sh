@@ -8,7 +8,7 @@ source "$dir_name/contract-script.sh"
 source "$dir_name/push-action.sh"
 source "$dir_name/eosio.token.sh"
 
-function get_setlimits_params {
+function xerc20.token.get_setlimits_params {
     local __output
     local _output
     local bridge
@@ -32,7 +32,7 @@ function get_setlimits_params {
     eval "$__output"="'$_output'"
 }
 
-function get_setlockbox_params {
+function xerc20.token.get_setlockbox_params {
     local __output
     local _output
     local account
@@ -49,7 +49,7 @@ function get_setlockbox_params {
     eval "$__output"="'$_output'"
 }
 
-function get_json_params {
+function xerc20.token.get_json_params {
     local __params # output
     local action
     __params=$1
@@ -60,13 +60,13 @@ function get_json_params {
     # the value in the eval inside get_xxx_params function
     case "$action" in
 
-    create) get_create_params "$__params" "$@" ;;
+    create) eosio.token.get_create_params "$__params" "$@" ;;
 
-    transfer) get_transfer_params "$__params" "$@" ;;
+    transfer) eosio.token.get_transfer_params "$__params" "$@" ;;
 
-    setlimits) get_setlimits_params "$__params" "$@" ;;
+    setlimits) xerc20.token.get_setlimits_params "$__params" "$@" ;;
 
-    setlockbox) get_setlockbox_params "$__params" "$@" ;;
+    setlockbox) xerc20.token.get_setlockbox_params "$__params" "$@" ;;
 
     *) invalid_action "$action" ;;
     esac
@@ -85,7 +85,7 @@ function xerc20.token {
 
     shift "$shifting_pos"
 
-    get_json_params json "$action" "$@"
+    xerc20.token.get_json_params json "$action" "$@"
 
     # We call the action
     push_action "$contract" "$action" "$json" "--permission" "$permission"

@@ -7,7 +7,7 @@ source "$dir_name/utils.sh"
 source "$dir_name/contract-script.sh"
 source "$dir_name/push-action.sh"
 
-function get_setallowance_params {
+function feesmanager.get_setallowance_params {
     local __output
     local _output
     local node
@@ -20,7 +20,7 @@ function get_setallowance_params {
     eval "$__output"="'$_output'"
 }
 
-function get_incallowance_params {
+function feesmanager.get_incallowance_params {
     local __output
     local _output
     local node
@@ -33,7 +33,7 @@ function get_incallowance_params {
     eval "$__output"="'$_output'"
 }
 
-function get_withdrawto_params {
+function feesmanager.get_withdrawto_params {
     local __output
     local _output
     local node
@@ -46,7 +46,7 @@ function get_withdrawto_params {
     eval "$__output"="'$_output'"
 }
 
-function get_withdrawto_params {
+function feesmanager.get_withdrawto_params {
     local __output
     local _output
     local node
@@ -59,7 +59,7 @@ function get_withdrawto_params {
     eval "$__output"="'$_output'"
 }
 
-function get_json_params {
+function feesmanager.get_json_params {
     local __params # output
     local action
     __params=$1
@@ -70,7 +70,7 @@ function get_json_params {
     # the value in the eval inside get_xxx_params function
     case "$action" in
 
-    create) get_create_params "$__params" "$@" ;;
+    create) feesmanager.get_create_params "$__params" "$@" ;;
 
     *) invalid_action "$action" ;;
     esac
@@ -89,7 +89,7 @@ function feesmanager {
 
     shift "$shifting_pos"
 
-    get_json_params json "$action" "$@"
+    feesmanager.get_json_params json "$action" "$@"
 
     # We call the action
     push_action "$contract" "$action" "$json" "--permission" "$permission"

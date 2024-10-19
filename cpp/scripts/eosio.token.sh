@@ -7,7 +7,7 @@ source "$dir_name/utils.sh"
 source "$dir_name/contract-script.sh"
 source "$dir_name/push-action.sh"
 
-function get_create_params {
+function eosio.token.get_create_params {
     local __output
     local _output
     local issuer
@@ -26,7 +26,7 @@ function get_create_params {
     eval "$__output"="'$_output'"
 }
 
-function get_issue_params {
+function eosio.token.get_issue_params {
     local __output
     local _output
     local to
@@ -48,7 +48,7 @@ function get_issue_params {
     eval "$__output"="'$_output'"
 }
 
-function get_transfer_params {
+function eosio.token.get_transfer_params {
     local __output
     local _output
     local from
@@ -74,7 +74,7 @@ function get_transfer_params {
     eval "$__output"="'$_output'"
 }
 
-function get_json_params {
+function eosio.token.get_json_params {
     local __params # output
     local action
     __params=$1
@@ -85,11 +85,11 @@ function get_json_params {
     # the value in the eval inside get_xxx_params function
     case "$action" in
 
-    create) get_create_params "$__params" "$@" ;;
+    create) eosio.token.get_create_params "$__params" "$@" ;;
 
-    issue) get_issue_params "$__params" "$@" ;;
+    issue) eosio.token.get_issue_params "$__params" "$@" ;;
 
-    transfer) get_transfer_params "$__params" "$@" ;;
+    transfer) eosio.token.get_transfer_params "$__params" "$@" ;;
 
     *) invalid_action "$action" ;;
     esac
@@ -108,7 +108,7 @@ function eosio.token {
 
     shift "$shifting_pos"
 
-    get_json_params json "$action" "$@"
+    eosio.token.get_json_params json "$action" "$@"
 
     # We call the action
     push_action "$contract" "$action" "$json" "--permission" "$permission"

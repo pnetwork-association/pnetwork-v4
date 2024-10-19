@@ -7,7 +7,7 @@ source "$dir_name/utils.sh"
 source "$dir_name/contract-script.sh"
 source "$dir_name/push-action.sh"
 
-function get_create_params {
+function adapter.get_create_params {
     local __output
     local _output
     local xerc20
@@ -44,7 +44,7 @@ function get_create_params {
     eval "$__output"="'$_output'"
 }
 
-function get_settle_params {
+function adapter.get_settle_params {
     local __output
     local _output
     local caller
@@ -66,7 +66,7 @@ function get_settle_params {
     add_key_value_string _output "$_output" "metadata" "$metadata"   # FIXME: custom parsing?
 }
 
-function get_setfeemanagr_params {
+function adapter.get_setfeemanagr_params {
     local __output
     local _output
     local fee_manager
@@ -82,7 +82,7 @@ function get_setfeemanagr_params {
     eval "$__output"="'$_output'"
 }
 
-function get_adduserdata_params {
+function adapter.get_adduserdata_params {
     local __output
     local _output
     local caller
@@ -103,7 +103,7 @@ function get_adduserdata_params {
     eval "$__output"="'$_output'"
 }
 
-function get_freeuserdata_params {
+function adapter.get_freeuserdata_params {
     local __output
     local _output
     local account
@@ -120,7 +120,7 @@ function get_freeuserdata_params {
     eval "$__output"="'$_output'"
 }
 
-function get_json_params {
+function adapter.get_json_params {
     local __params # output
     local action
     __params=$1
@@ -131,15 +131,15 @@ function get_json_params {
     # the value in the eval inside get_xxx_params function
     case "$action" in
 
-    create) get_create_params "$__params" "$@" ;;
+    create) adapter.get_create_params "$__params" "$@" ;;
 
-    settle) get_settle_params "$__params" "$@" ;;
+    settle) adapter.get_settle_params "$__params" "$@" ;;
 
-    setfeemanagr) get_setfeemanagr_params "$__params" "$@" ;;
+    setfeemanagr) adapter.get_setfeemanagr_params "$__params" "$@" ;;
 
-    adduserdata) get_adduserdata_params "$__params" "$@" ;;
+    adduserdata) adapter.get_adduserdata_params "$__params" "$@" ;;
 
-    freeuserdata) get_freeuserdata_params "$__params" "$@" ;;
+    freeuserdata) adapter.get_freeuserdata_params "$__params" "$@" ;;
 
     *) invalid_action "$action" ;;
     esac
@@ -158,7 +158,7 @@ function adapter {
 
     shift "$shifting_pos"
 
-    get_json_params json "$action" "$@"
+    adapter.get_json_params json "$action" "$@"
 
     # We call the action
     push_action "$contract" "$action" "$json" "--permission" "$permission"
