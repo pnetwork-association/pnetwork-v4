@@ -100,16 +100,16 @@ void adapter::extract_memo_args(
    const vector<string> parts = split(memo, ",");
 
    check(parts.size() == 4, "invalid memo format");
+   check(is_hex_notation(parts[1]), "chain id must be 0x prefixed");
 
    out_sender = parts[0];
-   out_dest_chainid = parts[1];
+   out_dest_chainid = parts[1].substr(2);
    out_recipient = parts[2];
    uint64_t userdata_id = stoull(parts[3]);
 
    check(out_sender.length() > 0, "invalid sender address");
    check(out_recipient.length() > 0, "invalid destination address");
-   check(is_hex_notation(out_dest_chainid), "chain id must be 0x prefixed");
-   check(out_dest_chainid.length() == 66, "chain id must be a 32 bytes hex-string");
+   check(out_dest_chainid.length() == 64, "chain id must be a 32 bytes hex-string");
 
 
    if (userdata_id > 0) {
