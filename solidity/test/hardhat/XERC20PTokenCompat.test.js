@@ -130,16 +130,17 @@ const deployERC1820 = () => helpers.setCode(ERC1820, ERC1820BYTES)
 
         it('Should revert when trying to call initializeV2', async () => {
           const initError = 'Initializable: contract is already initialized'
+          const freezingEnabled = false
           await expect(
-            pTokenV2.connect(admin).initializeV2(evil),
+            pTokenV2.connect(admin).initializeV2(evil, freezingEnabled),
           ).to.be.revertedWith(initError)
 
           await expect(
-            pTokenV2.connect(owner).initializeV2(evil),
+            pTokenV2.connect(owner).initializeV2(evil, freezingEnabled),
           ).to.be.revertedWith(initError)
 
           await expect(
-            pTokenV2.connect(evil).initializeV2(evil),
+            pTokenV2.connect(evil).initializeV2(evil, freezingEnabled),
           ).to.be.revertedWith(initError)
         })
 

@@ -35,7 +35,13 @@ module.exports = {
       },
       {
         version: '0.8.25',
-        settings: { evmVersion: 'cancun' },
+        settings: {
+          optimizer: {
+            runs: 200,
+            enabled: true,
+          },
+          evmVersion: 'cancun',
+        },
       },
     ],
   },
