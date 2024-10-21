@@ -33,7 +33,7 @@ const ADDRESS_PNETWORK_SIGNER = '0x341aA660fD5c280F5a9501E3822bB4a98E816D1b'
 const conditionalDescribe = process.env['FORK'] ? describe : describe.skip
 
 conditionalDescribe(
-  'Forked testsing - PToken v1 upgrade on BSC and subsequent pegout to Ethereum',
+  'Forked Testing - PToken v1 upgrade on BSC and subsequent pegout to Ethereum',
   () => {
     const oneEth = hre.ethers.toBeHex(hre.ethers.parseEther('1'))
     const mintingLimit = hre.ethers.parseEther('500000')
@@ -73,7 +73,7 @@ conditionalDescribe(
       let ptoken, proxyAdminOwner, ptokenv2
       before(async () => {
         const rpc = hre.config.networks.bscFork.url
-        const blockToForkFrom = 40729521 // 2024-07-23 15:22
+        const blockToForkFrom = 43336397 // 2024-10-22 09:25
         await helpers.reset(rpc, blockToForkFrom)
 
         user = await hre.ethers.getImpersonatedSigner(

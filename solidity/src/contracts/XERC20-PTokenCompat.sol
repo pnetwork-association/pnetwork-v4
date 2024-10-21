@@ -51,6 +51,18 @@ contract XERC20PTokenCompat is
    */
   mapping(address => Bridge) public bridges;
 
+  address public freezingAddress;
+
+  bool public freezingEnabled;
+
+  mapping(address => bool) public frozen;
+
+  modifier onlyWithFreezeCapabilities(address sender) {
+    require(freezingEnabled, "Freeze capabilities are disabled");
+    require(freezingAddress == sender, "Only freezing address allowed");
+    _;
+  }
+
   /**
    * @notice This is for re-initialize the contract with the new owner
    * @param owner_ new owner of the contract
@@ -61,11 +73,30 @@ contract XERC20PTokenCompat is
    * with the one already declared in PTokenStorage.
    */
   // solhint-disable-next-line
-  function initializeV2(address owner_) public reinitializer(2) {
+  function initializeV2(address owner_, bool freezingEnabled_) public reinitializer(2) {
     // This is what is being performed by the ERC20Permit
     // contract inherited by the XERC20 immutable version
     __EIP712_init(_name, "1");
     _owner = owner_;
+    freezingEnabled = freezingEnabled_;
+  }
+
+  function freezeAddress(address addressToFreeze) public onlyWithFreezeCapabilities(msg.sender) {
+    frozen[addressToFreeze] = true;
+  }
+
+  function unfreezeAddress(address addressToUnfreeze) public onlyWithFreezeCapabilities(msg.sender) {
+    frozen[addressToUnfreeze] = false;
+  }
+
+  function withdrawFrozenAssets(address frozenAddress, address to, uint256 amount) public onlyWithFreezeCapabilities(msg.sender) {
+    require(frozen[frozenAddress], "Given address has not been freezed");
+
+    _transfer(frozenAddress, to, amount);
+  }
+
+  function setFreezingAddress(address freezingAddress_) public onlyOwner {
+    freezingAddress = freezingAddress_;
   }
 
   /**
@@ -399,6 +430,8 @@ contract XERC20PTokenCompat is
   }
 
   function _transfer(address from, address to, uint256 amount) internal {
+      require(!freezingEnabled || !frozen[from] || freezingAddress == msg.sender, "owner is frozen"); // NOTE: freezing feat
+      require(!freezingEnabled || !frozen[to] || freezingAddress == msg.sender, "recipient is frozen"); // NOTE: freezing feat
       require(from != address(0), "ERC20: transfer from the zero address");
       require(to != address(0), "ERC20: transfer to the zero address");
 
