@@ -55,7 +55,8 @@ contract PAMTest is Test, Helper {
             originChainId,
             owner,
             address(erc20),
-            true
+            true,
+            false
         );
 
         _transferToken(address(erc20), owner, user, 50000);
