@@ -4,7 +4,7 @@
 #include <eosio/eosio.hpp>
 
 namespace eosio {
-   struct [[eosio::table]] adapter_past_events_table {
+   TABLE adapter_past_events_table {
       uint64_t      notused;
       checksum256   event_id;
 
