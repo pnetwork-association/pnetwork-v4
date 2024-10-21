@@ -27,6 +27,10 @@ contract XERC20 is ERC20, Ownable, IXERC20, ERC20Permit {
    */
   mapping(address => Bridge) public bridges;
 
+  bool public immutable freezingEnabled;
+
+  mapping(address => bool) public frozen;
+
   /**
    * @notice Constructs the initial config of the XERC20
    *
@@ -35,8 +39,19 @@ contract XERC20 is ERC20, Ownable, IXERC20, ERC20Permit {
    * @param _factory The factory which deployed this contract
    */
 
-  constructor(string memory _name, string memory _symbol, address _factory) ERC20(_name, _symbol) ERC20Permit(_name) Ownable(_factory) {
+  constructor(string memory _name, string memory _symbol, address _factory, bool _freezingEnabled) ERC20(_name, _symbol) ERC20Permit(_name) Ownable(_factory) {
     FACTORY = _factory;
+    freezingEnabled = _freezingEnabled;
+  }
+
+  function freezeAddress(address value) public onlyOwner {
+    require(freezingEnabled, "Freeze capabilities are disabled");
+    frozen[value] = true;
+  }
+
+  function unfreezeAddress(address value) public onlyOwner {
+    require(freezingEnabled, "Freeze capabilities are disabled");
+    frozen[value] = false;
   }
 
   /**
@@ -290,5 +305,10 @@ contract XERC20 is ERC20, Ownable, IXERC20, ERC20Permit {
       _useMinterLimits(_caller, _amount);
     }
     _mint(_user, _amount);
+  }
+
+  function _update(address from, address to, uint256 value) internal override {
+    require(!freezingEnabled || !frozen[msg.sender], "address is frozen");
+    super._update(from, to, value);
   }
 }
