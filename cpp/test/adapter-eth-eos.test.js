@@ -12,7 +12,7 @@ const {
   logExecutionTraces,
   prettyTrace,
 } = require('./utils/eos-ext')
-const { getEventBytes } = require('./utils/get-event-bytes')
+const { getEventBytes, hexStringToBytes } = require('./utils/utils')
 const { substract, no0x } = require('./utils/wharfkit-ext')
 const { getAccountsBalances } = require('./utils/get-token-balance')
 const { getMetadataSample } = require('./utils/get-metadata-sample')
@@ -25,20 +25,6 @@ const getSwapMemo = (sender, destinationChainId, recipient, data) =>
   `${sender},${destinationChainId},${recipient},${R.isEmpty(data) ? '0' : '1'}`
 
 const attestation = 'deadbeef'
-
-const hexStringToBytes = (hex) => {
-    // Ensure the input string is valid
-    if (hex.length % 2 !== 0) {
-        throw new Error("Hex string must have an even length.");
-    }
-
-    const bytes = [];
-    for (let i = 0; i < hex.length; i += 2) {
-        // Parse two hex characters at a time and convert to a byte (0-255)
-        bytes.push(parseInt(hex.substr(i, 2), 16));
-    }
-    return bytes;
-}
 
 describe('Adapter EVM -> EOS testing', () => {
   const symbol = 'TKN'

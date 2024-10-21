@@ -12,7 +12,7 @@ const {
   logExecutionTraces,
   prettyTrace,
 } = require('./utils/eos-ext')
-const { getEventBytes } = require('./utils/get-event-bytes')
+const { getEventBytes, getXbytesHex, hexToString, removeNullChars } = require('./utils/utils')
 const { substract, no0x } = require('./utils/wharfkit-ext')
 const { getAccountsBalances } = require('./utils/get-token-balance')
 const { getMetadataSample } = require('./utils/get-metadata-sample')
@@ -26,23 +26,9 @@ const getSwapMemo = (sender, destinationChainId, recipient, data) =>
 
 const attestation = 'deadbeef'
 
-const hexStringToBytes = (hex) => {
-    // Ensure the input string is valid
-    if (hex.length % 2 !== 0) {
-        throw new Error("Hex string must have an even length.");
-    }
-
-    const bytes = [];
-    for (let i = 0; i < hex.length; i += 2) {
-        // Parse two hex characters at a time and convert to a byte (0-255)
-        bytes.push(parseInt(hex.substr(i, 2), 16));
-    }
-    return bytes;
-}
-
 describe('Adapter EOS -> ETH testing', () => {
   const symbol = 'TKN'
-  const minFee = `0.1000 X${symbol}`
+  const minFee = `0.0010 X${symbol}`
   const precision4 = precision(4)
   const maxSupply = '500000000.0000'
   const tokenMaxSupply = '500000000.0000'
@@ -179,7 +165,6 @@ describe('Adapter EOS -> ETH testing', () => {
         ])
         .send(active(adapter.account))
 
-        // console.log(adapter.contract.bc.console)
       await adapter.contract.actions
         .setfeemanagr([feemanager])
         .send(active(adapter.account))
@@ -244,7 +229,7 @@ describe('Adapter EOS -> ETH testing', () => {
       await token.contract.actions
         .transfer([user, adapter.account, quantity, memo])
         .send(active(user))
-
+        
       const after = getAccountsBalances(
         [user, lockbox.account, adapter.account, feemanager],
         [token, xerc20],
@@ -273,10 +258,12 @@ describe('Adapter EOS -> ETH testing', () => {
         ).toString(),
       ).to.be.equal(`0.0000 ${xerc20.symbol}`)
 
-      const fees = `${(
+      const intFees = (
         (parseInt(amount) * FEE_BASIS_POINTS) /
         FEE_BASIS_POINTS_DIVISOR
-      ).toFixed(4)} ${xerc20.symbol}`
+      ).toFixed(4)
+
+      const fees = `${intFees} ${xerc20.symbol}`
 
       expect(
         substract(
@@ -295,10 +282,36 @@ describe('Adapter EOS -> ETH testing', () => {
       expect(possibleSwap['First Receiver']).to.be.equal(adapter.account)
       expect(possibleSwap['Sender']).to.be.equal(adapter.account)
 
-      // TODO: parse each field with the Event Attestator simulator
+      const eventBytes = getEventBytes(adapter.contract)
       const expectedEventBytes =
-        '00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000746b6e2e746f6b656e0000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000008a88f6dc465640000000000000000000000000000000000000000000000000000000000075736572000000000000000000000000000000000000000000000000000000000000002a307836386262656436613437313934656666316366353134623530656139313839353539376663393165'
-      expect(getEventBytes(adapter.contract)).to.be.equal(expectedEventBytes)
+        '00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000746b6e2e746f6b656e00000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000008a88f6dc465640000000000000000000000000000000000000000000000000000000000075736572000000000000000000000000000000000000000000000000000000000000002a307836386262656436613437313934656666316366353134623530656139313839353539376663393165'
+        expect(eventBytes).to.be.equal(expectedEventBytes)
+
+      offset = 0
+      const nonce = getXbytesHex(eventBytes, offset, 32)
+      offset += 32
+      const swapToken = getXbytesHex(eventBytes, offset, 32)
+      offset += 32
+      const destChainId = getXbytesHex(eventBytes, offset, 32)
+      offset += 32
+      const netAmount = getXbytesHex(eventBytes, offset, 32)
+      offset += 32
+      const swapSender = getXbytesHex(eventBytes, offset, 32)
+      offset += 32
+      const recipientLen = getXbytesHex(eventBytes, offset, 32)
+      offset += 32
+      const swapRecipient = getXbytesHex(eventBytes, offset, parseInt(recipientLen, 16))
+      offset += parseInt(recipientLen, 16)
+      const userData = eventBytes.slice(offset * 2, eventBytes.length)
+
+      const expectedAmount = (parseInt(amount) - intFees) * (10 ** 18)
+      expect(parseInt(nonce)).to.be.equal(before.storage.nonce)
+      expect(removeNullChars(hexToString(swapToken))).to.be.equal(token.account)
+      expect(destChainId).to.be.equal(destinationChainId.slice(2))
+      expect(parseInt(netAmount, 16)).to.be.equal(expectedAmount)
+      expect(removeNullChars(hexToString(swapSender))).to.be.equal(user)
+      expect(removeNullChars(hexToString(swapRecipient))).to.be.equal(recipient)
+      expect(removeNullChars(hexToString(userData))).to.be.equal(data)
     })
 
     // TODO: test adduserdata + swap actions in
@@ -324,7 +337,7 @@ describe('Adapter EOS -> ETH testing', () => {
   //       [token, xerc20],
   //     )
 
-  //     const compressed = Uint8Array.from(
+  //     const compressed = Uint8Array.from(, 16
   //       Buffer.from(
   //         '0380472f799469d9af8790307a022802785c2b1e2f9c0930bdf9bafe193245e7a3',
   //         'hex',
