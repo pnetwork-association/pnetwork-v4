@@ -15,18 +15,12 @@ contract AdapterTest {
     ) public {
         emit IAdapter.Swap(
             nonce,
-            IAdapter.EventBytes(
-                bytes.concat(
-                    bytes32(nonce),
-                    bytes32(uint256(uint160(erc20))),
-                    bytes32(destination),
-                    bytes32(amount),
-                    bytes32(uint256(uint160(sender))),
-                    bytes32(bytes(recipient).length),
-                    bytes(recipient),
-                    data
-                )
-            )
+            bytes32(uint256(uint160(erc20))),
+            bytes32(destination),
+            bytes32(amount),
+            bytes32(uint256(uint160(sender))),
+            bytes(recipient),
+            data
         );
     }
 }
