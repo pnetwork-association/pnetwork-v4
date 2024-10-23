@@ -125,18 +125,12 @@ contract IntegrationTest is Test, Helper {
         vm.expectEmit(address(adapter_A));
         emit IAdapter.Swap(
             nonce,
-            IAdapter.EventBytes(
-                bytes.concat(
-                    bytes32(nonce),
-                    erc20Bytes,
-                    bytes32(CHAIN_B),
-                    bytes32(netAmount),
-                    bytes32(uint256(uint160(user))),
-                    bytes32(bytes(recipientStr).length),
-                    bytes(recipientStr),
-                    data
-                )
-            )
+            erc20Bytes,
+            bytes32(CHAIN_B),
+            bytes32(netAmount),
+            bytes32(uint256(uint160(user))),
+            bytes(recipientStr),
+            data
         );
 
         adapter_A.swap(address(erc20), amount, CHAIN_B, recipientStr, data);
@@ -177,18 +171,12 @@ contract IntegrationTest is Test, Helper {
 
         emit IAdapter.Swap(
             nonce,
-            IAdapter.EventBytes(
-                bytes.concat(
-                    bytes32(nonce),
-                    erc20Bytes,
-                    bytes32(CHAIN_B),
-                    bytes32(amount - fees),
-                    bytes32(uint256(uint160(user))),
-                    bytes32(bytes(recipientStr).length),
-                    bytes(recipientStr),
-                    data
-                )
-            )
+            erc20Bytes,
+            bytes32(CHAIN_B),
+            bytes32(amount - fees),
+            bytes32(uint256(uint160(user))),
+            bytes(recipientStr),
+            data
         );
 
         adapter_A.swap(address(xerc20_A), amount, CHAIN_B, recipientStr, data);

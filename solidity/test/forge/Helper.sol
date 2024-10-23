@@ -209,29 +209,28 @@ abstract contract Helper is Test, DeployHelper {
             console.log("");
         }
 
-        bytes memory eventBytes = abi
-            .decode(log.data, (IAdapter.EventBytes))
-            .content;
+        bytes memory eventBytes = log.data;
 
+        uint256 dataStart = uint256(bytes32(BytesLib.slice(eventBytes, 128, 32)));
+        // uint256 dataEnd = uint256(bytes32(BytesLib.slice(eventBytes, 160, 32)));
         uint256 recipientLen = uint256(
-            bytes32(BytesLib.slice(eventBytes, 160, 32))
+            bytes32(BytesLib.slice(eventBytes, dataStart, 32))
         );
-
-        uint256 dataLen = eventBytes.length - recipientLen - 192;
+        uint256 dataLen = uint256(bytes32(BytesLib.slice(eventBytes, dataStart + 96, 32)));
         return
             IAdapter.Operation(
                 blockHash,
                 txHash,
                 uint256(log.topics[1]), // nonce
-                bytes32(BytesLib.slice(eventBytes, 32, 32)), // erc20
+                bytes32(BytesLib.slice(eventBytes, 0, 32)), // erc20
                 bytes32(block.chainid),
-                bytes32(BytesLib.slice(eventBytes, 64, 32)), // destination chain id
-                uint256(bytes32(BytesLib.slice(eventBytes, 96, 32))), // amount
-                bytes32(BytesLib.slice(eventBytes, 128, 32)), //  sender
+                bytes32(BytesLib.slice(eventBytes, 32, 32)), // destination chain id
+                uint256(bytes32(BytesLib.slice(eventBytes, 64, 32))), // amount
+                bytes32(BytesLib.slice(eventBytes, 96, 32)), //  sender
                 _hexStringToAddress(
-                    string(BytesLib.slice(eventBytes, 192, recipientLen)) // recipient
+                    string(BytesLib.slice(eventBytes, dataStart + 32, recipientLen)) // recipient
                 ),
-                BytesLib.slice(eventBytes, 192 + recipientLen, dataLen) // data
+                BytesLib.slice(eventBytes, dataStart + 128, dataLen) // data
             );
     }
 
