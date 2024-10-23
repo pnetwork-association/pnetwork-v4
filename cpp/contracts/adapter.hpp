@@ -96,8 +96,6 @@ namespace eosio {
          > registry_adapter;
          typedef eosio::multi_index<"mappings"_n, pam::mappings> mappings_table;
 
-         using tee_pubkey = singleton<"tee"_n, pam::tee>;
-         using lockbox_singleton = singleton<"lockbox"_n, name>;
          using storage = singleton<"storage"_n, global_storage_table>;
 
          global_storage_table empty_storage = {

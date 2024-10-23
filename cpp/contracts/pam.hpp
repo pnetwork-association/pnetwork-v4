@@ -32,8 +32,8 @@ namespace eosio {
             public_key key;
         };
 
-        // typedef eosio::singleton<"tee"_n, tee> tee_pubkey;
-        // typedef eosio::multi_index<"mappings"_n, mappings> mappings_table;
+        using tee_pubkey = singleton<"tee"_n, pam::tee>;
+        using lockbox_singleton = singleton<"lockbox"_n, name>;
 
         bytes extract_32bytes(const bytes& data, uint128_t offset);
         bool context_checks(const operation& operation, const metadata& metadata);

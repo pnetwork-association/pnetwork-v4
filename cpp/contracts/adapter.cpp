@@ -155,7 +155,7 @@ void adapter::freeuserdata(const name& account) {
 void adapter::settee(public_key pub_key, bytes attestation) {
    print("set tee");
    require_auth(get_self());
-   tee_pubkey _tee_pubkey(get_self(), get_self().value);
+   pam::tee_pubkey _tee_pubkey(get_self(), get_self().value);
 
    _tee_pubkey.get_or_create(
       get_self(),
@@ -226,7 +226,7 @@ void adapter::settle(const name& caller, const operation& operation, const metad
    check(search_token_bytes != idx_registry.end(), "invalid token");
 
    checksum256 event_id = sha256((const char*)metadata.preimage.data(), metadata.preimage.size());
-   tee_pubkey _tee_pubkey(get_self(), get_self().value);
+   pam::tee_pubkey _tee_pubkey(get_self(), get_self().value);
    public_key tee_key = _tee_pubkey.get().key;
 
    uint128_t a = 2;
@@ -256,7 +256,7 @@ void adapter::settle(const name& caller, const operation& operation, const metad
          search_token_bytes->xerc20_symbol
       );
 
-      lockbox_singleton _lockbox(xerc20, xerc20.value);
+      pam::lockbox_singleton _lockbox(xerc20, xerc20.value);
       action_mint _mint(search_token_bytes->xerc20, {get_self(), "active"_n});
       if (_lockbox.exists()) {
          // If the lockbox exists, we release the collateral
@@ -398,7 +398,7 @@ void adapter::ontransfer(const name& from, const name& to, const asset& quantity
    if (is_xerc20_transfer) check(quantity.symbol == xerc20_symbol, "invalid xerc20 quantity symbol");
 
    if (is_token_transfer) {
-      lockbox_singleton _lockbox(xerc20, xerc20.value);
+      pam::lockbox_singleton _lockbox(xerc20, xerc20.value);
       check(_lockbox.exists(), "lockbox is not set for the underlying token");
       auto lockbox = _lockbox.get();
       check(is_account(lockbox), "lockbox must be a valid account");
