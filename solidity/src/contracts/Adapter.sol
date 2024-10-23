@@ -211,18 +211,12 @@ contract Adapter is IAdapter, Ownable, ReentrancyGuard {
 
         emit Swap(
             nonce,
-            EventBytes(
-                bytes.concat(
-                    bytes32(nonce),
-                    bytes32(abi.encode(erc20)),
-                    bytes32(destinationChainId),
-                    bytes32(netAmount),
-                    bytes32(uint256(uint160(msg.sender))),
-                    bytes32(bytes(recipient).length),
-                    bytes(recipient),
-                    data
-                )
-            )
+            bytes32(abi.encode(erc20)),
+            bytes32(destinationChainId),
+            bytes32(netAmount),
+            bytes32(uint256(uint160(msg.sender))),
+            bytes(recipient),
+            data
         );
 
         unchecked {
