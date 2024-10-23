@@ -1,7 +1,6 @@
 const R = require('ramda')
 
-const SWAP_EVENT_TOPIC =
-  '0x9b706941b48091a1c675b439064f40b9d43c577d9c7134cce93179b9b0bf2a52'
+const SWAP_EVENT_TOPIC = '0x7a62b8c6141da7e579d5a8ec90e6a5fbd5ce9a3d16ca0a9955ee3c2a095a0c2d'
 
 module.exports.getSwapEvent = _tx =>
   _tx
