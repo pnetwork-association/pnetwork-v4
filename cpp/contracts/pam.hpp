@@ -13,8 +13,6 @@ namespace eosio {
             bytes emitter;
             bytes topic_zero;
 
-            EOSLIB_SERIALIZE(mappings, (chain_id)(topic_zero)(emitter));
-
             uint64_t primary_key() const { 
             eosio::check(chain_id.size() == 32, "Chain ID must be 32 bytes long.");
             return (static_cast<uint64_t>(chain_id[24]) << 56) |
