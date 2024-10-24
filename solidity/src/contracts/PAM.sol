@@ -129,13 +129,10 @@ contract PAM is Ownable, IPAM {
         bytes32 destinationChainId = bytes32(content[offset:offset += 32]);
         uint256 amount = uint256(bytes32(content[offset:offset += 32]));
         bytes32 sender = bytes32(content[offset:offset += 32]);
-        uint256 dataStart = uint256(bytes32(content[offset:offset += 32]));
-        offset = dataStart + 32; // skip dataEnd
         uint256 recipientLen = uint256(bytes32(content[offset:offset += 32]));
         address recipient = _bytesToAddress(
-            content[offset:offset + recipientLen]
+            content[offset:offset += recipientLen]
         );
-        offset += (recipientLen / 32) * 32 + 32;
         uint256 dataLen = uint256(bytes32(content[offset:offset += 32]));
         bytes memory data = content[offset: offset + dataLen];
 
