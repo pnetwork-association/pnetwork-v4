@@ -95,7 +95,6 @@ contract PAM is Ownable, IPAM {
         // |  emitter  |    topic-0     |    topics-1     |    topics-2     |    topics-3     |  eventBytes  |
         // |    32B    |      32B       |       32B       |       32B       |       32B       |    varlen    |
         bytes32 originChainId = bytes32(metadata.preimage[2:34]);
-
         uint256 offset = 32;
         bytes calldata eventPayload = metadata.preimage[98:];
         bytes32 emitter = bytes32(eventPayload[0:offset]);
@@ -109,13 +108,9 @@ contract PAM is Ownable, IPAM {
         if (topic0 != chainIdToTopicZero[originChainId])
             return (false, eventId);
 
-        offset += 32 * 3; // skip other topics
-        IAdapter.EventBytes memory eventBytes = abi.decode(
-            eventPayload[offset:],
-            (IAdapter.EventBytes)
-        );
+        offset += 32 * 2; // skip other topics
 
-        if (!this.doesContentMatchOperation(eventBytes.content, operation))
+        if (!this.doesContentMatchOperation(eventPayload[offset:], operation))
             return (false, eventId);
 
         return (true, eventId);
@@ -147,7 +142,8 @@ contract PAM is Ownable, IPAM {
             amount == operation.amount &&
             sender == operation.sender &&
             recipient == operation.recipient &&
-            sha256(data) == sha256(operation.data));
+            sha256(data) == sha256(operation.data)
+            );
     }
 
     function _contextChecks(
