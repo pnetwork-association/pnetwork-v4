@@ -131,7 +131,6 @@ contract IntegrationTest is Test, Helper {
             bytes32(uint256(uint160(user))),
             bytes32(bytes(recipientStr).length),
             bytes(recipientStr),
-            bytes32(bytes(data).length),
             data
         );
         assembly {
@@ -145,15 +144,6 @@ contract IntegrationTest is Test, Helper {
                 nonce
             )
         }
-        // emit IAdapter.Swap(
-        //     nonce,
-        //     erc20Bytes,
-        //     bytes32(CHAIN_B),
-        //     bytes32(netAmount),
-        //     bytes32(uint256(uint160(user))),
-        //     bytes(recipientStr),
-        //     data
-        // );
 
         adapter_A.swap(address(erc20), amount, CHAIN_B, recipientStr, data);
 
@@ -191,16 +181,6 @@ contract IntegrationTest is Test, Helper {
         uint256 nonce = 0;
         uint256 fees = (amount * FEES_BASIS_POINTS) / FEES_DIVISOR;
 
-        // emit IAdapter.Swap(
-        //     nonce,
-        //     erc20Bytes,
-        //     bytes32(CHAIN_B),
-        //     bytes32(amount - fees),
-        //     bytes32(uint256(uint160(user))),
-        //     bytes(recipientStr),
-        //     data
-        // );
-
         bytes32 topic0 = SWAP_TOPIC;
         bytes memory eventBytes = bytes.concat(
             erc20Bytes,
@@ -209,7 +189,6 @@ contract IntegrationTest is Test, Helper {
             bytes32(uint256(uint160(user))),
             bytes32(bytes(recipientStr).length),
             bytes(recipientStr),
-            bytes32(bytes(data).length),
             data
         );
         assembly {

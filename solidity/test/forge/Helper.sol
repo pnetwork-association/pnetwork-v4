@@ -214,8 +214,8 @@ abstract contract Helper is Test, DeployHelper {
         bytes memory eventBytes = log.data;
 
         uint256 recipientLen = uint256(bytes32(BytesLib.slice(eventBytes, 128, 32)));
-        uint256 dataLen = uint256(bytes32(BytesLib.slice(eventBytes, 160 + recipientLen, 32)));
 
+        uint256 dataLen = eventBytes.length - recipientLen - 160;
         return
             IAdapter.Operation(
                 blockHash,
@@ -229,7 +229,7 @@ abstract contract Helper is Test, DeployHelper {
                 _hexStringToAddress(
                     string(BytesLib.slice(eventBytes, 160, recipientLen)) // recipient
                 ),
-                BytesLib.slice(eventBytes, 160 + recipientLen + 32, dataLen) // data
+                BytesLib.slice(eventBytes, 160 + recipientLen, dataLen) // data
             );
     }
 
