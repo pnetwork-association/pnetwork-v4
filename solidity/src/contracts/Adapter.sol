@@ -18,6 +18,8 @@ contract Adapter is IAdapter, Ownable, ReentrancyGuard {
 
     uint256 public constant FEE_BASIS_POINTS = 1750;
     uint256 public constant FEE_DIVISOR = 1000000; // 4 decimals for basis point * 2 decimals for percentage
+    bytes32 public constant SWAP_EVENT_TOPIC0 = 
+        bytes32(0x66756E6473206172652073616675207361667520736166752073616675202E2E); // swap event custom topic0
 
     uint256 public nonce;
     address public immutable erc20;
@@ -209,15 +211,30 @@ contract Adapter is IAdapter, Ownable, ReentrancyGuard {
         uint256 netAmount = amount - fees;
         XERC20(xerc20).burn(address(this), netAmount);
 
-        emit Swap(
-            nonce,
+        bytes32 topic0 = SWAP_EVENT_TOPIC0;
+        uint256 topic1 = nonce;
+        bytes memory eventBytes = bytes.concat(
             bytes32(abi.encode(erc20)),
             bytes32(destinationChainId),
             bytes32(netAmount),
             bytes32(uint256(uint160(msg.sender))),
+            bytes32(bytes(recipient).length),
             bytes(recipient),
+            bytes32(bytes(data).length),
             data
         );
+        assembly {
+            // For memory bytes, skip the length prefix (32 bytes)
+            let dataStart := add(eventBytes, 32)
+            let length := mload(eventBytes)
+
+            log2(
+                dataStart,
+                length,
+                topic0,
+                topic1
+            )
+        }
 
         unchecked {
             ++nonce;
