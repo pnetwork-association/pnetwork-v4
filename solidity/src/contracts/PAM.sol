@@ -133,8 +133,7 @@ contract PAM is Ownable, IPAM {
         address recipient = _bytesToAddress(
             content[offset:offset += recipientLen]
         );
-        uint256 dataLen = uint256(bytes32(content[offset:offset += 32]));
-        bytes memory data = content[offset: offset + dataLen];
+        bytes memory data = content[offset:];
 
         return (nonce == operation.nonce &&
             erc20 == operation.erc20 &&
