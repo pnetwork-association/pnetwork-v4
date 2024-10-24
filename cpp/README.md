@@ -5,6 +5,10 @@
 - [Eosio CDT 4.1.0](https://github.com/AntelopeIO/cdt/releases/download/v4.1.0/cdt_4.1.0-1_amd64.deb)
 - Make (`apt install -y build-essential`)
 
+If you want to spin up a local testnet:
+
+- [Spring v1.0.2](https://github.com/AntelopeIO/spring/releases/tag/v1.0.2)
+
 ### Spin up a local testnet and try it out
 
 ```bash
