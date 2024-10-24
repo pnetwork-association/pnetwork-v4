@@ -69,7 +69,8 @@ abstract contract Helper is Test, DeployHelper {
         uint256 chain,
         address owner_,
         address erc20,
-        bool local
+        bool local,
+        bool freezingEnabled
     )
         internal
         returns (
@@ -89,7 +90,8 @@ abstract contract Helper is Test, DeployHelper {
             erc20,
             string.concat("p", erc20Name),
             string.concat("p", erc20Symbol),
-            local
+            local,
+            freezingEnabled
         );
 
         pam = new PAM();
