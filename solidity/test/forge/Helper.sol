@@ -39,6 +39,8 @@ abstract contract Helper is Test, DeployHelper {
     uint256 mintingLimit = 2000000;
     uint256 burningLimit = 2000000;
 
+    bytes32 SWAP_TOPIC = bytes32(0x66756E6473206172652073616675207361667520736166752073616675202E2E);
+
     bool native = true;
     bool notNative = false;
 
@@ -211,12 +213,9 @@ abstract contract Helper is Test, DeployHelper {
 
         bytes memory eventBytes = log.data;
 
-        uint256 dataStart = uint256(bytes32(BytesLib.slice(eventBytes, 128, 32)));
-        // uint256 dataEnd = uint256(bytes32(BytesLib.slice(eventBytes, 160, 32)));
-        uint256 recipientLen = uint256(
-            bytes32(BytesLib.slice(eventBytes, dataStart, 32))
-        );
-        uint256 dataLen = uint256(bytes32(BytesLib.slice(eventBytes, dataStart + 96, 32)));
+        uint256 recipientLen = uint256(bytes32(BytesLib.slice(eventBytes, 128, 32)));
+        uint256 dataLen = uint256(bytes32(BytesLib.slice(eventBytes, 160 + recipientLen, 32)));
+
         return
             IAdapter.Operation(
                 blockHash,
@@ -228,9 +227,9 @@ abstract contract Helper is Test, DeployHelper {
                 uint256(bytes32(BytesLib.slice(eventBytes, 64, 32))), // amount
                 bytes32(BytesLib.slice(eventBytes, 96, 32)), //  sender
                 _hexStringToAddress(
-                    string(BytesLib.slice(eventBytes, dataStart + 32, recipientLen)) // recipient
+                    string(BytesLib.slice(eventBytes, 160, recipientLen)) // recipient
                 ),
-                BytesLib.slice(eventBytes, dataStart + 128, dataLen) // data
+                BytesLib.slice(eventBytes, 160 + recipientLen + 32, dataLen) // data
             );
     }
 
