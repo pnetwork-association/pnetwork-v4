@@ -4,8 +4,9 @@ import { expect } from 'chai'
 import hre from 'hardhat'
 
 import Operation from '../utils/Operation.cjs'
+import { decodeSwapEvent } from '../utils/decode-swap-event.cjs'
 import { deploy } from '../utils/deploy.cjs'
-import { getSwapEvent } from '../utils/get-swap-event.cjs'
+import { getSwapEvent, SWAP_TOPIC } from '../utils/get-swap-event.cjs'
 import { getUpgradeOpts } from '../utils/get-upgrade-opts.cjs'
 import { padLeft32 } from '../utils/pad-left-32.cjs'
 import { upgradeProxy } from '../utils/upgrade-proxy.cjs'
@@ -142,12 +143,18 @@ conditionalDescribe(
           eventAttestator.sign(swapEvent),
         ]
 
-        const eventContent = swapEvent.args[1][0]
+        const decodedEvent = decodeSwapEvent(swapEvent.data)
         swapOperation = new Operation({
           blockId: swapEvent.blockHash,
           txId: swapEvent.transactionHash,
           originChainId: Chains.Bsc,
-          eventContent,
+          nonce: swapEvent.topics[1],
+          erc20: decodedEvent.erc20,
+          destinationChainId: decodedEvent.destination,
+          amount: decodedEvent.netAmount,
+          sender: decodedEvent.sender,
+          recipient: decodedEvent.recipient,
+          data: decodedEvent.data,
         })
 
         const FEES_DIVISOR = await adapterBsc.FEE_DIVISOR()
@@ -231,7 +238,7 @@ conditionalDescribe(
         )
         await pamEth.setTopicZero(
           padLeft32(Chains.Bsc),
-          adapterEth.getEvent('Swap').fragment.topicHash,
+          SWAP_TOPIC,
         )
 
         await adapterEth

@@ -5,7 +5,6 @@ class Operation {
   constructor({ blockId, txId, originChainId, nonce, erc20, destinationChainId, amount, sender, recipient, data}) {
     this.blockId = blockId
     this.txId = txId
-    let offset = 0
     this.nonce = nonce
     this.erc20 = erc20
     this.originChainId = padLeft32(originChainId)
@@ -14,10 +13,7 @@ class Operation {
       ethers.getBytes(amount),
     )
     this.sender = sender
-    this.recipient = Buffer.from(
-      recipient.replace('0x', ''),
-      'hex',
-    ).toString('utf-8')
+    this.recipient = recipient
     this.data = data
   }
 
