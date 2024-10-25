@@ -42,7 +42,6 @@ namespace eosio {
         uint64_t bytes32_to_uint64(const bytes& data);
         checksum256 bytes32_to_checksum256(const bytes& data);
         name bytes_to_name(const bytes& data);
-        void check_authorization(const operation& operation, const metadata& metadata, checksum256 event_id, const public_key& tee_key, const bytes& exp_emitter, const bytes& exp_topic_zero);
-        // void check_authorization(name caller, const operation& operation, const metadata& metadata, checksum256 event_id, const public_key& tee_key, const bytes& exp_emitter, const bytes& exp_topic_zero) {
+        void check_authorization(name adapter, const operation& operation, const metadata& metadata, checksum256 event_id);
    };
 }

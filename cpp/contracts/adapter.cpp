@@ -226,19 +226,8 @@ void adapter::settle(const name& caller, const operation& operation, const metad
    check(search_token_bytes != idx_registry.end(), "invalid token");
 
    checksum256 event_id = sha256((const char*)metadata.preimage.data(), metadata.preimage.size());
-   pam::tee_pubkey _tee_pubkey(get_self(), get_self().value);
-   public_key tee_key = _tee_pubkey.get().key;
-
-   uint128_t a = 2;
-   bytes origin_chain_id = pam::extract_32bytes(metadata.preimage, a);
-
-   mappings_table _mappings_table(get_self(), get_self().value);
-
-   auto itr_mappings = _mappings_table.find(pam::get_mappings_key(origin_chain_id));
-   check(itr_mappings != _mappings_table.end(), "origin chain_id not registered");
-   bytes exp_emitter = itr_mappings->emitter;
-   bytes exp_topic_zero =  itr_mappings->topic_zero;
-   pam::check_authorization(operation, metadata, event_id, tee_key, exp_emitter, exp_topic_zero);
+   
+   pam::check_authorization(get_self(), operation, metadata, event_id);
 
    past_events _past_events(get_self(), get_self().value);
    auto idx_past_events = _past_events.get_index<adapter_registry_idx_eventid>();
@@ -289,10 +278,7 @@ void adapter::swap(const uint64_t& nonce, const bytes& event_bytes) {
    // NOTE: performance are not affected by this
    print("adapter_swap_event_bytes:");
    printhex(event_bytes.data(), event_bytes.size());
-   
-
 }
-
 
 void adapter::token_transfer_from_lockbox(
    const name& self,
@@ -522,8 +508,19 @@ name pam::bytes_to_name(const bytes& data) {
    return name_value;
 }
 
-void pam::check_authorization(const operation& operation, const metadata& metadata, checksum256 event_id, const public_key& tee_key, const bytes& exp_emitter, const bytes& exp_topic_zero) {
+void pam::check_authorization(name adapter, const operation& operation, const metadata& metadata, checksum256 event_id) {
    check(context_checks(operation, metadata), "unexpected context");
+   
+   pam::tee_pubkey _tee_pubkey(adapter, adapter.value);
+   public_key tee_key = _tee_pubkey.get().key;
+
+   uint128_t a = 2;
+   bytes origin_chain_id = extract_32bytes(metadata.preimage, a);
+   mappings_table _mappings_table(adapter, adapter.value);
+   auto itr_mappings = _mappings_table.find(get_mappings_key(origin_chain_id));
+   check(itr_mappings != _mappings_table.end(), "origin chain_id not registered");
+   bytes exp_emitter = itr_mappings->emitter;
+   bytes exp_topic_zero =  itr_mappings->topic_zero;
 
    signature sig = convert_bytes_to_signature(metadata.signature);
    public_key recovered_pubkey = recover_key(event_id, sig);
