@@ -143,27 +143,6 @@ namespace eosio {
       return signature(std::in_place_index<0>, sig_data);
    }
 
-   bool context_checks(const operation& operation, const metadata& metadata) {
-      uint8_t offset = 2; // Skip protocol, version
-      bytes origin_chain_id = extract_32bytes(metadata.preimage, offset);
-
-      if (origin_chain_id != operation.originChainId) {
-         return false;
-      }
-
-      offset += 32; 
-      bytes block_id = extract_32bytes(metadata.preimage, offset);
-
-      offset += 32;
-      bytes tx_id = extract_32bytes(metadata.preimage, offset);
-
-      if (block_id != operation.blockId || tx_id != operation.txId) {
-         return false;
-      }
-
-      return true;
-   }
-
    uint64_t get_mappings_key(const bytes& chain_id) {
       eosio::check(chain_id.size() == 32, "chain ID must be 32 bytes long.");
       return (static_cast<uint64_t>(chain_id[24]) << 56) |

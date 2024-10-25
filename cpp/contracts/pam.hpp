@@ -31,9 +31,9 @@ namespace eosio {
         };
 
         using tee_pubkey = singleton<"tee"_n, tee>;
-        using lockbox_singleton = singleton<"lockbox"_n, name>;
         typedef eosio::multi_index<"mappings"_n, mappings> mappings_table;
-        
+
+        bool context_checks(const operation& operation, const metadata& metadata);
         void check_authorization(name adapter, const operation& operation, const metadata& metadata, checksum256 event_id);
    };
 }
