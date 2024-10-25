@@ -173,8 +173,8 @@ const deployERC1820 = () => helpers.setCode(ERC1820, ERC1820BYTES)
           const decodedData = decodeSwapEvent(swapLog.data)
 
           expect(decodedData.erc20).to.equal(hre.ethers.zeroPadValue(erc20.target.toLowerCase(), 32))
-          expect(decodedData.destination).to.equal(destinationChainId)
-          expect(decodedData.netAmount).to.equal(amount - fees)
+          expect(decodedData.destinationChainId).to.equal(destinationChainId)
+          expect(decodedData.amount).to.equal(amount - fees)
           expect(decodedData.sender).to.equal(hre.ethers.zeroPadValue(user.address.toLowerCase(), 32))
           expect(decodedData.recipient).to.equal(recipient.address)
           expect(decodedData.data).to.equal(data)
@@ -257,12 +257,7 @@ const deployERC1820 = () => helpers.setCode(ERC1820, ERC1820BYTES)
             txId: event.transactionHash,
             originChainId: Chains.Hardhat,
             nonce: event.topics[1],
-            erc20: decodedEvent.erc20,
-            destinationChainId: decodedEvent.destination,
-            amount: decodedEvent.netAmount,
-            sender: decodedEvent.sender,
-            recipient: decodedEvent.recipient,
-            data: decodedEvent.data,
+            ...decodedEvent
           })
 
           await PAM.setTopicZero(padLeft32(Chains.Hardhat), SWAP_TOPIC)

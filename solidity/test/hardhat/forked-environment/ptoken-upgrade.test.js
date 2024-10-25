@@ -149,12 +149,7 @@ conditionalDescribe(
           txId: swapEvent.transactionHash,
           originChainId: Chains.Bsc,
           nonce: swapEvent.topics[1],
-          erc20: decodedEvent.erc20,
-          destinationChainId: decodedEvent.destination,
-          amount: decodedEvent.netAmount,
-          sender: decodedEvent.sender,
-          recipient: decodedEvent.recipient,
-          data: decodedEvent.data,
+          ...decodedEvent
         })
 
         const FEES_DIVISOR = await adapterBsc.FEE_DIVISOR()
