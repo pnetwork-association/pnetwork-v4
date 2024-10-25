@@ -50,7 +50,7 @@ describe('Adapter EVM -> EOS testing', () => {
     symbol: symbol,
     account: `${symbol.toLowerCase()}.token`,
     maxSupply: `${maxSupply} ${symbol}`,
-    bytes: '0000000000000000000000003ca5269b5c54d4c807ca0df7eeb2cb7a5327e77d', //tokenBytes,
+    bytes: '0000000000000000000000003ca5269b5c54d4c807ca0df7eeb2cb7a5327e77d', // eth address bytes representation
     contract: null,
   }
   const xerc20 = {
