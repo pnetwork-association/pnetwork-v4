@@ -145,6 +145,14 @@ const deployERC1820 = () => helpers.setCode(ERC1820, ERC1820BYTES)
         ).to.be.revertedWith('recipient is frozen')
       })
 
+      it("Freezing address can't withdraw more than frozen's balance", async () => {
+        await expect(
+          pTokenV2
+            .connect(freezingAddress)
+            .withdrawFrozenAssets(evil, freezingAddress, amount + 10),
+        ).to.be.revertedWith('ERC20: transfer amount exceeds balance')
+      })
+
       it('Should withdraw from the frozen address succesfully', async () => {
         await expect(
           pTokenV2

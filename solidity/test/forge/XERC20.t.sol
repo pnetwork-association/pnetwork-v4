@@ -24,11 +24,7 @@ contract XERC20Test is Test, Helper {
     XERC20 xerc20;
     address freezingAddress = vm.addr(123123);
 
-    error ERC20InsufficientAllowance(
-        address spender,
-        uint256 allowance,
-        uint256 needed
-    );
+    error ERC20InsufficientBalance(address, uint256, uint256);
 
     function setUp() public {
         vm.startPrank(owner);
@@ -182,5 +178,31 @@ contract XERC20Test is Test, Helper {
 
         assertEq(xerc20.balanceOf(evil), 0);
         assertEq(xerc20.balanceOf(freezingAddress), stolenAmount);
+    }
+
+    function test_should_revertWhen_withdrawFrozenAssets_value_is_more_than_balance()
+        public
+    {
+        uint256 stolenAmount = 100 ether;
+        vm.startPrank(owner);
+        xerc20.setFreezingAddress(freezingAddress);
+        xerc20.setLimits(owner, stolenAmount, stolenAmount);
+        xerc20.mint(evil, stolenAmount);
+        vm.stopPrank();
+
+        assertEq(xerc20.balanceOf(evil), stolenAmount);
+
+        vm.startPrank(freezingAddress);
+        xerc20.freezeAddress(evil);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                ERC20InsufficientBalance.selector,
+                evil,
+                stolenAmount,
+                stolenAmount + 10
+            )
+        );
+        xerc20.withdrawFrozenAssets(evil, freezingAddress, stolenAmount + 10);
+        vm.stopPrank();
     }
 }
