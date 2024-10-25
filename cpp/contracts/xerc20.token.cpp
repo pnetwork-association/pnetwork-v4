@@ -2,8 +2,8 @@
 
 namespace eosio {
 
-void xtoken::create(const name&   issuer,
-                    const asset&  maximum_supply)
+void xtoken::create( const name&   issuer,
+                    const asset&  maximum_supply )
 {
 
     require_auth( get_self() );
@@ -48,7 +48,6 @@ void xtoken::mint( const name& caller, const name& to, const asset& quantity, co
     if (caller != lockbox) {
       auto bridge = *itr;
       auto current_limit = minting_current_limit_of(bridge);
-
       check(quantity <= current_limit, "xerc20_assert: not hight enough limits");
       use_minter_limits(bridge, quantity);
 
@@ -369,8 +368,8 @@ name xtoken::check_freezing_requirements(const name& self) {
 }
 
 void xtoken::freeze(const name& account) {
-   check(is_account(account), "invalid account name");
    check_freezing_requirements(get_self());
+   check(is_account(account), "invalid account name");
 
    frozens _frozens(get_self(), get_self().value);
 
@@ -383,8 +382,8 @@ void xtoken::freeze(const name& account) {
 }
 
 void xtoken::unfreeze(const name& account) {
-   check(is_account(account), "invalid account name");
    check_freezing_requirements(get_self());
+   check(is_account(account), "invalid account name");
 
    frozens _frozens(get_self(), get_self().value);
 
@@ -395,11 +394,10 @@ void xtoken::unfreeze(const name& account) {
 }
 
 void xtoken::pullfrozen(const name& frozen, const name& to, const asset& quantity) {
+   auto freezing_account = check_freezing_requirements(get_self());
    check(is_account(frozen), "invalid account name");
    check(is_account(to), "invalid recipient name");
    check(quantity.symbol.is_valid(), "invalid quantity symbol");
-
-   auto freezing_account = check_freezing_requirements(get_self());
 
    frozens _frozens(get_self(), get_self().value);
    auto itr = _frozens.find(frozen.value);

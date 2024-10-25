@@ -72,7 +72,6 @@ namespace eosio {
             return itr->burning_max_limit;
          }
 
-         using action_transfer = action_wrapper<"transfer"_n, &xtoken::transfer>;
       private:
          uint64_t const DURATION = 86400; // 1 days in seconds
 
