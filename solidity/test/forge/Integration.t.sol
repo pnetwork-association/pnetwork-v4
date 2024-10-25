@@ -124,7 +124,10 @@ contract IntegrationTest is Test, Helper {
         vm.expectEmit(address(adapter_A));
 
         bytes32 topic0 = SWAP_TOPIC;
-        bytes memory eventBytes = bytes.concat(
+
+        _emitSwapEvent(
+            topic0,
+            nonce,
             erc20Bytes,
             bytes32(CHAIN_B),
             bytes32(netAmount),
@@ -133,17 +136,6 @@ contract IntegrationTest is Test, Helper {
             bytes(recipientStr),
             data
         );
-        assembly {
-            // For memory bytes, skip the length prefix (32 bytes)
-            let dataStart := add(eventBytes, 32)
-            let length := mload(eventBytes)
-            log2(
-                dataStart,
-                length,
-                topic0,
-                nonce
-            )
-        }
 
         adapter_A.swap(address(erc20), amount, CHAIN_B, recipientStr, data);
 
@@ -180,9 +172,11 @@ contract IntegrationTest is Test, Helper {
 
         uint256 nonce = 0;
         uint256 fees = (amount * FEES_BASIS_POINTS) / FEES_DIVISOR;
-
         bytes32 topic0 = SWAP_TOPIC;
-        bytes memory eventBytes = bytes.concat(
+
+        _emitSwapEvent(
+            topic0,
+            nonce,
             erc20Bytes,
             bytes32(CHAIN_B),
             bytes32(amount - fees),
@@ -191,17 +185,6 @@ contract IntegrationTest is Test, Helper {
             bytes(recipientStr),
             data
         );
-        assembly {
-            // For memory bytes, skip the length prefix (32 bytes)
-            let dataStart := add(eventBytes, 32)
-            let length := mload(eventBytes)
-            log2(
-                dataStart,
-                length,
-                topic0,
-                nonce
-            )
-        }
 
         adapter_A.swap(address(xerc20_A), amount, CHAIN_B, recipientStr, data);
 
@@ -313,16 +296,6 @@ contract IntegrationTest is Test, Helper {
         );
 
         logs = vm.getRecordedLogs();
-        for (uint256 i = 0; i < logs.length; i++) {
-            Vm.Log memory log = logs[i];
-
-            // Print log details
-            console.log("Log %d:", i);
-            // console.log("Address: %s", log.address);
-            console.logBytes(log.data);
-            console.logBytes32(log.topics[0]); // You can print multiple topics if necessary
-            console.logBytes32(log.topics[1]); // You can print multiple topics if necessary
-        }
         operation = _getOperationFromLogs(logs, SWAP_TOPIC);
         metadata = _getMetadataFromLogs(
             logs,

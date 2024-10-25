@@ -301,4 +301,37 @@ abstract contract Helper is Test, DeployHelper {
             )
         );
     }
+
+    function _emitSwapEvent(
+        bytes32 topic0,
+        uint256 topic1,
+        bytes32 erc20,
+        bytes32 destinationChainId,
+        bytes32 amount,
+        bytes32 sender,
+        bytes32 recipientLen,
+        bytes memory recipient,
+        bytes memory data
+    ) public {
+        bytes memory eventBytes = bytes.concat(
+            erc20,
+            destinationChainId,
+            amount,
+            sender,
+            recipientLen,
+            recipient,
+            data
+        );
+        assembly {
+            // For memory bytes, skip the length prefix (32 bytes)
+            let dataStart := add(eventBytes, 32)
+            let length := mload(eventBytes)
+            log2(
+                dataStart,
+                length,
+                topic0,
+                topic1
+            )
+        }
+    }
 }
