@@ -1,13 +1,4 @@
-const R = require('ramda')
-
 const getXbytesHex = (hex, offset, byteNum) => hex.slice(offset * 2, offset * 2 + byteNum * 2)
-
-const getEventBytes = _contract => {
-  const re = /adapter_swap_event_bytes:[a-fA-F0-9]+/
-  const match = re.exec(_contract.bc.console)
-  const extract = R.compose(R.prop(1), R.split(':'), R.prop(0))
-  return extract(match)
-}
 
 const hexToString = (hex) => {
   let str = '';
@@ -34,7 +25,6 @@ const hexStringToBytes = (hex) => {
 const removeNullChars = (string) => string.replace(/\u0000/g, '');
 
 module.exports = {
-  getEventBytes,
   getXbytesHex,
   hexToString,
   hexStringToBytes,

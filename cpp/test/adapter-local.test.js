@@ -12,7 +12,8 @@ const {
   logExecutionTraces,
   prettyTrace,
 } = require('./utils/eos-ext')
-const { getEventBytes, getXbytesHex, hexToString, removeNullChars } = require('./utils/utils')
+const { getXbytesHex, hexToString, removeNullChars } = require('./utils/bytes-utils')
+const { getEventBytes } = require('./utils/get-event-bytes')
 const { substract, no0x } = require('./utils/wharfkit-ext')
 const { getAccountsBalances } = require('./utils/get-token-balance')
 const { getMetadataSample } = require('./utils/get-metadata-sample')
