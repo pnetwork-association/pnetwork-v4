@@ -21,7 +21,6 @@ contract AdapterTest {
             bytes32(uint256(uint160(sender))),
             bytes32(bytes(recipient).length),
             bytes(recipient),
-            bytes32(bytes(data).length),
             data
         );
         assembly {
