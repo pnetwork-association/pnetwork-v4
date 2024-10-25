@@ -30,18 +30,10 @@ namespace eosio {
             public_key key;
         };
 
-        using tee_pubkey = singleton<"tee"_n, pam::tee>;
+        using tee_pubkey = singleton<"tee"_n, tee>;
         using lockbox_singleton = singleton<"lockbox"_n, name>;
-
-        bytes extract_32bytes(const bytes& data, uint128_t offset);
-        bool context_checks(const operation& operation, const metadata& metadata);
-        signature convert_bytes_to_signature(const bytes& input_bytes);
-        uint64_t get_mappings_key(const bytes& chain_id);
-        bool is_all_zeros(const bytes& emitter);
-        uint128_t bytes32_to_uint128(const bytes& data);
-        uint64_t bytes32_to_uint64(const bytes& data);
-        checksum256 bytes32_to_checksum256(const bytes& data);
-        name bytes_to_name(const bytes& data);
+        typedef eosio::multi_index<"mappings"_n, mappings> mappings_table;
+        
         void check_authorization(name adapter, const operation& operation, const metadata& metadata, checksum256 event_id);
    };
 }

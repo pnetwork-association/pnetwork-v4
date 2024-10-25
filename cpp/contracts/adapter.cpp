@@ -173,9 +173,9 @@ void adapter::settopiczero(bytes chain_id, bytes topic_zero) {
    require_auth(get_self());
    check(topic_zero.size() == 32, "expected 32 bytes emitter");
    check(chain_id.size() == 32, "expected 32 bytes chain_id");
-   mappings_table _mappings_table(get_self(), get_self().value);
+   pam::mappings_table _mappings_table(get_self(), get_self().value);
 
-   auto mappings_itr = _mappings_table.find(pam::get_mappings_key(chain_id));
+   auto mappings_itr = _mappings_table.find(get_mappings_key(chain_id));
 
    if (mappings_itr == _mappings_table.end()) {
       _mappings_table.emplace(get_self(), [&](auto& row) {
@@ -183,13 +183,13 @@ void adapter::settopiczero(bytes chain_id, bytes topic_zero) {
          row.topic_zero = topic_zero;
       });
 
-      print("Added a new mapping for chain_id: ", pam::get_mappings_key(chain_id));
+      print("Added a new mapping for chain_id: ", get_mappings_key(chain_id));
    } else {
       _mappings_table.modify(mappings_itr, get_self(), [&](auto& row) {
          row.topic_zero = topic_zero;
       });
 
-      print("Updated the topic zero for chain_id: ", pam::get_mappings_key(chain_id));
+      print("Updated the topic zero for chain_id: ", get_mappings_key(chain_id));
    }
 }
 
@@ -198,22 +198,22 @@ void adapter::setemitter(bytes chain_id , bytes emitter) {
    require_auth(get_self());
    check(emitter.size() == 32, "expected 32 bytes emitter");
    check(chain_id.size() == 32, "expected 32 bytes chain_id");
-   mappings_table _mappings_table(get_self(), get_self().value);
+   pam:: mappings_table _mappings_table(get_self(), get_self().value);
 
-   auto mappings_itr = _mappings_table.find(pam::get_mappings_key(chain_id));
+   auto mappings_itr = _mappings_table.find(get_mappings_key(chain_id));
    if (mappings_itr == _mappings_table.end()) {
       _mappings_table.emplace(get_self(), [&](auto& row) {
          row.chain_id = chain_id;
          row.emitter = emitter;
       });
 
-      print("Added a new mapping for chain_id: ", pam::get_mappings_key(chain_id));
+      print("Added a new mapping for chain_id: ", get_mappings_key(chain_id));
    } else {
       _mappings_table.modify(mappings_itr, get_self(), [&](auto& row) {
          row.emitter = emitter;
       });
 
-      print("Updated the emitter for chain_id: ", pam::get_mappings_key(chain_id));
+      print("Updated the emitter for chain_id: ", get_mappings_key(chain_id));
    }
 }
 
@@ -400,112 +400,6 @@ void adapter::ontransfer(const name& from, const name& to, const asset& quantity
 
 void adapter::onmint(const name& caller, const name& to, const asset& quantity, const string& memo) {
    ontransfer(caller, to, quantity, memo);
-}
-
-bytes pam::extract_32bytes(const bytes& data, uint128_t offset) {
-   bytes _data(data.begin() + offset, data.begin() + offset + 32);
-   return _data;
-}
-
-signature pam::convert_bytes_to_signature(const bytes& input_bytes) {
-   check(input_bytes.size() == 65, "signature must be exactly 65 bytes");
-   std::array<char, 65> sig_data;
-   std::copy(input_bytes.begin(), input_bytes.end(), sig_data.begin());
-   return signature(std::in_place_index<0>, sig_data);
-}
-
-bool pam::context_checks(const operation& operation, const metadata& metadata) {
-   uint8_t offset = 2; // Skip protocol, version
-   bytes origin_chain_id = extract_32bytes(metadata.preimage, offset);
-
-   if (origin_chain_id != operation.originChainId) {
-      return false;
-   }
-
-   offset += 32; 
-   bytes block_id = extract_32bytes(metadata.preimage, offset);
-
-   offset += 32;
-   bytes tx_id = extract_32bytes(metadata.preimage, offset);
-
-   if (block_id != operation.blockId || tx_id != operation.txId) {
-      return false;
-   }
-
-   return true;
-}
-
-uint64_t pam::get_mappings_key(const bytes& chain_id) {
-   eosio::check(chain_id.size() == 32, "chain ID must be 32 bytes long.");
-   return (static_cast<uint64_t>(chain_id[24]) << 56) |
-      (static_cast<uint64_t>(chain_id[25]) << 48) |
-      (static_cast<uint64_t>(chain_id[26]) << 40) |
-      (static_cast<uint64_t>(chain_id[27]) << 32) |
-      (static_cast<uint64_t>(chain_id[28]) << 24) |
-      (static_cast<uint64_t>(chain_id[29]) << 16) |
-      (static_cast<uint64_t>(chain_id[30]) << 8)  |
-      (static_cast<uint64_t>(chain_id[31]));
-}
-
-bool pam::is_all_zeros(const bytes& emitter) {
-   return std::all_of(emitter.begin(), emitter.end(), [](uint8_t byte) {
-      return byte == 0x00;
-   });
-}
-
-uint128_t pam::bytes32_to_uint128(const bytes& data) {
-   check(data.size() == 32, "input must be 32 bytes long.");
-   // Check for overflow (first 16 bytes must be 0, bigger numbers not supported)
-   for (size_t i = 0; i < 16; ++i) {
-      if (data[i] != 0) {
-            check(false, "number exceeds 128 bits.");
-      }
-   }
-
-   uint128_t result = 0;
-   for (size_t i = 16; i < 32; ++i) {
-      result <<= 8;
-      result |= data[i];
-   }
-
-   return result;
-}
-
-uint64_t pam::bytes32_to_uint64(const bytes& data) {
-   check(data.size() == 32, "The input must be 32 bytes long.");
-   // Check for overflow (first 8 bytes must be 0, bigger numbers not supported)
-   for (size_t i = 0; i < 8; ++i) {
-      if (data[i] != 0) {
-            check(false, "number exceeds 64 bits.");
-      }
-   }
-
-   uint64_t result = 0;
-   for (size_t i = 8; i < 32; ++i) {
-      result <<= 8;
-      result |= data[i];
-   }
-
-   return result;
-}
-
-checksum256 pam::bytes32_to_checksum256(const bytes& data) {
-   check(data.size() == 32, "input must be 32 bytes long.");
-   std::array<uint8_t, 32> byte_array;
-   std::copy(data.begin(), data.end(), byte_array.begin());
-   return checksum256(byte_array);
-}
-
-name pam::bytes_to_name(const bytes& data) {
-   // check(data.size() <= 12, "Input is too long for EOSIO name (max 12 characters).");
-   uint8_t length = std::min(static_cast<uint8_t>(data.size()), static_cast<uint8_t>(8));
-   std::string name_str;
-   for (uint8_t byte : data) {
-      char eosio_char = static_cast<char>(byte);
-      name_str += eosio_char;
-   }
-   name name_value(name_str);
-   return name_value;
 }
 
 void pam::check_authorization(name adapter, const operation& operation, const metadata& metadata, checksum256 event_id) {

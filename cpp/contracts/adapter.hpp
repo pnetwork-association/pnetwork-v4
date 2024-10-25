@@ -94,7 +94,6 @@ namespace eosio {
             adapter_registry_byxtoken,
             adapter_registry_bytokenbytes
          > registry_adapter;
-         typedef eosio::multi_index<"mappings"_n, pam::mappings> mappings_table;
 
          using storage = singleton<"storage"_n, global_storage_table>;
 
