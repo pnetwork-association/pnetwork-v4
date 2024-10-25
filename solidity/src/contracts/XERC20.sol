@@ -63,6 +63,10 @@ contract XERC20 is ERC20, Ownable, IXERC20, ERC20Permit {
   function withdrawFrozenAssets(address frozenAddress, address to, uint256 amount) public onlyWithFreezeCapabilities(msg.sender) {
     require(frozen[frozenAddress], "Given address has not been freezed");
 
+    // Prevent freezing address to mint/burn (increase the total supply)
+    require(frozenAddress != address(0), "invalid frozen address");
+    require(to != address(0), "invalid destination address");
+
     super._update(frozenAddress, to, amount);
   }
 
