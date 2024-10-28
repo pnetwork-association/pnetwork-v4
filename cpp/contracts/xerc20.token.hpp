@@ -14,29 +14,21 @@ namespace eosio {
       public:
          using contract::contract;
 
-         [[eosio::action]]
-         void create(const name& issuer, const asset& maximum_supply);
+         ACTION create(const name& issuer, const asset& maximum_supply);
 
-         [[eosio::action]]
-         void mint(const name& caller, const name& to, const asset& quantity, const string& memo);
+         ACTION mint(const name& caller, const name& to, const asset& quantity, const string& memo);
 
-         [[eosio::action]]
-         void burn(const name& caller, const asset& quantity, const string& memo);
+         ACTION burn(const name& caller, const asset& quantity, const string& memo);
 
-         [[eosio::action]]
-         void transfer(const name& from, const name& to, const asset& quantity, const string& memo);
+         ACTION transfer(const name& from, const name& to, const asset& quantity, const string& memo);
 
-         [[eosio::action]]
-         void setlimits(const name& bridge, const asset& minting_limit, const asset& burning_limit);
+         ACTION setlimits(const name& bridge, const asset& minting_limit, const asset& burning_limit);
 
-         [[eosio::action]]
-         void setlockbox(const name& account);
+         ACTION setlockbox(const name& account);
 
-         [[eosio::action]]
-         void open(const name& owner, const symbol& symbol, const name& ram_payer);
+         ACTION open(const name& owner, const symbol& symbol, const name& ram_payer);
 
-         [[eosio::action]]
-         void close(const name& owner, const symbol& symbol);
+         ACTION close(const name& owner, const symbol& symbol);
 
          static asset get_supply(const name& token_contract_account, const symbol_code& sym_code) {
             stats statstable(token_contract_account, sym_code.raw());
@@ -75,7 +67,7 @@ namespace eosio {
       private:
          uint64_t const DURATION = 86400; // 1 days in seconds
 
-         struct [[eosio::table]] account {
+         TABLE account {
             asset    balance;
 
             uint64_t primary_key() const {
@@ -83,7 +75,7 @@ namespace eosio {
             }
          };
 
-         struct [[eosio::table]] currency_stats {
+         TABLE currency_stats {
             asset    supply;
             asset    max_supply;
             name     issuer;
@@ -93,7 +85,7 @@ namespace eosio {
             }
          };
 
-         struct [[eosio::table]] bridge_model {
+         TABLE bridge_model {
             name        account;
             uint64_t    minting_timestamp;
             float       minting_rate;

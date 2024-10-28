@@ -30,8 +30,7 @@ namespace eosio {
       public:
          using contract::contract;
 
-         [[eosio::action]]
-         void create(
+         ACTION create(
             const name& xerc20,
             const symbol& xerc20_symbol,
             const name& token,
@@ -40,20 +39,21 @@ namespace eosio {
             const asset& min_fee
          );
 
-         [[eosio::action]]
-         void setfeemanagr(const name& fee_manager);
+         ACTION setfeemanagr(const name& fee_manager);
 
-         [[eosio::action]]
-         void adduserdata(const name& caller, bytes payload);
+         ACTION adduserdata(const name& caller, bytes payload);
 
-         [[eosio::action]]
-         void freeuserdata(const name& account);
+         ACTION freeuserdata(const name& account);
 
-         [[eosio::action]]
-         void swap(const uint64_t& nonce, const bytes& event_bytes);
+         ACTION settee(public_key pub_key, bytes attestation);
 
-         [[eosio::action]]
-         void settle(const name& caller, const operation& operation, const metadata& metadata);
+         ACTION settopiczero(bytes chain_id, bytes topic_zero);
+
+         ACTION setemitter(bytes chain_id, bytes emitter);
+
+         ACTION swap(const uint64_t& nonce, const bytes& event_bytes);
+
+         ACTION settle(const name& caller, const operation& operation, const metadata& metadata);
 
          [[eosio::on_notify("*::mint")]]
          void onmint(const name& caller, const name& to, const asset& quantity, const string& memo);
@@ -71,13 +71,13 @@ namespace eosio {
          uint128_t FEE_BASIS_POINTS = 1750;
          uint128_t FEE_BASIS_POINTS_DIVISOR = 1000000; // 4 decimals for basis point + 2 decimals for percentage
 
-         struct [[eosio::table]] global_storage_table {
+         TABLE global_storage_table {
             uint128_t   nonce;
             name        feesmanager;
          };
 
          // Scoped with user account
-         struct [[eosio::table]] user_data_table {
+         TABLE user_data_table {
             uint64_t id;
             bytes payload;
 

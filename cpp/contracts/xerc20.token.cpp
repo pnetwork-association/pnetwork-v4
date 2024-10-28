@@ -35,8 +35,9 @@ void xtoken::mint( const name& caller, const name& to, const asset& quantity, co
     check( existing != statstable.end(), "token with symbol does not exist, create token before issue" );
     const auto& st = *existing;
 
+    name lockbox;
     lockbox_singleton _lockbox( get_self(), get_self().value );
-    auto lockbox = _lockbox.get();
+    if (_lockbox.exists()) lockbox = _lockbox.get();
     bridges bridgestable( get_self(), get_self().value );
     auto idx = bridgestable.get_index<name("bysymbol")>();
     auto itr = idx.lower_bound( quantity.symbol.code().raw() );
