@@ -2,34 +2,19 @@ const { ethers } = require('hardhat')
 const { padLeft32 } = require('./pad-left-32.cjs')
 
 class Operation {
-  constructor({ blockId, txId, originChainId, eventContent }) {
+  constructor({ blockId, txId, originChainId, nonce, erc20, destinationChainId, amount, sender, recipient, data}) {
     this.blockId = blockId
     this.txId = txId
-    let offset = 0
-    this.nonce = ethers.toBigInt(
-      ethers.getBytes(ethers.dataSlice(eventContent, 0, (offset += 32))),
-    )
-    this.erc20 = ethers.dataSlice(eventContent, offset, (offset += 32))
+    this.nonce = nonce
+    this.erc20 = erc20
     this.originChainId = padLeft32(originChainId)
-    this.destinationChainId = ethers.dataSlice(
-      eventContent,
-      offset,
-      (offset += 32),
-    )
+    this.destinationChainId = destinationChainId
     this.amount = ethers.toBigInt(
-      ethers.getBytes(ethers.dataSlice(eventContent, offset, (offset += 32))),
+      ethers.getBytes(amount),
     )
-    this.sender = ethers.dataSlice(eventContent, offset, (offset += 32))
-    const recipientLen = ethers.toNumber(
-      ethers.getBytes(ethers.dataSlice(eventContent, offset, (offset += 32))),
-    )
-    this.recipient = Buffer.from(
-      ethers
-        .dataSlice(eventContent, offset, (offset += recipientLen))
-        .replace('0x', ''),
-      'hex',
-    ).toString('utf-8')
-    this.data = ethers.dataSlice(eventContent, offset)
+    this.sender = sender
+    this.recipient = recipient
+    this.data = data
   }
 
   serialize() {

@@ -17,16 +17,13 @@ interface IAdapter {
         bytes data;
     }
 
-    // Wraps the event content
-    struct EventBytes {
-        bytes content;
-    }
-
     event ReceiveUserDataFailed();
     event PAMChanged(address pamAddress);
     event Settled(bytes32 indexed eventId);
     event FeesManagerChanged(address newAddress);
-    event Swap(uint256 indexed nonce, EventBytes eventBytes);
+    // Low level event
+    // Swap(bytes) 
+    // topic: 0x66756E6473206172652073616675207361667520736166752073616675202E2E
 
     error NotAContract(address addr);
     error NotAllowed();

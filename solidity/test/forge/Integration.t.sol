@@ -36,7 +36,6 @@ contract IntegrationTest is Test, Helper {
     string attestatorPublicKey =
         "0x0480472f799469d9af8790307a022802785c2b1e2f9c0930bdf9bafe193245e7a37cf43c720edc0892a2a97050005207e412f2227b1d92a78b8ee366fe4fea5ac9";
     address attestatorAddress = 0x3Da392a1403440087cA765E20B7c442b8129392b;
-    bytes32 SWAP_TOPIC = IAdapter.Swap.selector;
 
     /// @dev Signers
     address owner_A;
@@ -97,7 +96,7 @@ contract IntegrationTest is Test, Helper {
             bytes32(CHAIN_A),
             bytes32(abi.encode(address(adapter_A)))
         );
-        pam_B.setTopicZero(bytes32(CHAIN_A), IAdapter.Swap.selector);
+        pam_B.setTopicZero(bytes32(CHAIN_A), SWAP_TOPIC);
         vm.stopPrank();
 
         vm.chainId(CHAIN_A);
@@ -106,7 +105,7 @@ contract IntegrationTest is Test, Helper {
             bytes32(CHAIN_B),
             bytes32(abi.encode(address(adapter_B)))
         );
-        pam_A.setTopicZero(bytes32(CHAIN_B), IAdapter.Swap.selector);
+        pam_A.setTopicZero(bytes32(CHAIN_B), SWAP_TOPIC);
         vm.stopPrank();
     }
 
@@ -123,20 +122,19 @@ contract IntegrationTest is Test, Helper {
         uint256 nonce = 0;
 
         vm.expectEmit(address(adapter_A));
-        emit IAdapter.Swap(
+
+        bytes32 topic0 = SWAP_TOPIC;
+
+        _emitSwapEvent(
+            topic0,
             nonce,
-            IAdapter.EventBytes(
-                bytes.concat(
-                    bytes32(nonce),
-                    erc20Bytes,
-                    bytes32(CHAIN_B),
-                    bytes32(netAmount),
-                    bytes32(uint256(uint160(user))),
-                    bytes32(bytes(recipientStr).length),
-                    bytes(recipientStr),
-                    data
-                )
-            )
+            erc20Bytes,
+            bytes32(CHAIN_B),
+            bytes32(netAmount),
+            bytes32(uint256(uint160(user))),
+            bytes32(bytes(recipientStr).length),
+            bytes(recipientStr),
+            data
         );
 
         adapter_A.swap(address(erc20), amount, CHAIN_B, recipientStr, data);
@@ -174,21 +172,18 @@ contract IntegrationTest is Test, Helper {
 
         uint256 nonce = 0;
         uint256 fees = (amount * FEES_BASIS_POINTS) / FEES_DIVISOR;
+        bytes32 topic0 = SWAP_TOPIC;
 
-        emit IAdapter.Swap(
+        _emitSwapEvent(
+            topic0,
             nonce,
-            IAdapter.EventBytes(
-                bytes.concat(
-                    bytes32(nonce),
-                    erc20Bytes,
-                    bytes32(CHAIN_B),
-                    bytes32(amount - fees),
-                    bytes32(uint256(uint160(user))),
-                    bytes32(bytes(recipientStr).length),
-                    bytes(recipientStr),
-                    data
-                )
-            )
+            erc20Bytes,
+            bytes32(CHAIN_B),
+            bytes32(amount - fees),
+            bytes32(uint256(uint160(user))),
+            bytes32(bytes(recipientStr).length),
+            bytes(recipientStr),
+            data
         );
 
         adapter_A.swap(address(xerc20_A), amount, CHAIN_B, recipientStr, data);

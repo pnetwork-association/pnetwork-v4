@@ -39,6 +39,8 @@ abstract contract Helper is Test, DeployHelper {
     uint256 mintingLimit = 2000000;
     uint256 burningLimit = 2000000;
 
+    bytes32 SWAP_TOPIC = bytes32(0x66756E6473206172652073616675207361667520736166752073616675202E2E);
+
     bool native = true;
     bool notNative = false;
 
@@ -209,29 +211,25 @@ abstract contract Helper is Test, DeployHelper {
             console.log("");
         }
 
-        bytes memory eventBytes = abi
-            .decode(log.data, (IAdapter.EventBytes))
-            .content;
+        bytes memory eventBytes = log.data;
 
-        uint256 recipientLen = uint256(
-            bytes32(BytesLib.slice(eventBytes, 160, 32))
-        );
+        uint256 recipientLen = uint256(bytes32(BytesLib.slice(eventBytes, 128, 32)));
 
-        uint256 dataLen = eventBytes.length - recipientLen - 192;
+        uint256 dataLen = eventBytes.length - recipientLen - 160;
         return
             IAdapter.Operation(
                 blockHash,
                 txHash,
                 uint256(log.topics[1]), // nonce
-                bytes32(BytesLib.slice(eventBytes, 32, 32)), // erc20
+                bytes32(BytesLib.slice(eventBytes, 0, 32)), // erc20
                 bytes32(block.chainid),
-                bytes32(BytesLib.slice(eventBytes, 64, 32)), // destination chain id
-                uint256(bytes32(BytesLib.slice(eventBytes, 96, 32))), // amount
-                bytes32(BytesLib.slice(eventBytes, 128, 32)), //  sender
+                bytes32(BytesLib.slice(eventBytes, 32, 32)), // destination chain id
+                uint256(bytes32(BytesLib.slice(eventBytes, 64, 32))), // amount
+                bytes32(BytesLib.slice(eventBytes, 96, 32)), //  sender
                 _hexStringToAddress(
-                    string(BytesLib.slice(eventBytes, 192, recipientLen)) // recipient
+                    string(BytesLib.slice(eventBytes, 160, recipientLen)) // recipient
                 ),
-                BytesLib.slice(eventBytes, 192 + recipientLen, dataLen) // data
+                BytesLib.slice(eventBytes, 160 + recipientLen, dataLen) // data
             );
     }
 
@@ -302,5 +300,38 @@ abstract contract Helper is Test, DeployHelper {
                 anAddress
             )
         );
+    }
+
+    function _emitSwapEvent(
+        bytes32 topic0,
+        uint256 topic1,
+        bytes32 erc20,
+        bytes32 destinationChainId,
+        bytes32 amount,
+        bytes32 sender,
+        bytes32 recipientLen,
+        bytes memory recipient,
+        bytes memory data
+    ) public {
+        bytes memory eventBytes = bytes.concat(
+            erc20,
+            destinationChainId,
+            amount,
+            sender,
+            recipientLen,
+            recipient,
+            data
+        );
+        assembly {
+            // For memory bytes, skip the length prefix (32 bytes)
+            let dataStart := add(eventBytes, 32)
+            let length := mload(eventBytes)
+            log2(
+                dataStart,
+                length,
+                topic0,
+                topic1
+            )
+        }
     }
 }

@@ -72,7 +72,7 @@ contract PAMTest is Test, Helper {
             data
         );
         Vm.Log[] memory logs = vm.getRecordedLogs();
-        bytes32 topic = IAdapter.Swap.selector;
+        bytes32 topic = SWAP_TOPIC;
         operation = _getOperationFromLogs(logs, topic);
         metadata = _getMetadataFromLogs(
             logs,
@@ -229,7 +229,7 @@ contract PAMTest is Test, Helper {
         pam = new PAM();
         pam.setEmitter(bytes32(originChainId), bytes32(abi.encode(adapter)));
         pam.setTeeSigner(vm.parseBytes(attestatorPublicKey), attestation);
-        pam.setTopicZero(bytes32(originChainId), IAdapter.Swap.selector);
+        pam.setTopicZero(bytes32(originChainId), SWAP_TOPIC);
 
         (bool authorized, ) = pam.isAuthorized(operation, metadata);
 
