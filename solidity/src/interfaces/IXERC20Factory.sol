@@ -57,7 +57,8 @@ interface IXERC20Factory {
         string memory _symbol,
         uint256[] memory _minterLimits,
         uint256[] memory _burnerLimits,
-        address[] memory _bridges
+        address[] memory _bridges,
+        bool _freezingEnabled
     ) external returns (address _xerc20);
 
     /**

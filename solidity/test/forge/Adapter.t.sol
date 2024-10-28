@@ -27,6 +27,7 @@ contract AdapterTest is Test, Helper {
         string memory name = "Token A";
         string memory symbol = "TKNA";
         uint256 supply = 100 ether;
+        bool freezingEnabled = false;
         bool local = true;
         ERC20 erc20 = ERC20(new ERC20Test(name, symbol, supply));
         (XERC20 xerc20, , ) = _setupXERC20(
@@ -34,7 +35,8 @@ contract AdapterTest is Test, Helper {
             address(erc20),
             string.concat("p", name),
             string.concat("p", symbol),
-            local
+            local,
+            freezingEnabled
         );
         FeesManager feesManager = new FeesManager(securityCouncil);
         PAM pam = new PAM();

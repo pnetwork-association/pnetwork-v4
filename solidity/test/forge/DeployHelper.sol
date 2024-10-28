@@ -20,7 +20,8 @@ contract DeployHelper {
         address erc20,
         string memory name,
         string memory symbol,
-        bool local
+        bool local,
+        bool freezingEnabled
     ) internal returns (XERC20, XERC20Lockbox, XERC20Factory) {
         bytes32 _salt = keccak256(abi.encodePacked(SALT, msg.sender));
 
@@ -34,7 +35,8 @@ contract DeployHelper {
                 symbol,
                 emptyMintingLimits,
                 emptyBurningLimits,
-                emptyBridges
+                emptyBridges,
+                freezingEnabled
             )
         );
 

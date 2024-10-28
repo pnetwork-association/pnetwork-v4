@@ -114,12 +114,20 @@ void xtoken::burn( const name& caller, const asset& quantity, const string& memo
 
 }
 
+bool xtoken::is_frozen(const name& account) {
+   frozens _frozens(get_self(), get_self().value);
+   const auto& itr = _frozens.find(account.value);
+
+   return itr != _frozens.end();
+}
 
 void xtoken::transfer( const name&    from,
                       const name&    to,
                       const asset&   quantity,
                       const string&  memo )
 {
+    check(!is_frozen(from), "from account is frozen");
+    check(!is_frozen(to), "to account is frozen");
     check( from != to, "cannot transfer to self" );
     require_auth( from );
     check( is_account( to ), "to account does not exist");
@@ -338,6 +346,66 @@ void xtoken::use_burner_limits(xtoken::bridge_model& bridge, const asset& change
    asset current_limit = burning_current_limit_of(bridge);
    bridge.burning_timestamp = current_block_time().to_time_point().sec_since_epoch();
    bridge.burning_current_limit = current_limit - change;
+}
+
+void xtoken::setfreezeacc(const name& freezing_account) {
+   require_auth(get_self());
+   check(is_account(freezing_account), "invalid freezing account");
+
+   freezing_account_singleton _freezing_account(get_self(), get_self().value);
+   _freezing_account.set(freezing_account, get_self());
+}
+
+name xtoken::check_freezing_requirements(const name& self) {
+   freezing_account_singleton _freezing_account(self, self.value);
+   auto freezing_account = _freezing_account.get_or_default(name(0));
+
+   check(freezing_account != name(0), "freezing not enabled");
+
+   require_auth(freezing_account);
+
+   return freezing_account;
+}
+
+void xtoken::freeze(const name& account) {
+   check_freezing_requirements(get_self());
+   check(is_account(account), "invalid account name");
+
+   frozens _frozens(get_self(), get_self().value);
+
+   auto itr = _frozens.find(account.value);
+   check(itr == _frozens.end(), "account already frozen");
+
+   _frozens.emplace(get_self(), [&](auto& r) {
+      r.account = account;
+   });
+}
+
+void xtoken::unfreeze(const name& account) {
+   check_freezing_requirements(get_self());
+   check(is_account(account), "invalid account name");
+
+   frozens _frozens(get_self(), get_self().value);
+
+   auto itr = _frozens.find(account.value);
+   check(itr != _frozens.end(), "account not frozen");
+
+   _frozens.erase(itr);
+}
+
+void xtoken::pullfrozen(const name& frozen, const name& to, const asset& quantity) {
+   auto freezing_account = check_freezing_requirements(get_self());
+   check(is_account(frozen), "invalid account name");
+   check(is_account(to), "invalid recipient name");
+   check(quantity.symbol.is_valid(), "invalid quantity symbol");
+
+   frozens _frozens(get_self(), get_self().value);
+   auto itr = _frozens.find(frozen.value);
+
+   check(itr != _frozens.end(), "given account is not frozen");
+
+   sub_balance(frozen, quantity);
+   add_balance(to, quantity, to);
 }
 } /// namespace eosio
 

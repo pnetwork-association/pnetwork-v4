@@ -27,6 +27,18 @@ contract XERC20 is ERC20, Ownable, IXERC20, ERC20Permit {
    */
   mapping(address => Bridge) public bridges;
 
+  address public freezingAddress;
+
+  bool public immutable freezingEnabled;
+
+  mapping(address => bool) public frozen;
+
+  modifier onlyWithFreezeCapabilities(address sender) {
+    require(freezingEnabled, "Freeze capabilities are disabled");
+    require(freezingAddress == sender, "Freezing address is not set");
+    _;
+  }
+
   /**
    * @notice Constructs the initial config of the XERC20
    *
@@ -35,8 +47,31 @@ contract XERC20 is ERC20, Ownable, IXERC20, ERC20Permit {
    * @param _factory The factory which deployed this contract
    */
 
-  constructor(string memory _name, string memory _symbol, address _factory) ERC20(_name, _symbol) ERC20Permit(_name) Ownable(_factory) {
+  constructor(string memory _name, string memory _symbol, address _factory, bool _freezingEnabled) ERC20(_name, _symbol) ERC20Permit(_name) Ownable(_factory) {
     FACTORY = _factory;
+    freezingEnabled = _freezingEnabled;
+  }
+
+  function freezeAddress(address addressToFreeze) public onlyWithFreezeCapabilities(msg.sender) {
+    frozen[addressToFreeze] = true;
+  }
+
+  function unfreezeAddress(address addressToUnfreeze) public onlyWithFreezeCapabilities(msg.sender) {
+    frozen[addressToUnfreeze] = false;
+  }
+
+  function withdrawFrozenAssets(address frozenAddress, address to, uint256 amount) public onlyWithFreezeCapabilities(msg.sender) {
+    require(frozen[frozenAddress], "Given address has not been freezed");
+
+    // Prevent freezing address to mint/burn (increase the total supply)
+    require(frozenAddress != address(0), "invalid frozen address");
+    require(to != address(0), "invalid destination address");
+
+    super._update(frozenAddress, to, amount);
+  }
+
+  function setFreezingAddress(address freezingAddress_) public onlyOwner {
+    freezingAddress = freezingAddress_;
   }
 
   /**
@@ -290,5 +325,11 @@ contract XERC20 is ERC20, Ownable, IXERC20, ERC20Permit {
       _useMinterLimits(_caller, _amount);
     }
     _mint(_user, _amount);
+  }
+
+  function _update(address from, address to, uint256 value) internal virtual override {
+    require(!frozen[from], "owner is frozen");
+    require(!frozen[to], "recipient is frozen");
+    super._update(from, to, value);
   }
 }

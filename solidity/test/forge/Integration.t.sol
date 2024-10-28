@@ -61,6 +61,8 @@ contract IntegrationTest is Test, Helper {
     IAdapter.Operation operation;
     IPAM.Metadata metadata;
 
+    bool freezingEnabled = false;
+
     constructor() {
         owner_A = vm.addr(1);
         user = vm.addr(2);
@@ -78,14 +80,16 @@ contract IntegrationTest is Test, Helper {
             CHAIN_A,
             owner_A,
             address(erc20),
-            LOCAL
+            LOCAL,
+            freezingEnabled
         );
 
         (xerc20_B, lockbox_B, adapter_B, feesManager_B, pam_B) = _setupChain(
             CHAIN_B,
             owner_B,
             address(erc20),
-            NOT_LOCAL
+            NOT_LOCAL,
+            freezingEnabled
         );
 
         _transferToken(address(erc20), owner_A, user, userBalance);

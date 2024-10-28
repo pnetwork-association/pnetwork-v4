@@ -59,9 +59,10 @@ contract Upgrade is Test {
         Options memory opts;
         Upgrades.validateUpgrade(contractName, opts);
 
+        bool freezingEnabled = false;
         bytes memory data = abi.encodeCall(
             XERC20PTokenCompat.initializeV2,
-            (owner)
+            (owner, freezingEnabled)
         );
 
         uint256[] memory balances = new uint256[](holders.length);

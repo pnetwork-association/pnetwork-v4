@@ -9,13 +9,20 @@ const factoryDeploy = (_hre, _factory, _methodName, _args = []) =>
     .then(R.prop('args'))
     .then(R.prop(0))
 
-const deployXERC20 = (_hre, _factory, _name, _symbol) =>
+const deployXERC20 = (
+  _hre,
+  _factory,
+  _name,
+  _symbol,
+  _freezingEnabled = false,
+) =>
   factoryDeploy(_hre, _factory, 'deployXERC20', [
     _name,
     _symbol,
     [],
     [],
     [],
+    _freezingEnabled,
   ]).then(_address => _hre.ethers.getContractAt('XERC20', _address))
 
 const deployXERC20Lockbox = (_hre, _factory, _xerc20, _erc20, _isNative) =>

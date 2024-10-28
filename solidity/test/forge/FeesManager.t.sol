@@ -44,6 +44,8 @@ contract FeesManagerTest is Test, Helper {
     uint256 tokenAmount_B = 2 ether;
     uint256 tokenAmount_ether = 3 ether;
 
+    bool freezingEnabled = false;
+
     EnumerableMap.AddressToUintMap tokensBalances;
 
     XERC20 xerc20_A;
@@ -62,7 +64,8 @@ contract FeesManagerTest is Test, Helper {
         XERC20 xerc20 = new XERC20(
             string.concat("p", name),
             string.concat("p", symbol),
-            owner
+            owner,
+            freezingEnabled
         );
 
         xerc20.setLimits(owner, supply, supply);
