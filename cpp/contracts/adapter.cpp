@@ -168,30 +168,13 @@ void adapter::settee(public_key pub_key, bytes attestation) {
    }, get_self());
 }
 
-void adapter::settopiczero(bytes chain_id, bytes topic_zero) {
+void adapter::setorigin(bytes chain_id, bytes emitter, bytes topic_zero) {
    require_auth(get_self());
-   check(topic_zero.size() == 32, "expected 32 bytes emitter");
    check(chain_id.size() == 32, "expected 32 bytes chain_id");
-   pam::mappings_table _mappings_table(get_self(), get_self().value);
 
-   auto mappings_itr = _mappings_table.find(get_mappings_key(chain_id));
-
-   if (mappings_itr == _mappings_table.end()) {
-      _mappings_table.emplace(get_self(), [&](auto& row) {
-         row.chain_id = chain_id;
-         row.topic_zero = topic_zero;
-      });
-   } else {
-      _mappings_table.modify(mappings_itr, get_self(), [&](auto& row) {
-         row.topic_zero = topic_zero;
-      });
-   }
-}
-
-void adapter::setemitter(bytes chain_id , bytes emitter) {
-   require_auth(get_self());
    check(emitter.size() == 32, "expected 32 bytes emitter");
-   check(chain_id.size() == 32, "expected 32 bytes chain_id");
+   check(topic_zero.size() == 32, "expected 32 bytes topic zero");
+
    pam::mappings_table _mappings_table(get_self(), get_self().value);
 
    auto mappings_itr = _mappings_table.find(get_mappings_key(chain_id));
@@ -199,10 +182,12 @@ void adapter::setemitter(bytes chain_id , bytes emitter) {
       _mappings_table.emplace(get_self(), [&](auto& row) {
          row.chain_id = chain_id;
          row.emitter = emitter;
+         row.topic_zero = topic_zero;
       });
    } else {
       _mappings_table.modify(mappings_itr, get_self(), [&](auto& row) {
          row.emitter = emitter;
+         row.topic_zero = topic_zero;
       });
    }
 }
@@ -222,6 +207,7 @@ void adapter::settle(const name& caller, const operation& operation, const metad
    past_events _past_events(get_self(), get_self().value);
    auto idx_past_events = _past_events.get_index<adapter_registry_idx_eventid>();
    auto itr = idx_past_events.find(event_id);
+
    check(itr == idx_past_events.end(), "event already processed");
 
    storage _storage(get_self(), get_self().value);

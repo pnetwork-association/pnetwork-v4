@@ -47,9 +47,7 @@ namespace eosio {
 
          ACTION settee(public_key pub_key, bytes attestation);
 
-         ACTION settopiczero(bytes chain_id, bytes topic_zero);
-
-         ACTION setemitter(bytes chain_id, bytes emitter);
+         ACTION setorigin(bytes chain_id, bytes emitter, bytes topic_zero);
 
          ACTION swap(const uint64_t& nonce, const bytes& event_bytes);
 
