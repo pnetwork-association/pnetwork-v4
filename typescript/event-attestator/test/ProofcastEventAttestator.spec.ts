@@ -1,12 +1,17 @@
-import { Event } from 'ethers'
+import { Event as EvmEvent } from 'ethers'
 
+import { Protocols, Versions } from '../dist'
 import { Chains } from '../src/Chains'
-import { ProofcastEventAttestator } from '../src/ProofcastEventAttestator'
+import {
+  EosEvent,
+  ProofcastEventAttestator,
+} from '../src/ProofcastEventAttestator'
 
 describe('Proofcast Event Attestator Tests', () => {
-  test('Should generate a statement and a signature correctly', async () => {
-    const privateKey =
-      'dfcc79a57e91c42d7eea05f82a08bd1b7e77f30236bb7c56fe98d3366a1929c4'
+  const privateKey =
+    'dfcc79a57e91c42d7eea05f82a08bd1b7e77f30236bb7c56fe98d3366a1929c4'
+
+  test('Should sign an EVM event successfully', async () => {
     const blockHash =
       '0x658d5ae6a577714c7507e7b5911d26429280d6a0922a2be3f4502d577985527a'
     const transactionHash =
@@ -20,9 +25,9 @@ describe('Proofcast Event Attestator Tests', () => {
       '0x0000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000ea000000000000000000000000000000000000000000000000000000000000000000000000000000000000000051a240271ab8ab9f9a21c82d9a85396b704e164d0000000000000000000000000000000000000000000000000000000000007a6a00000000000000000000000000000000000000000000000000000000000026fc0000000000000000000000002b5ad5c4795c026514f8317c7a215e218dccd6cf000000000000000000000000000000000000000000000000000000000000002a30783638313345623933363233373245454636323030663362316462433366383139363731634241363900000000000000000000000000000000000000000000'
 
     const ea = new ProofcastEventAttestator({
-      version: 0x01,
-      protocolId: 0x01,
-      chainId: Chains.Mainnet,
+      version: Versions.V1,
+      protocolId: Protocols.Evm,
+      chainId: Chains(Protocols.Evm).Mainnet,
       privateKey,
     })
 
@@ -32,10 +37,45 @@ describe('Proofcast Event Attestator Tests', () => {
       data,
       blockHash,
       transactionHash,
-    } as unknown as Event
+    } as unknown as EvmEvent
 
     const expectedSignature =
       '0x5b838b1283851a1fa35ba79ea39bb74b0bf7ec7d3c0bcb96d3879e28d291c8e348a74ff321b0e02fa3960fc1fec2ddc2e49738a77d0f9f1a596312b6bb03b8f01c'
+
+    expect(ea.sign(event)).toStrictEqual(expectedSignature)
+  })
+
+  it('Should sign en EOS event successfully', async () => {
+    const blockHash =
+      '179ed57f474f446f2c9f6ea6702724cdad0cf26422299b368755ed93c0134a35'
+    const transactionHash =
+      '27598a45ee610287d85695f823f8992c10602ce5bf3240ee20635219de4f734f'
+
+    const account = 'adapter'
+    const action = 'swap'
+
+    // We are going to extract this from the a subfield of the
+    // official data
+    const data =
+      '0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000746b6e2e746f6b656e00000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000008a88f6dc465640000000000000000000000000000000000000000000000000000000000075736572000000000000000000000000000000000000000000000000000000000000002a307836386262656436613437313934656666316366353134623530656139313839353539376663393165'
+
+    const ea = new ProofcastEventAttestator({
+      version: Versions.V1,
+      protocolId: Protocols.Eos,
+      chainId: Chains(Protocols.Eos).Mainnet,
+      privateKey,
+    })
+
+    const event = {
+      blockHash,
+      transactionHash,
+      account,
+      action,
+      data,
+    } as EosEvent
+
+    const expectedSignature =
+      '0xfc81a6dc16147e5d82d3b9c2fef1ef2125403b92f328439da20ddd5903aef1276adefaeaca2579a342b00149c6916f93d988f81514ab535ebf19dd4eebed35191c'
 
     expect(ea.sign(event)).toStrictEqual(expectedSignature)
   })
