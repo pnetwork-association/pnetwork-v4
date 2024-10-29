@@ -16,13 +16,19 @@ const SYMBOL_NOT_FOUND = eosio_assert('symbol not found')
 const FROM_ACCOUNT_IS_FROZEN = eosio_assert('from account is frozen')
 const TO_ACCOUNT_IS_FROZEN = eosio_assert('to account is frozen')
 
-const INVALID_TOKEN = eosio_assert('underlying token does not match with adapter registry')
+const INVALID_TOKEN = eosio_assert(
+  'underlying token does not match with adapter registry',
+)
 const UNEXPECTED_CONTEXT = eosio_assert('unexpected context')
 const INVALID_SIGNATURE = eosio_assert('invalid signature')
 const INVALID_MINFEE_SYMBOL = eosio_assert('invalid minimum fee symbol')
 
 const NOT_INITIALIZED = eosio_assert('adapter contract not initialized')
 const WRONG_SYM_PRECISION = eosio_assert('symbol not found')
+const SINGLETON_NOT_EXISTING = eosio_assert('singleton does not exist')
+const ORIGIN_CHAINID_NOT_REGISTERED = eosio_assert(
+  'origin chain_id not registered',
+)
 
 module.exports = {
   AUTH_MISSING,
@@ -40,4 +46,7 @@ module.exports = {
   INVALID_MINFEE_SYMBOL,
   NOT_INITIALIZED,
   WRONG_SYM_PRECISION,
+  SINGLETON_NOT_EXISTING,
+  ORIGIN_CHAINID_NOT_REGISTERED,
+  INVALID_SIGNATURE,
 }
