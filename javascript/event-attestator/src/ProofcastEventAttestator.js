@@ -1,13 +1,12 @@
 const crypto = require('crypto')
-const { Event } = require('ethers')
 const {
   SigningKey,
   computeAddress,
-  hexConcat,
-  hexZeroPad,
-  hexlify,
+  concat,
+  zeroPadValue,
+  toBeHex,
   sha256,
-} = require('ethers/lib/utils.js')
+} = require('ethers')
 const R = require('ramda')
 
 const { Chains } = require('./Chains.js')
@@ -24,9 +23,9 @@ class ProofcastEventAttestator {
     },
   ) {
     /// Context
-    this.version = hexlify(version)
-    this.protocolId = hexlify(protocolId)
-    this.chainId = hexZeroPad(hexlify(chainId), 32)
+    this.version = toBeHex(version)
+    this.protocolId = toBeHex(protocolId)
+    this.chainId = zeroPadValue(toBeHex(chainId), 32)
     /// Context
 
     this.privateKey = privateKey
@@ -39,22 +38,22 @@ class ProofcastEventAttestator {
   }
 
   formatEvmSignature = _signature => {
-    return hexConcat([_signature.r, _signature.s, hexlify(_signature.v)])
+    return concat([_signature.r, _signature.s, toBeHex(_signature.v)])
   }
 
   formatEosSignature = _signature => {
-    return hexConcat([hexlify(_signature.v), _signature.r, _signature.s])
+    return concat([toBeHex(_signature.v), _signature.r, _signature.s])
   }
 
   getEosEventPayload(event) {
     const topics = [
-      hexZeroPad(Buffer.from(event.action, 'utf-8'), 32),
-      hexZeroPad('0x00', 32),
-      hexZeroPad('0x00', 32),
-      hexZeroPad('0x00', 32),
+      zeroPadValue(Buffer.from(event.action, 'utf-8'), 32),
+      zeroPadValue('0x00', 32),
+      zeroPadValue('0x00', 32),
+      zeroPadValue('0x00', 32),
     ]
-    return hexConcat([
-      hexZeroPad(Buffer.from(event.account, 'utf-8'), 32),
+    return concat([
+      zeroPadValue(Buffer.from(event.account, 'utf-8'), 32),
       ...topics,
       event.data,
     ])
@@ -64,10 +63,10 @@ class ProofcastEventAttestator {
     // EVM event support only: for other chains may be
     // required to change logic based on version and protocolID
     const topics = [0, 1, 2, 3].map(
-      i => event.topics[i] || hexZeroPad('0x00', 32),
+      i => event.topics[i] || zeroPadValue('0x00', 32),
     )
 
-    return hexConcat([hexZeroPad(event.address, 32), ...topics, event.data])
+    return concat([zeroPadValue(event.address, 32), ...topics, event.data])
   }
 
   isEvmEvent(event) {
@@ -89,7 +88,7 @@ class ProofcastEventAttestator {
   }
 
   getEventContext() {
-    return hexConcat([this.version, this.protocolId, this.chainId])
+    return concat([this.version, this.protocolId, this.chainId])
   }
 
   _0x(_str) {
@@ -97,7 +96,7 @@ class ProofcastEventAttestator {
   }
 
   getEventPreImage(event) {
-    return hexConcat([
+    return concat([
       this.getEventContext(),
       this._0x(event.blockHash),
       this._0x(event.transactionHash),
@@ -111,14 +110,14 @@ class ProofcastEventAttestator {
 
   signBytes(bytes) {
     const digest = sha256(bytes)
-    const signature = this.signingKey.signDigest(digest)
+    const signature = this.signingKey.sign(digest)
 
     return this.formatEvmSignature(signature)
   }
 
   sign(event) {
     const commitment = this.getEventId(event)
-    const signature = this.signingKey.signDigest(commitment)
+    const signature = this.signingKey.sign(commitment)
 
     if (this.isEvmEvent(event)) {
       return this.formatEvmSignature(signature)
