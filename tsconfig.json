@@ -11,7 +11,7 @@
             "path": "./solidity",
         },
         {
-            "path": "./typescript"
+            "path": "./javascript"
         }
     ]
 }

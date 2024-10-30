@@ -2217,9 +2217,9 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@pnetwork/event-attestator@npm:*, @pnetwork/event-attestator@workspace:typescript/event-attestator":
+"@pnetwork/event-attestator@npm:*, @pnetwork/event-attestator@workspace:javascript/event-attestator":
   version: 0.0.0-use.local
-  resolution: "@pnetwork/event-attestator@workspace:typescript/event-attestator"
+  resolution: "@pnetwork/event-attestator@workspace:javascript/event-attestator"
   dependencies:
     eslint: "npm:^9.13.0"
     ethers: "npm:5"

@@ -9,7 +9,7 @@
   "workspaces": [
     "cpp",
     "solidity",
-    "typescript/*"
+    "javascript/*"
   ],
   "scripts": {
     "test": "yarn workspaces foreach --all --parallel --no-private run test",
