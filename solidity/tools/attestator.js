@@ -1,88 +1,127 @@
 #!/usr/bin/env node
-import {
+const {
   Chains,
   ProofcastEventAttestator,
   Protocols,
   Versions,
-} from '@pnetwork/event-attestator'
-import { Command } from 'commander'
-import fs from 'fs/promises'
-import * as R from 'ramda'
+} = require('@pnetwork/event-attestator')
+const { Command } = require('commander')
+const fs = require('fs')
+const R = require('ramda')
 
 const DEFAULT_TX_HASH =
   '0x11365bbee18058f12c27236e891a66999c4325879865303f785854e9169c257a'
 const DEFAULT_BLOCK_HASH =
   '0xa880cb2ab67ec9140db0f6de238b34d4108f6fab99315772ee987ef9002e0e63'
 
-const addMainCommand = _program =>
-  _program
-    .name('attestator.js')
-    .description('Proofcast event attestator simulator')
-    .version('1.0.0')
-    .action(() => {
-      _program.help()
-    })
+const DEFAULT_PK_FILE = './attestator.key'
 
-const getPrivateKey = (privateKeyFile = './attestator.key') =>
-  fs.readFile(privateKeyFile).then(_content => _content.toString())
+const getMetadata = (_event, _options) => {
+  const privateKey = fs.readFileSync(_options.privateKeyFile).toString()
+  const ea = new ProofcastEventAttestator({
+    version: Versions.V1,
+    protocolId: Protocols.Evm,
+    chainId: _options.chainId,
+    privateKey,
+  })
 
-const getAttestator = R.curry(({ chainId }, privateKey) =>
-  Promise.resolve(
-    new ProofcastEventAttestator({
-      version: Versions.V1,
-      protocolId: Protocols.Evm,
-      chainId,
-      privateKey,
-    }),
-  ),
-)
+  _event.blockHash = _options.blockHash
+  _event.transactionHash = _options.txHash
 
-const getMetadata = (_event, _options = {}) =>
-  getPrivateKey()
-    .then(getAttestator(_options))
-    .then(_ea => console.info('\ncontext:', _ea.getEventContext()) || _ea)
-    .then(_ea => console.info('preimage:', _ea.getEventPreImage(_event)) || _ea)
-    .then(_ea => console.info('eventid:', _ea.getEventId(_event)) || _ea)
-    .then(_ea => console.info('signature:', _ea.sign(_event)) || _ea)
+  const signature = _options.eos
+    ? ea.formatEosSignature(ea.sign(_event))
+    : ea.formatEvmSignature(ea.sign(_event))
 
-const addGetMetadataCommand = _program =>
-  _program
-    .command('metadata <address> <data> topics...')
-    .option(
-      '-b --block-hash <hash>',
-      'the block including the event',
-      DEFAULT_BLOCK_HASH,
-    )
-    .option(
-      '-t --tx-hash <hash>',
-      'the transaction including the event',
-      DEFAULT_TX_HASH,
-    )
-    .option(
-      '-c --chain-id <number>',
-      'the origin chain id of the event',
-      Number,
-      Chains.Mainnet,
-    )
-    .description('Print the metadata to submit on chain and the related info')
-    .action((address, data, topics, options) =>
-      getMetadata(
-        {
-          address,
-          topics,
-          data,
-          blockHash: options.blockHash,
-          transactionHash: options.txHash,
-        },
-        options,
-      ),
-    ) && _program
+  console.info('\ncontext:', ea.getEventContext())
+  console.info('preimage:', ea.getEventPreImage(_event))
+  console.info('eventid:', ea.getEventId(_event))
+  console.log('signature:', signature)
+}
 
-const main = () =>
-  Promise.resolve(new Command())
-    .then(addMainCommand)
-    .then(addGetMetadataCommand)
-    .then(_program => _program.parseAsync(process.argv))
-    .catch(_err => console.error(_err.msg))
+const program = new Command()
 
-main()
+program
+  .command('eos-metadata <account> <action> <data>')
+  .option(
+    '-b --block-hash <hash>',
+    'the block including the event',
+    DEFAULT_BLOCK_HASH,
+  )
+  .option(
+    '-t --tx-hash <hash>',
+    'the transaction including the event',
+    DEFAULT_TX_HASH,
+  )
+  .option(
+    '-c --chain-id <number>',
+    'the origin chain id of the event',
+    Number,
+    Chains(Protocols.Eos).Mainnet,
+  )
+  .option(
+    '-p, --private-key-file <file>',
+    'the file containing the private key in hex string format',
+    DEFAULT_PK_FILE,
+  )
+  .option('-e, --evm', 'sign with EVM signature format', false)
+  .option('-s, --eos', 'sign with EOS signature format', true)
+  .description('Gets an EOS event metadata')
+  .action((account, action, data, options) =>
+    getMetadata(
+      {
+        account,
+        action,
+        data,
+      },
+      options,
+    ),
+  )
+
+program
+  .command('evm-metadata <address> <data> topics...')
+  .option(
+    '-b --block-hash <hash>',
+    'the block including the event',
+    DEFAULT_BLOCK_HASH,
+  )
+  .option(
+    '-t --tx-hash <hash>',
+    'the transaction including the event',
+    DEFAULT_TX_HASH,
+  )
+  .option(
+    '-p, --private-key-file <file>',
+    'the file containing the private key in hex string format',
+    DEFAULT_PK_FILE,
+  )
+  .option(
+    '-c --chain-id <number>',
+    'the origin chain id of the event',
+    Number,
+    Chains(Protocols.Evm).Mainnet,
+  )
+  .option('-e, --evm', 'sign with EVM signature format', true)
+  .option('-s, --eos', 'sign with EOS signature format', false)
+  .description('Gets an EVM event metadata')
+  .action((address, data, topics, options) =>
+    getMetadata(
+      {
+        address,
+        topics,
+        data,
+        blockHash: options.blockHash,
+        transactionHash: options.txHash,
+      },
+      options,
+    ),
+  )
+
+program
+  .name('attestator.js')
+  .description('Proofcast event attestator simulator')
+  .version('1.0.0')
+  .action(() => {
+    program.help()
+  })
+
+program.parse()
