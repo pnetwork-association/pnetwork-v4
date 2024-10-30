@@ -145,7 +145,7 @@ conditionalDescribe(
 
         swapMetadata = [
           eventAttestator.getEventPreImage(swapEvent),
-          eventAttestator.sign(swapEvent),
+          eventAttestator.formatEvmSignature(eventAttestator.sign(swapEvent)),
         ]
 
         const decodedEvent = decodeSwapEvent(swapEvent.data)

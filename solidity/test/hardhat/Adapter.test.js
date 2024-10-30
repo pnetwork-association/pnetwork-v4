@@ -227,11 +227,9 @@ const deployERC1820 = () => setCode(ERC1820, ERC1820BYTES)
             PAM,
             recipient,
             erc20,
-            pTokenV2,
             adapter,
             lockbox,
             eventAttestator,
-            feesManager,
           } = await loadFixture(setup)
 
           const nonce = 0
@@ -258,7 +256,7 @@ const deployERC1820 = () => setCode(ERC1820, ERC1820BYTES)
 
           const metadata = [
             eventAttestator.getEventPreImage(event),
-            eventAttestator.sign(event),
+            eventAttestator.formatEvmSignature(eventAttestator.sign(event)),
           ]
 
           const decodedEvent = decodeSwapEvent(event.data)
