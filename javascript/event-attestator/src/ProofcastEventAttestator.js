@@ -119,13 +119,7 @@ class ProofcastEventAttestator {
     const commitment = this.getEventId(event)
     const signature = this.signingKey.sign(commitment)
 
-    if (this.isEvmEvent(event)) {
-      return this.formatEvmSignature(signature)
-    } else if (this.isEosEvent(event)) {
-      return this.formatEosSignature(signature)
-    } else {
-      throw new Error('Unsupported event')
-    }
+    return signature
   }
 }
 

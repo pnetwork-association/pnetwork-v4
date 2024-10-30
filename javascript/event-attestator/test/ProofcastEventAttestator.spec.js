@@ -38,7 +38,9 @@ describe('Proofcast Event Attestator Tests', () => {
     const expectedSignature =
       '0x5b838b1283851a1fa35ba79ea39bb74b0bf7ec7d3c0bcb96d3879e28d291c8e348a74ff321b0e02fa3960fc1fec2ddc2e49738a77d0f9f1a596312b6bb03b8f01c'
 
-    expect(ea.sign(event)).toStrictEqual(expectedSignature)
+    expect(ea.formatEvmSignature(ea.sign(event))).toStrictEqual(
+      expectedSignature,
+    )
   })
 
   it('Should sign en EOS event successfully', async () => {
@@ -73,6 +75,8 @@ describe('Proofcast Event Attestator Tests', () => {
     const expectedSignature =
       '0x1cfc81a6dc16147e5d82d3b9c2fef1ef2125403b92f328439da20ddd5903aef1276adefaeaca2579a342b00149c6916f93d988f81514ab535ebf19dd4eebed3519'
 
-    expect(ea.sign(event)).toStrictEqual(expectedSignature)
+    expect(ea.formatEosSignature(ea.sign(event))).toStrictEqual(
+      expectedSignature,
+    )
   })
 })
