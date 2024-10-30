@@ -4,19 +4,15 @@
   "description": "An implementation of the Proofcast's event attestator simulator",
   "author": "pNetwork Team",
   "license": "MIT",
-  "type": "module",
-  "directories": {
-    "test": "test"
-  },
-  "files": [
-    "dist"
-  ],
   "scripts": {
     "test": "jest",
     "lint": "npx eslint .",
     "lint:fix": "npx eslint --fix ."
   },
   "devDependencies": {
-    "ethers": "5"
+    "eslint": "^9.13.0",
+    "ethers": "5",
+    "globals": "^15.11.0",
+    "jest": "^29.7.0"
   }
 }
