@@ -1,11 +1,7 @@
-import { Event as EvmEvent } from 'ethers'
-
-import { Protocols, Versions } from '../dist'
-import { Chains } from '../src/Chains'
-import {
-  EosEvent,
-  ProofcastEventAttestator,
-} from '../src/ProofcastEventAttestator'
+const { Protocols } = require('../src/Protocols')
+const { Versions } = require('../src/Versions')
+const { Chains } = require('../src/Chains')
+const { ProofcastEventAttestator } = require('../src/ProofcastEventAttestator')
 
 describe('Proofcast Event Attestator Tests', () => {
   const privateKey =
@@ -37,7 +33,7 @@ describe('Proofcast Event Attestator Tests', () => {
       data,
       blockHash,
       transactionHash,
-    } as unknown as EvmEvent
+    }
 
     const expectedSignature =
       '0x5b838b1283851a1fa35ba79ea39bb74b0bf7ec7d3c0bcb96d3879e28d291c8e348a74ff321b0e02fa3960fc1fec2ddc2e49738a77d0f9f1a596312b6bb03b8f01c'
@@ -54,7 +50,7 @@ describe('Proofcast Event Attestator Tests', () => {
     const account = 'adapter'
     const action = 'swap'
 
-    // We are going to extract this from the a subfield of the
+    // We are going to extract this = require( the a subfield of the)
     // official data
     const data =
       '0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000746b6e2e746f6b656e00000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000008a88f6dc465640000000000000000000000000000000000000000000000000000000000075736572000000000000000000000000000000000000000000000000000000000000002a307836386262656436613437313934656666316366353134623530656139313839353539376663393165'
@@ -72,7 +68,7 @@ describe('Proofcast Event Attestator Tests', () => {
       account,
       action,
       data,
-    } as EosEvent
+    }
 
     const expectedSignature =
       '0xfc81a6dc16147e5d82d3b9c2fef1ef2125403b92f328439da20ddd5903aef1276adefaeaca2579a342b00149c6916f93d988f81514ab535ebf19dd4eebed35191c'

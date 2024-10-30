@@ -1,7 +1,7 @@
-import { Protocols } from './Protocols.js'
+const { Protocols } = require('./Protocols.js')
 
-export const Chains = (_prococolId): any => {
-  switch (_prococolId) {
+const Chains = _protocolId => {
+  switch (_protocolId) {
     case Protocols.Evm:
       return {
         Gnosis: '0x64',
@@ -17,5 +17,11 @@ export const Chains = (_prococolId): any => {
         Jungle:
           '0x73e4385a2708e6d7048834fbc1079f2fabb17b3c125b146af438971e90716c4d',
       }
+    default:
+      throw new Error('Invalid protocol')
   }
+}
+
+module.exports = {
+  Chains,
 }
