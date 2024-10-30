@@ -77,4 +77,4 @@ module.exports = {
   },
 }
 
-require('./tasks/index.cjs')
+require('./tasks/index.js')

@@ -1,14 +1,16 @@
-import helpers, { loadFixture } from '@nomicfoundation/hardhat-network-helpers'
-import { expect } from 'chai'
-import hre from 'hardhat'
-
-import ERC1820BYTES from './bytecodes/ERC1820.cjs'
-import { deployProxy } from './utils/deploy-proxy.cjs'
-import { getUpgradeOpts } from './utils/get-upgrade-opts.cjs'
-import { upgradeProxy } from './utils/upgrade-proxy.cjs'
+const {
+  setCode,
+  loadFixture,
+} = require('@nomicfoundation/hardhat-network-helpers')
+const { expect } = require('chai')
+const hre = require('hardhat')
+const ERC1820BYTES = require('./bytecodes/ERC1820.js')
+const { deployProxy } = require('./utils/deploy-proxy.js')
+const { getUpgradeOpts } = require('./utils/get-upgrade-opts.js')
+const { upgradeProxy } = require('./utils/upgrade-proxy.js')
 
 const ERC1820 = '0x1820a4B7618BdE71Dce8cdc73aAB6C95905faD24'
-const deployERC1820 = () => helpers.setCode(ERC1820, ERC1820BYTES)
+const deployERC1820 = () => setCode(ERC1820, ERC1820BYTES)
 
 ;['', 'NoGSN'].map(_useGSN => {
   describe(`XERC20 ${_useGSN} - Freezing Tests`, () => {

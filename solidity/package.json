@@ -1,7 +1,6 @@
 {
   "name": "@pnetwork/evm-xerc20",
   "version": "1.0.0",
-  "type": "module",
   "description": "pNetwork v4 contracts",
   "directories": {
     "lib": "lib",
@@ -32,11 +31,10 @@
     "@nomicfoundation/hardhat-verify": "^2.0.0",
     "@nomicfoundation/ignition-core": "^0.15.5",
     "@openzeppelin/hardhat-upgrades": "^3.2.0",
-    "@pnetwork/event-attestator": "*",
+    "@pnetwork/event-attestator": "workspace:^",
     "@typechain/ethers-v6": "^0.5.0",
     "@typechain/hardhat": "^9.0.0",
-    "@types/chai": "^4.2.0",
-    "@types/node": "^20.14.9",
+    "@types/mocha": ">=9.1.0",
     "chai": "^4.2.0",
     "commander": "^12.1.0",
     "dotenv": "^16.4.5",
@@ -49,8 +47,7 @@
     "solhint": "^5.0.3",
     "solidity-coverage": "^0.8.1",
     "ts-node": ">=8.0.0",
-    "typechain": "^8.3.0",
-    "typescript": "^5.5.2"
+    "typechain": "^8.3.0"
   },
   "author": "gitmp01",
   "license": "MIT"

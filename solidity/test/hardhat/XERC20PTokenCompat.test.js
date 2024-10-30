@@ -1,17 +1,22 @@
-import helpers, { loadFixture } from '@nomicfoundation/hardhat-network-helpers'
-import { expect } from 'chai'
-import { ZeroAddress } from 'ethers/constants'
-import hre from 'hardhat'
+const {
+  time,
+  setCode,
+  loadFixture,
+  takeSnapshot,
+} = require('@nomicfoundation/hardhat-network-helpers')
+const { expect } = require('chai')
+const { ZeroAddress } = require('ethers/constants')
+const hre = require('hardhat')
 
-import ERC1820BYTES from './bytecodes/ERC1820.cjs'
-import { deployProxy } from './utils/deploy-proxy.cjs'
-import { deploy } from './utils/deploy.cjs'
-import { getUpgradeOpts } from './utils/get-upgrade-opts.cjs'
-import { upgradeProxy } from './utils/upgrade-proxy.cjs'
-import { validateUpgrade } from './utils/validate-upgrade.cjs'
+const ERC1820BYTES = require('./bytecodes/ERC1820.js')
+const { deployProxy } = require('./utils/deploy-proxy.js')
+const { deploy } = require('./utils/deploy.js')
+const { getUpgradeOpts } = require('./utils/get-upgrade-opts.js')
+const { upgradeProxy } = require('./utils/upgrade-proxy.js')
+const { validateUpgrade } = require('./utils/validate-upgrade.js')
 
 const ERC1820 = '0x1820a4B7618BdE71Dce8cdc73aAB6C95905faD24'
-const deployERC1820 = () => helpers.setCode(ERC1820, ERC1820BYTES)
+const deployERC1820 = () => setCode(ERC1820, ERC1820BYTES)
 
 ;['', 'NoGSN'].map(_useGSN => {
   describe(`Testing upgrade from 'PToken${_useGSN}'`, () => {
@@ -145,7 +150,7 @@ const deployERC1820 = () => helpers.setCode(ERC1820, ERC1820BYTES)
         })
 
         it('Only the admin can upgrade the contract', async () => {
-          const snapshot = await helpers.takeSnapshot()
+          const snapshot = await takeSnapshot()
           const opts = {}
           await expect(
             upgradeProxy(
@@ -267,7 +272,7 @@ const deployERC1820 = () => helpers.setCode(ERC1820, ERC1820BYTES)
           const bridgeParams = await pTokenV2.bridges(bridge)
           const [lastMintBlockTs, , , currentMintingLimit] = bridgeParams[0]
 
-          await helpers.time.increaseTo(lastMintBlockTs + seconds)
+          await time.increaseTo(lastMintBlockTs + seconds)
 
           const remainingMintAmount =
             currentMintingLimit + seconds * mintingRatePerSecond + 1n
@@ -300,7 +305,7 @@ const deployERC1820 = () => helpers.setCode(ERC1820, ERC1820BYTES)
         })
 
         it('Should lower the limit successfully', async () => {
-          const snapshot = await helpers.takeSnapshot()
+          const snapshot = await takeSnapshot()
           const bridge2 = (await hre.ethers.getSigners())[10]
           await pTokenV2
             .connect(owner)
@@ -359,7 +364,7 @@ const deployERC1820 = () => helpers.setCode(ERC1820, ERC1820BYTES)
         })
 
         it('Should raise the limit successfully', async () => {
-          const snapshot = await helpers.takeSnapshot()
+          const snapshot = await takeSnapshot()
           const bridge2 = (await hre.ethers.getSigners())[10]
           await pTokenV2
             .connect(owner)

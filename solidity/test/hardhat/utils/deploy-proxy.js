@@ -1,4 +1,4 @@
-const { pollingInterval } = require('./openzeppelin-opts.cjs')
+const { pollingInterval } = require('./openzeppelin-opts.js')
 
 module.exports.deployProxy = (_hre, _factoryName, _admin, _args = []) =>
   _hre.ethers.getContractFactory(_factoryName, _admin).then(_pToken =>

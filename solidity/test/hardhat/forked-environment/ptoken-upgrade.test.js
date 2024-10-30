@@ -1,22 +1,27 @@
-import helpers from '@nomicfoundation/hardhat-network-helpers'
-import { Chains, ProofcastEventAttestator } from '@pnetwork/event-attestator'
-import { expect } from 'chai'
-import hre from 'hardhat'
+const helpers = require('@nomicfoundation/hardhat-network-helpers')
+const {
+  Chains,
+  ProofcastEventAttestator,
+  Protocols,
+  Versions,
+} = require('@pnetwork/event-attestator')
+const { expect } = require('chai')
+const hre = require('hardhat')
 
-import Operation from '../utils/Operation.cjs'
-import { decodeSwapEvent } from '../utils/decode-swap-event.cjs'
-import { deploy } from '../utils/deploy.cjs'
-import { getSwapEvent, SWAP_TOPIC } from '../utils/get-swap-event.cjs'
-import { getUpgradeOpts } from '../utils/get-upgrade-opts.cjs'
-import { padLeft32 } from '../utils/pad-left-32.cjs'
-import { upgradeProxy } from '../utils/upgrade-proxy.cjs'
-import {
+const Operation = require('../utils/Operation.js')
+const { decodeSwapEvent } = require('../utils/decode-swap-event.js')
+const { deploy } = require('../utils/deploy.js')
+const { SWAP_TOPIC, getSwapEvent } = require('../utils/get-swap-event.js')
+const { getUpgradeOpts } = require('../utils/get-upgrade-opts.js')
+const { padLeft32 } = require('../utils/pad-left-32.js')
+const { upgradeProxy } = require('../utils/upgrade-proxy.js')
+const {
   deployXERC20,
   deployXERC20Lockbox,
-} from '../utils/xerc20-factory-deploy.cjs'
-import PTokenAbi from './abi/bsc/PToken.json' assert { type: 'json' }
-import Erc20Abi from './abi/eth/ERC20.json' assert { type: 'json' }
-import VaultAbi from './abi/eth/Vault.json' assert { type: 'json' }
+} = require('../utils/xerc20-factory-deploy.js')
+const PTokenAbi = require('./abi/bsc/PToken.json')
+const Erc20Abi = require('./abi/eth/ERC20.json')
+const VaultAbi = require('./abi/eth/Vault.json')
 
 const ADDRESS_PTOKEN_V1_VAULT = '0xe396757ec7e6ac7c8e5abe7285dde47b98f22db8' // vault on ETH
 const ADDRESS_ERC20_TOKEN = '0x1fe24f25b1cf609b9c4e7e12d802e3640dfa5e43' // CGG on ETH
@@ -59,9 +64,9 @@ conditionalDescribe(
       ;[owner, recipient, securityCouncil, pamBsc, feesManagerBsc] =
         await hre.ethers.getSigners()
 
-      const version = 0x00
-      const protocolId = 0x01
-      const chainId = Chains.Bsc
+      const version = Versions.V1
+      const protocolId = Protocols.Evm
+      const chainId = Chains(Protocols.Evm).Bsc
       eventAttestator = new ProofcastEventAttestator({
         version,
         protocolId,
@@ -115,7 +120,7 @@ conditionalDescribe(
       it('Should apply the required setup and perform a swap to Ethereum', async () => {
         // We use HH chainid here instead of Mainnet because we don't have
         // the possibility to force it when forking.
-        const destinationChainId = padLeft32(Chains.Hardhat)
+        const destinationChainId = padLeft32(Chains(Protocols.Evm).Hardhat)
         const ptokenOwner = await hre.ethers.getImpersonatedSigner(
           await ptokenv2.owner(),
         )
@@ -147,9 +152,9 @@ conditionalDescribe(
         swapOperation = new Operation({
           blockId: swapEvent.blockHash,
           txId: swapEvent.transactionHash,
-          originChainId: Chains.Bsc,
+          originChainId: Chains(Protocols.Evm).Bsc,
           nonce: swapEvent.topics[1],
-          ...decodedEvent
+          ...decodedEvent,
         })
 
         const FEES_DIVISOR = await adapterBsc.FEE_DIVISOR()
@@ -228,11 +233,11 @@ conditionalDescribe(
 
         await pamEth.setTeeSigner(eventAttestator.publicKey, attestation)
         await pamEth.setEmitter(
-          padLeft32(Chains.Bsc),
+          padLeft32(Chains(Protocols.Evm).Bsc),
           padLeft32(adapterBsc.target),
         )
         await pamEth.setTopicZero(
-          padLeft32(Chains.Bsc),
+          padLeft32(Chains(Protocols.Evm).Bsc),
           SWAP_TOPIC,
         )
 
