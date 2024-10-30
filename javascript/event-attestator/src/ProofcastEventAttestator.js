@@ -38,8 +38,12 @@ class ProofcastEventAttestator {
     this.address = computeAddress(this.publicKey)
   }
 
-  formatSignature = _signature => {
+  formatEvmSignature = _signature => {
     return hexConcat([_signature.r, _signature.s, hexlify(_signature.v)])
+  }
+
+  formatEosSignature = _signature => {
+    return hexConcat([hexlify(_signature.v), _signature.r, _signature.s])
   }
 
   getEosEventPayload(event) {
@@ -66,11 +70,21 @@ class ProofcastEventAttestator {
     return hexConcat([hexZeroPad(event.address, 32), ...topics, event.data])
   }
 
+  isEvmEvent(event) {
+    return R.has('address', event)
+  }
+
+  isEosEvent(event) {
+    return R.has('account', event)
+  }
+
   getEventPayload(event) {
-    if (R.has('account', event)) {
+    if (this.isEosEvent(event)) {
       return this.getEosEventPayload(event)
-    } else if (R.has('address', event)) {
+    } else if (this.isEvmEvent(event)) {
       return this.getEvmEventPayload(event)
+    } else {
+      throw new Error('Unsupported event')
     }
   }
 
@@ -99,14 +113,20 @@ class ProofcastEventAttestator {
     const digest = sha256(bytes)
     const signature = this.signingKey.signDigest(digest)
 
-    return this.formatSignature(signature)
+    return this.formatEvmSignature(signature)
   }
 
   sign(event) {
     const commitment = this.getEventId(event)
     const signature = this.signingKey.signDigest(commitment)
 
-    return this.formatSignature(signature)
+    if (this.isEvmEvent(event)) {
+      return this.formatEvmSignature(signature)
+    } else if (this.isEosEvent(event)) {
+      return this.formatEosSignature(signature)
+    } else {
+      throw new Error('Unsupported event')
+    }
   }
 }
 
