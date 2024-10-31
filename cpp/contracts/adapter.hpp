@@ -98,6 +98,10 @@ namespace eosio {
          using lockbox_singleton = singleton<"lockbox"_n, name>;
          using storage = singleton<"storage"_n, global_storage_table>;
 
+         // Define alias for ABI inclusion
+         using mappings_table = eosio::pam::mappings_table;
+         using tee_pubkey = eosio::pam::tee_pubkey;
+
          global_storage_table empty_storage = {
             .nonce = 0,
             .feesmanager = ""_n
