@@ -103,7 +103,6 @@ namespace eosio {
             .feesmanager = ""_n
          };
 
-
          void check_symbol_is_valid(const name& account, const symbol& sym);
          void extract_memo_args(
             const name& self,

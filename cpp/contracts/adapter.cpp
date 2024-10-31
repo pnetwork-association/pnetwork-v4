@@ -206,7 +206,7 @@ void adapter::setemitter(bytes chain_id , bytes emitter) {
    require_auth(get_self());
    check(emitter.size() == 32, "expected 32 bytes emitter");
    check(chain_id.size() == 32, "expected 32 bytes chain_id");
-   pam:: mappings_table _mappings_table(get_self(), get_self().value);
+   pam::mappings_table _mappings_table(get_self(), get_self().value);
 
    auto mappings_itr = _mappings_table.find(get_mappings_key(chain_id));
    if (mappings_itr == _mappings_table.end()) {
@@ -231,7 +231,7 @@ void adapter::settle(const name& caller, const operation& operation, const metad
    registry_adapter _registry(get_self(), get_self().value);
    auto idx_registry = _registry.get_index<adapter_registry_idx_token_bytes>();
    auto search_token_bytes = idx_registry.find(operation.token);
-   check(search_token_bytes != idx_registry.end(), "invalid token");
+   check(search_token_bytes != idx_registry.end(), "underlying token does not match with adapter registry");
 
    checksum256 event_id = sha256((const char*)metadata.preimage.data(), metadata.preimage.size());
    
@@ -240,8 +240,6 @@ void adapter::settle(const name& caller, const operation& operation, const metad
    past_events _past_events(get_self(), get_self().value);
    auto idx_past_events = _past_events.get_index<adapter_registry_idx_eventid>();
    auto itr = idx_past_events.find(event_id);
-
-   // TODO: disabled for tests, enable this when PAM is ready
    check(itr == idx_past_events.end(), "event already processed");
    _past_events.emplace(caller, [&](auto& r) { r.event_id = event_id; });
 
