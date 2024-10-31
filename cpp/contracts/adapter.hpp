@@ -72,8 +72,8 @@ namespace eosio {
          uint128_t FEE_BASIS_POINTS_DIVISOR = 1000000; // 4 decimals for basis point + 2 decimals for percentage
 
          TABLE global_storage_table {
-            uint128_t   nonce;
-            name        feesmanager;
+            uint64_t nonce;
+            name     feesmanager;
          };
 
          // Scoped with user account

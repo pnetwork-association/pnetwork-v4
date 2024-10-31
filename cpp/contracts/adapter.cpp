@@ -241,7 +241,17 @@ void adapter::settle(const name& caller, const operation& operation, const metad
    auto idx_past_events = _past_events.get_index<adapter_registry_idx_eventid>();
    auto itr = idx_past_events.find(event_id);
    check(itr == idx_past_events.end(), "event already processed");
-   _past_events.emplace(caller, [&](auto& r) { r.event_id = event_id; });
+
+   storage _storage(get_self(), get_self().value);
+   check(_storage.exists(), "contract not initialized");
+   auto storage = _storage.get();
+
+   _past_events.emplace(caller, [&](auto& r) { 
+      r.notused = storage.nonce;
+      r.event_id = event_id;
+   });
+   storage.nonce++;
+   _storage.set(storage, get_self());
 
    name xerc20 = search_token_bytes->xerc20;
    check(is_account(xerc20), "Not valid xerc20 name");
