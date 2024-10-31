@@ -39,7 +39,10 @@ abstract contract Helper is Test, DeployHelper {
     uint256 mintingLimit = 2000000;
     uint256 burningLimit = 2000000;
 
-    bytes32 SWAP_TOPIC = bytes32(0x66756E6473206172652073616675207361667520736166752073616675202E2E);
+    bytes32 SWAP_TOPIC =
+        bytes32(
+            0x66756E6473206172652073616675207361667520736166752073616675202E2E
+        );
 
     bool native = true;
     bool notNative = false;
@@ -189,6 +192,7 @@ abstract contract Helper is Test, DeployHelper {
         Vm.Log memory log = _findLogWithTopic(logs, topic);
         vm.roll(4);
         bytes32 blockHash = blockhash(block.number - 2);
+
         bytes32 txHash = blockhash(block.number - 1);
 
         if (print) {
@@ -215,23 +219,25 @@ abstract contract Helper is Test, DeployHelper {
 
         bytes memory eventBytes = log.data;
 
-        uint256 recipientLen = uint256(bytes32(BytesLib.slice(eventBytes, 128, 32)));
+        uint256 recipientLen = uint256(
+            bytes32(BytesLib.slice(eventBytes, 160, 32))
+        );
 
-        uint256 dataLen = eventBytes.length - recipientLen - 160;
+        uint256 dataLen = eventBytes.length - recipientLen - 192;
         return
             IAdapter.Operation(
                 blockHash,
                 txHash,
                 uint256(log.topics[1]), // nonce
-                bytes32(BytesLib.slice(eventBytes, 0, 32)), // erc20
+                bytes32(BytesLib.slice(eventBytes, 32, 32)), // erc20
                 bytes32(block.chainid),
-                bytes32(BytesLib.slice(eventBytes, 32, 32)), // destination chain id
-                uint256(bytes32(BytesLib.slice(eventBytes, 64, 32))), // amount
-                bytes32(BytesLib.slice(eventBytes, 96, 32)), //  sender
+                bytes32(BytesLib.slice(eventBytes, 64, 32)), // destination chain id
+                uint256(bytes32(BytesLib.slice(eventBytes, 96, 32))), // amount
+                bytes32(BytesLib.slice(eventBytes, 128, 32)), //  sender
                 _hexStringToAddress(
-                    string(BytesLib.slice(eventBytes, 160, recipientLen)) // recipient
+                    string(BytesLib.slice(eventBytes, 192, recipientLen)) // recipient
                 ),
-                BytesLib.slice(eventBytes, 160 + recipientLen, dataLen) // data
+                BytesLib.slice(eventBytes, 192 + recipientLen, dataLen) // data
             );
     }
 
@@ -316,6 +322,7 @@ abstract contract Helper is Test, DeployHelper {
         bytes memory data
     ) public {
         bytes memory eventBytes = bytes.concat(
+            bytes32(topic1),
             erc20,
             destinationChainId,
             amount,
@@ -328,12 +335,7 @@ abstract contract Helper is Test, DeployHelper {
             // For memory bytes, skip the length prefix (32 bytes)
             let dataStart := add(eventBytes, 32)
             let length := mload(eventBytes)
-            log2(
-                dataStart,
-                length,
-                topic0,
-                topic1
-            )
+            log2(dataStart, length, topic0, topic1)
         }
     }
 }

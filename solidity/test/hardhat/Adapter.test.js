@@ -260,11 +260,11 @@ const deployERC1820 = () => setCode(ERC1820, ERC1820BYTES)
           ]
 
           const decodedEvent = decodeSwapEvent(event.data)
+
           const operation = new Operation({
             blockId: event.blockHash,
             txId: event.transactionHash,
             originChainId: Chains(Protocols.Evm).Hardhat,
-            nonce: event.topics[1],
             ...decodedEvent,
           })
 

@@ -13,8 +13,11 @@ contract AdapterTest {
         string memory recipient,
         bytes memory data
     ) public {
-        bytes32 topic0 = bytes32(0x66756E6473206172652073616675207361667520736166752073616675202E2E);
+        bytes32 topic0 = bytes32(
+            0x66756E6473206172652073616675207361667520736166752073616675202E2E
+        );
         bytes memory eventBytes = bytes.concat(
+            bytes32(nonce),
             bytes32(abi.encode(erc20)),
             bytes32(destination),
             bytes32(amount),
@@ -28,12 +31,7 @@ contract AdapterTest {
             let dataStart := add(eventBytes, 32)
             let length := mload(eventBytes)
 
-            log2(
-                dataStart,
-                length,
-                topic0,
-                nonce
-            )
+            log2(dataStart, length, topic0, nonce)
         }
     }
 }
