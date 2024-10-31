@@ -11,7 +11,7 @@ forge clean && forge coverage \
     --report lcov
 
 # Generate coverage/lcov.info
-npx hardhat clean && FORK=1 npx hardhat coverage --solcoverjs .solcover.cjs
+npx hardhat clean && FORK=1 npx hardhat coverage --solcoverjs .solcover.js
 
 # Generate report
 genhtml -o lcov lcov.info coverage/lcov.info

@@ -1,4 +1,4 @@
-const { pollingInterval } = require('./openzeppelin-opts.cjs')
+const { pollingInterval } = require('./openzeppelin-opts.js')
 
 module.exports.upgradeProxy = (
   _hre,

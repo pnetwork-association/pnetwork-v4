@@ -1,21 +1,29 @@
-import helpers, { loadFixture } from '@nomicfoundation/hardhat-network-helpers'
-import { Chains, ProofcastEventAttestator } from '@pnetwork/event-attestator'
-import { expect } from 'chai'
-import { ZeroAddress } from 'ethers/constants'
-import hre from 'hardhat'
+const {
+  setCode,
+  setBalance,
+  loadFixture,
+} = require('@nomicfoundation/hardhat-network-helpers')
+const {
+  Chains,
+  Versions,
+  Protocols,
+  ProofcastEventAttestator,
+} = require('@pnetwork/event-attestator')
+const { expect } = require('chai')
+const { ZeroAddress, zeroPadValue } = require('ethers')
+const hre = require('hardhat')
 
-import ERC1820BYTES from './bytecodes/ERC1820.cjs'
-import Operation from './utils/Operation.cjs'
-import { decodeSwapEvent } from './utils/decode-swap-event.cjs'
-import { deployProxy } from './utils/deploy-proxy.cjs'
-import { deploy } from './utils/deploy.cjs'
-import { getSwapEvent, SWAP_TOPIC } from './utils/get-swap-event.cjs'
-import { getUpgradeOpts } from './utils/get-upgrade-opts.cjs'
-import { padLeft32 } from './utils/pad-left-32.cjs'
-import { upgradeProxy } from './utils/upgrade-proxy.cjs'
+const ERC1820BYTES = require('./bytecodes/ERC1820.js')
+const Operation = require('./utils/Operation.js')
+const { decodeSwapEvent } = require('./utils/decode-swap-event.js')
+const { deployProxy } = require('./utils/deploy-proxy.js')
+const { deploy } = require('./utils/deploy.js')
+const { SWAP_TOPIC, getSwapEvent } = require('./utils/get-swap-event.js')
+const { getUpgradeOpts } = require('./utils/get-upgrade-opts.js')
+const { upgradeProxy } = require('./utils/upgrade-proxy.js')
 
 const ERC1820 = '0x1820a4B7618BdE71Dce8cdc73aAB6C95905faD24'
-const deployERC1820 = () => helpers.setCode(ERC1820, ERC1820BYTES)
+const deployERC1820 = () => setCode(ERC1820, ERC1820BYTES)
 
 ;['', 'NoGSN'].map(_useGSN => {
   describe(`Adapter Test Units (${_useGSN})`, () => {
@@ -58,15 +66,13 @@ const deployERC1820 = () => helpers.setCode(ERC1820, ERC1820BYTES)
           _isNative,
         ])
 
-        const erc20Bytes = padLeft32(erc20.target)
+        const erc20Bytes = zeroPadValue(erc20.target, 32)
 
-        const version = 0x00
-        const protocolId = 0x01
-        const chainId = Chains.Hardhat
+        const chainId = Chains(Protocols.Evm).Hardhat
         const eventAttestator = new ProofcastEventAttestator({
-          version,
-          protocolId,
-          chainId,
+          version: Versions.V1,
+          protocolId: Protocols.Evm,
+          chainId: chainId,
         })
 
         if (!_isNative) await erc20.connect(owner).transfer(user, 10000)
@@ -81,11 +87,11 @@ const deployERC1820 = () => helpers.setCode(ERC1820, ERC1820BYTES)
         ])
 
         const attestation = '0x'
-        await PAM.setTopicZero(padLeft32(originChainId), SWAP_TOPIC)
+        await PAM.setTopicZero(zeroPadValue(originChainId, 32), SWAP_TOPIC)
         await PAM.setTeeSigner(eventAttestator.publicKey, attestation)
         await PAM.setEmitter(
-          padLeft32(Chains.Hardhat),
-          padLeft32(adapter.target),
+          zeroPadValue(Chains(Protocols.Evm).Hardhat, 32),
+          zeroPadValue(adapter.target, 32),
         )
 
         await pTokenV2.connect(owner).setLockbox(lockbox)
@@ -126,7 +132,7 @@ const deployERC1820 = () => helpers.setCode(ERC1820, ERC1820BYTES)
           const FEE_DIVISOR = await adapter.FEE_DIVISOR()
           const FEE_BASIS_POINTS = await adapter.FEE_BASIS_POINTS()
           const fees = (amount * FEE_BASIS_POINTS) / FEE_DIVISOR
-          const destinationChainId = padLeft32('0x01')
+          const destinationChainId = zeroPadValue('0x01', 32)
           const balancePre = _isNative
             ? await hre.ethers.provider.getBalance(user)
             : await erc20.balanceOf(user)
@@ -172,10 +178,14 @@ const deployERC1820 = () => helpers.setCode(ERC1820, ERC1820BYTES)
 
           const decodedData = decodeSwapEvent(swapLog.data)
 
-          expect(decodedData.erc20).to.equal(hre.ethers.zeroPadValue(erc20.target.toLowerCase(), 32))
+          expect(decodedData.erc20).to.equal(
+            hre.ethers.zeroPadValue(erc20.target.toLowerCase(), 32),
+          )
           expect(decodedData.destinationChainId).to.equal(destinationChainId)
           expect(decodedData.amount).to.equal(amount - fees)
-          expect(decodedData.sender).to.equal(hre.ethers.zeroPadValue(user.address.toLowerCase(), 32))
+          expect(decodedData.sender).to.equal(
+            hre.ethers.zeroPadValue(user.address.toLowerCase(), 32),
+          )
           expect(decodedData.recipient).to.equal(recipient.address)
           expect(decodedData.data).to.equal(data)
 
@@ -217,11 +227,9 @@ const deployERC1820 = () => helpers.setCode(ERC1820, ERC1820BYTES)
             PAM,
             recipient,
             erc20,
-            pTokenV2,
             adapter,
             lockbox,
             eventAttestator,
-            feesManager,
           } = await loadFixture(setup)
 
           const nonce = 0
@@ -233,7 +241,7 @@ const deployERC1820 = () => helpers.setCode(ERC1820, ERC1820BYTES)
             adapterTest,
             nonce,
             erc20,
-            Chains.Hardhat,
+            Chains(Protocols.Evm).Hardhat,
             amount,
             user.address,
             recipient.address,
@@ -241,29 +249,32 @@ const deployERC1820 = () => helpers.setCode(ERC1820, ERC1820BYTES)
           )
 
           if (_isNative) {
-            await helpers.setBalance(lockbox.target, hre.ethers.toBeHex(amount))
+            await setBalance(lockbox.target, hre.ethers.toBeHex(amount))
           } else {
             await erc20.connect(owner).transfer(lockbox, amount)
           }
 
           const metadata = [
             eventAttestator.getEventPreImage(event),
-            eventAttestator.sign(event),
+            eventAttestator.formatEvmSignature(eventAttestator.sign(event)),
           ]
 
           const decodedEvent = decodeSwapEvent(event.data)
           const operation = new Operation({
             blockId: event.blockHash,
             txId: event.transactionHash,
-            originChainId: Chains.Hardhat,
+            originChainId: Chains(Protocols.Evm).Hardhat,
             nonce: event.topics[1],
-            ...decodedEvent
+            ...decodedEvent,
           })
 
-          await PAM.setTopicZero(padLeft32(Chains.Hardhat), SWAP_TOPIC)
+          await PAM.setTopicZero(
+            zeroPadValue(Chains(Protocols.Evm).Hardhat, 32),
+            SWAP_TOPIC,
+          )
           await PAM.setEmitter(
-            padLeft32(Chains.Hardhat),
-            padLeft32(adapterTest.target),
+            zeroPadValue(Chains(Protocols.Evm).Hardhat, 32),
+            zeroPadValue(adapterTest.target, 32),
           )
 
           // Fees are taken since we are unwrapping the token

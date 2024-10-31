@@ -5,7 +5,7 @@ const {
   TASK_PARAM_DESC_CONTRACT_FACTORY,
   TASK_PARAM_PROXY_ADDRESS,
   TASK_PARAM_DESC_PROXY_ADDRESS,
-} = require('./constants.cjs')
+} = require('./constants.js')
 
 const forceImport = (_taskArgs, _hre) =>
   console.info('Forcing import for contract...') ||

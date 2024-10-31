@@ -1,4 +1,4 @@
-export const Protocols = {
+module.exports.Protocols = {
   Bitcoin: 0x00,
   Evm: 0x01,
   Eos: 0x02,
