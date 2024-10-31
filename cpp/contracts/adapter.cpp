@@ -452,10 +452,9 @@ void pam::check_authorization(name adapter, const operation& operation, const me
    check(itr_mappings != _mappings_table.end(), "origin chain_id not registered");
    bytes exp_emitter = itr_mappings->emitter;
    bytes exp_topic_zero =  itr_mappings->topic_zero;
-
    signature sig = convert_bytes_to_signature(metadata.signature);
    public_key recovered_pubkey = recover_key(event_id, sig);
-   check(recovered_pubkey == tee_key, "Invalid signature");
+   check(recovered_pubkey == tee_key, "invalid signature");
 
    offset = 0; 
    bytes event_payload(metadata.preimage.begin() + 98, metadata.preimage.end());
@@ -465,50 +464,48 @@ void pam::check_authorization(name adapter, const operation& operation, const me
 
    bytes topic_zero = extract_32bytes(event_payload, offset);
    check(topic_zero == exp_topic_zero && !is_all_zeros(topic_zero), "unexpected Topic Zero");
-   offset += 32 * 3; // skip other topics
-
-   // check nonce
-   bytes event_data(event_payload.begin() + offset, event_payload.end());
-   bytes nonce = extract_32bytes(event_data, offset);
-   uint64_t nonce_int = bytes32_to_uint64(nonce);
-   check(operation.nonce == nonce_int, "nonce do not match");
    offset += 32;
 
+   bytes nonce = extract_32bytes(event_payload, offset);
+   uint64_t nonce_int = bytes32_to_uint64(nonce);
+   check(operation.nonce == nonce_int, "nonce do not match");
+   offset += 32 * 3; // skip other topics
+
    // check origin token
-   bytes token = extract_32bytes(event_data, offset);
+   bytes token = extract_32bytes(event_payload, offset);
    checksum256 token_hash = bytes32_to_checksum256(token);
-   check(operation.token == token_hash, "token adddress do not match");
+   check(operation.token == token_hash, "token address do not match");
    offset += 32;
 
    // check destination chain id
-   bytes dest_chain_id = extract_32bytes(event_data, offset);
+   bytes dest_chain_id = extract_32bytes(event_payload, offset);
    check(operation.destinationChainId == dest_chain_id, "destination chain Id does not match with the expected one");
    check(CHAIN_ID == dest_chain_id, "destination chain Id does not match with the current chain");
    offset += 32;
 
    // check amount
-   bytes amount = extract_32bytes(event_data, offset);
+   bytes amount = extract_32bytes(event_payload, offset);
    uint128_t amount_num = bytes32_to_uint128(amount);
    check(operation.amount == amount_num, "amount do not match");
    offset += 32;
    
    // check sender address
-   bytes sender = extract_32bytes(event_data, offset);
+   bytes sender = extract_32bytes(event_payload, offset);
    check(operation.sender == sender, "sender do not match");
    offset += 32;
 
    // check recipient address
-   bytes recipient_len = extract_32bytes(event_data, offset);
+   bytes recipient_len = extract_32bytes(event_payload, offset);
    offset += 32;
    uint128_t recipient_len_num = bytes32_to_uint128(recipient_len);
    const uint128_t UINT128_MAX = (uint128_t)-1;
    check(recipient_len_num <= UINT128_MAX - offset, "overflow detected in data field");
-   bytes recipient(event_data.begin() + offset, event_data.begin() + offset + recipient_len_num);
+   bytes recipient(event_payload.begin() + offset, event_payload.begin() + offset + recipient_len_num);
    name recipient_name = bytes_to_name(recipient);
    check(operation.recipient == recipient_name, "recipient do not match");
    offset += recipient_len_num;
 
-   bytes user_data(event_data.begin() + offset, event_data.end());
+   bytes user_data(event_payload.begin() + offset, event_payload.end());
    checksum256 data256 = sha256((const char*)user_data.data(), user_data.size());
    checksum256 op_data256 = sha256((const char*)operation.data.data(), operation.data.size());
    check(data256 == op_data256, "user data do not match");
