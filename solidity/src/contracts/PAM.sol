@@ -108,7 +108,7 @@ contract PAM is Ownable, IPAM {
         if (topic0 != chainIdToTopicZero[originChainId])
             return (false, eventId);
 
-        offset += 32 * 2; // skip other topics
+        offset += 32 * 3; // skip other topics
 
         if (!this.doesContentMatchOperation(eventPayload[offset:], operation))
             return (false, eventId);
@@ -142,8 +142,7 @@ contract PAM is Ownable, IPAM {
             amount == operation.amount &&
             sender == operation.sender &&
             recipient == operation.recipient &&
-            sha256(data) == sha256(operation.data)
-            );
+            sha256(data) == sha256(operation.data));
     }
 
     function _contextChecks(

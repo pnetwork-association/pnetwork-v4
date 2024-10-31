@@ -72,6 +72,7 @@ contract PAMTest is Test, Helper {
             amount,
             data
         );
+
         Vm.Log[] memory logs = vm.getRecordedLogs();
         bytes32 topic = SWAP_TOPIC;
         operation = _getOperationFromLogs(logs, topic);
