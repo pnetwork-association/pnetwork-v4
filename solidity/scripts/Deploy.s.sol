@@ -26,7 +26,8 @@ contract Deploy is Script, DeployHelper {
         address erc20,
         string memory name,
         string memory symbol,
-        bool local
+        bool local,
+        bool freezing
     ) public {
         vm.startBroadcast();
 
@@ -34,7 +35,7 @@ contract Deploy is Script, DeployHelper {
             XERC20 xerc20,
             XERC20Lockbox lockbox,
             XERC20Factory factory
-        ) = _setupXERC20(factory_, erc20, name, symbol, local);
+        ) = _setupXERC20(factory_, erc20, name, symbol, local, freezing);
 
         FeesManager feesManager = new FeesManager(msg.sender);
         PAM pam = new PAM();
@@ -70,8 +71,9 @@ contract Deploy is Script, DeployHelper {
         address erc20,
         string memory name,
         string memory symbol,
-        bool local
+        bool local,
+        bool freezing
     ) public {
-        run(address(0), erc20, name, symbol, local);
+        run(address(0), erc20, name, symbol, local, freezing);
     }
 }
