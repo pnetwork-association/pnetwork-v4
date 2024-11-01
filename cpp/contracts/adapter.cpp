@@ -200,8 +200,7 @@ void adapter::settle(const name& caller, const operation& operation, const metad
    auto search_token_bytes = idx_registry.find(operation.token);
    check(search_token_bytes != idx_registry.end(), "underlying token does not match with adapter registry");
 
-   checksum256 event_id = sha256((const char*)metadata.preimage.data(), metadata.preimage.size());
-
+   checksum256 event_id; // output
    pam::check_authorization(get_self(), operation, metadata, event_id);
 
    past_events _past_events(get_self(), get_self().value);
