@@ -110,16 +110,14 @@ class ProofcastEventAttestator {
 
   signBytes(bytes) {
     const digest = sha256(bytes)
-    const signature = this.signingKey.sign(digest)
 
-    return this.formatEvmSignature(signature)
+    return this.signingKey.sign(digest)
   }
 
   sign(event) {
     const commitment = this.getEventId(event)
-    const signature = this.signingKey.sign(commitment)
 
-    return signature
+    return this.signingKey.sign(commitment)
   }
 }
 
