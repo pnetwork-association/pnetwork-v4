@@ -99,8 +99,8 @@ namespace eosio {
          using storage = singleton<"storage"_n, global_storage_table>;
 
          // Define alias for ABI inclusion
-         using mappings_table = eosio::pam::mappings_table;
-         using tee_pubkey = eosio::pam::tee_pubkey;
+         using mappings_table = pam::mappings_table;
+         using tee_pubkey = pam::tee_pubkey;
 
          global_storage_table empty_storage = {
             .nonce = 0,
