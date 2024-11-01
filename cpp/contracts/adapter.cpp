@@ -222,11 +222,8 @@ void adapter::settle(const name& caller, const operation& operation, const metad
 
    name xerc20 = search_token_bytes->xerc20;
    check(is_account(xerc20), "Not valid xerc20 name");
-   if (operation.amount > 0) {
-      auto quantity = from_wei(
-         operation.amount,
-         search_token_bytes->xerc20_symbol
-      );
+   if (operation.amount.amount > 0) {
+      asset quantity(operation.amount.amount, search_token_bytes->xerc20_symbol);
 
       lockbox_singleton _lockbox(xerc20, xerc20.value);
       action_mint _mint(search_token_bytes->xerc20, {get_self(), "active"_n});

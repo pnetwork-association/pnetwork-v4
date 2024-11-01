@@ -89,7 +89,6 @@ namespace eosio {
 
             event_id = sha256((const char*)metadata.preimage.data(), metadata.preimage.size());
 
-
             signature sig = convert_bytes_to_signature(metadata.signature);
             public_key recovered_pubkey = recover_key(event_id, sig);
             check(recovered_pubkey == tee_key, "invalid signature");
@@ -128,7 +127,7 @@ namespace eosio {
             // check amount
             bytes amount = extract_32bytes(event_data, offset);
             uint128_t amount_num = bytes32_to_uint128(amount);
-            check(operation.amount == amount_num, "amount do not match");
+            check(to_wei(operation.amount) == amount_num, "amount do not match");
             offset += 32;
 
             // check sender address

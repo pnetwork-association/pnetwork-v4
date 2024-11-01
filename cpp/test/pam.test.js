@@ -54,7 +54,7 @@ describe('PAM testing', () => {
   const attestation = []
   const blockchain = new Blockchain()
   const operation = getOperationSample({
-    amount: parseUnits('9983', 18).toString(),
+    amount: '9983.0000 TKN',
     token: '000000000000000000000000f2e246bb76df876cef8b38ae84130f4f55de395b',
     chainId: 'aca376f206b8fc25a6ed44dbdc66547c36c6c33e3a119ffbeaef943642f0e906',
   })
@@ -209,7 +209,7 @@ describe('PAM testing', () => {
       it('Should reject when the amount is different', async () => {
         const wrongOperation = {
           ...operation,
-          amount: 800000000000,
+          amount: '1 XTKN',
         }
 
         const action = pam.contract.actions
