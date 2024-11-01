@@ -4,7 +4,7 @@ const { toBeHex, zeroPadValue, parseUnits } = require('ethers')
 const { no0x } = require('./bytes-utils')
 
 const getOperationSample = _injectedOperation =>
-  R.mergeDeepRight(_injectedOperation, {
+  R.mergeDeepLeft(_injectedOperation, {
     blockId: no0x(
       zeroPadValue(
         '0x21d41bf94358b9252115aee1eb250ef5a644e7fae776b3de508aacda5f4c26fc',
