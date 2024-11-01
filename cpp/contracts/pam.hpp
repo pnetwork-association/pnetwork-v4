@@ -1,11 +1,11 @@
 #pragma once
 
-#include "metadata.hpp"
-#include "operation.hpp"
 #include <eosio/crypto.hpp>
 #include <eosio/singleton.hpp>
 
 #include "utils.hpp"
+#include "metadata.hpp"
+#include "operation.hpp"
 
 namespace eosio {
     using bytes = std::vector<uint8_t>;
@@ -73,7 +73,7 @@ namespace eosio {
             return true;
         }
 
-        void check_authorization(name adapter, const operation& operation, const metadata& metadata, checksum256 event_id) {
+        void check_authorization(name adapter, const operation& operation, const metadata& metadata, checksum256& event_id) {
             check(context_checks(operation, metadata), "unexpected context");
 
             tee_pubkey _tee_pubkey(adapter, adapter.value);
@@ -87,6 +87,9 @@ namespace eosio {
             bytes exp_emitter = itr_mappings->emitter;
             bytes exp_topic_zero =  itr_mappings->topic_zero;
 
+            event_id = sha256((const char*)metadata.preimage.data(), metadata.preimage.size());
+
+
             signature sig = convert_bytes_to_signature(metadata.signature);
             public_key recovered_pubkey = recover_key(event_id, sig);
             check(recovered_pubkey == tee_key, "invalid signature");
@@ -94,24 +97,26 @@ namespace eosio {
             offset = 0;
             bytes event_payload(metadata.preimage.begin() + 98, metadata.preimage.end());
             bytes emitter = extract_32bytes(event_payload, offset);
-            check(emitter == exp_emitter && !is_all_zeros(emitter), "unexpected Emitter");
+            check(emitter == exp_emitter && !is_all_zeros(emitter), "unexpected emitter");
             offset += 32;
 
             bytes topic_zero = extract_32bytes(event_payload, offset);
-            check(topic_zero == exp_topic_zero && !is_all_zeros(topic_zero), "unexpected topic Zero");
-            offset += 32 * 3; // skip other topics
+            check(topic_zero == exp_topic_zero && !is_all_zeros(topic_zero), "unexpected topic zero");
+            offset += 32 * 4; // skip other topics
 
             // check nonce
             bytes event_data(event_payload.begin() + offset, event_payload.end());
+            offset = 0;
             bytes nonce = extract_32bytes(event_data, offset);
             uint64_t nonce_int = bytes32_to_uint64(nonce);
+
             check(operation.nonce == nonce_int, "nonce do not match");
             offset += 32;
 
             // check origin token
             bytes token = extract_32bytes(event_data, offset);
             checksum256 token_hash = bytes32_to_checksum256(token);
-            check(operation.token == token_hash, "token adddress do not match");
+            check(operation.token == token_hash, "token address do not match");
             offset += 32;
 
             // check destination chain id
