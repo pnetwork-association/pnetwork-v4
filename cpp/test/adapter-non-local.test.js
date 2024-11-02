@@ -21,6 +21,7 @@ const ethers = require('ethers')
 const { evmOperationSamples, amounts, evmTopicZero, evmAdapter } = require('./samples/evm-operations')
 const { evmMetadataSamples, teeCompressedPubKey } = require('./samples/evm-metadata')
 const { trimPrecision } = require('./utils/precision-utils')
+const { symbolName } = require('typescript')
 
 const getSwapMemo = (sender, destinationChainId, recipient, data) =>
   `${sender},${destinationChainId},${recipient},${R.isEmpty(data) ? '0' : '1'}`
@@ -29,30 +30,50 @@ const attestation = 'deadbeef'
 
 describe('Adapter EVM -> EOS testing', () => {
   const symbol = 'TST'
+  const evmTokenSymbol = 'TST'
   const maxSupply = '500000000'
+  const localprecision = 6
   const evmPrecision = 18
-  const xerc20Precision = 8
+  const fromEvmXerc20Precision = 8
 
   const TABLE_STORAGE = 'storage'
   const FEE_BASIS_POINTS = 1750
   const FEE_BASIS_POINTS_DIVISOR = 1000000
 
+  const localToken = {
+    symbol: symbol,
+    precision: localprecision,
+    account: `${symbol.toLowerCase()}.token`,
+    maxSupply: `${trimPrecision(maxSupply, localprecision)} ${symbol}`,
+    bytes: '',
+    contract: null,
+  }
+
   // infos of the underlying token
   const evmUnderlyingToken = {
-    symbol: symbol,
+    symbol: evmTokenSymbol,
     precision: evmPrecision, // this should be the actual precision of the underlying token
     account: '',
-    maxSupply: `${trimPrecision(maxSupply, xerc20Precision)} ${symbol}`, // use xerc20Precision to avoid overflow
+    maxSupply: `${trimPrecision(maxSupply, fromEvmXerc20Precision)} ${evmTokenSymbol}`, // use fromEvmXerc20Precision to avoid overflow
     bytes: evmOperationSamples.pegin.token,
     contract: null,
   }
 
   const xerc20 = {
     symbol: `X${symbol}`,
-    precision: xerc20Precision, // different from the underlying token - only uint64 is supported by Asset type
+    precision: localprecision,
     account: `x${symbol.toLowerCase()}.token`,
-    maxSupply: `${trimPrecision(maxSupply, xerc20Precision)} X${symbol}`,
-    minFee: `${trimPrecision('0.0018', xerc20Precision)} X${symbol}`,
+    maxSupply: `${trimPrecision(maxSupply, localprecision)} X${symbol}`,
+    minFee: `${trimPrecision('0.0018', localprecision)} X${symbol}`,
+    contract: null,
+  }
+
+  const fromEvmXerc20 = {
+    symbol: `X${evmTokenSymbol}`,
+    precision: fromEvmXerc20Precision, // different from the underlying token - only uint64 is supported by Asset type
+    account: `x${evmTokenSymbol.toLowerCase()}.token`,
+    maxSupply: `${trimPrecision(maxSupply, fromEvmXerc20Precision)} X${evmTokenSymbol}`,
+    minFee: `${trimPrecision('0.0018', fromEvmXerc20Precision)} X${evmTokenSymbol}`,
     contract: null,
   }
 
@@ -100,9 +121,9 @@ describe('Adapter EVM -> EOS testing', () => {
       lockbox.account,
       'contracts/build/lockbox',
     )
-    xerc20.contract = deploy(
+    fromEvmXerc20.contract = deploy(
       blockchain,
-      xerc20.account,
+      fromEvmXerc20.account,
       'contracts/build/xerc20.token',
     )
     adapter.contract = deploy(
@@ -118,16 +139,16 @@ describe('Adapter EVM -> EOS testing', () => {
   })
 
   const setup = async () => {
-    await xerc20.contract.actions
-      .create([issuer, xerc20.maxSupply])
-      .send(active(xerc20.account))
+    await fromEvmXerc20.contract.actions
+      .create([issuer, fromEvmXerc20.maxSupply])
+      .send(active(fromEvmXerc20.account))
 
-    const mintingLimit = `${trimPrecision('1000', xerc20Precision)} ${xerc20.symbol}`
-    const burningLimit = `${trimPrecision('600', xerc20Precision)} ${xerc20.symbol}`
+    const mintingLimit = `${trimPrecision('1000', fromEvmXerc20Precision)} ${fromEvmXerc20.symbol}`
+    const burningLimit = `${trimPrecision('600', fromEvmXerc20Precision)} ${fromEvmXerc20.symbol}`
 
-    await xerc20.contract.actions
+    await fromEvmXerc20.contract.actions
       .setlimits([adapter.account, mintingLimit, burningLimit])
-      .send(active(xerc20.account))
+      .send(active(fromEvmXerc20.account))
   }
 
   describe('adapter::create', () => {
@@ -136,12 +157,12 @@ describe('Adapter EVM -> EOS testing', () => {
 
       await adapter.contract.actions
         .create([
-          xerc20.account,
-          precision(xerc20.precision, xerc20.symbol),
+          fromEvmXerc20.account,
+          precision(fromEvmXerc20.precision, fromEvmXerc20.symbol),
           evmUnderlyingToken.account,
           precision(evmUnderlyingToken.precision, evmUnderlyingToken.symbol),
           evmUnderlyingToken.bytes,
-          xerc20.minFee,
+          fromEvmXerc20.minFee,
         ])
         .send(active(adapter.account))
 
@@ -197,15 +218,21 @@ describe('Adapter EVM -> EOS testing', () => {
         token: '',
         token_symbol: precision(evmUnderlyingToken.precision, evmUnderlyingToken.symbol),
         token_bytes: evmUnderlyingToken.bytes,
-        xerc20: xerc20.account,
-        xerc20_symbol: precision(xerc20.precision, xerc20.symbol),
-        min_fee: xerc20.minFee,
+        xerc20: fromEvmXerc20.account,
+        xerc20_symbol: precision(fromEvmXerc20.precision, fromEvmXerc20.symbol),
+        min_fee: fromEvmXerc20.minFee,
       })
 
       expect(storage).be.deep.equal({
         nonce: 0,
         feesmanager: feemanager,
       })
+    })
+  })
+  
+  describe('adapter::swap', () => {
+    it('Should swap correctly', async () => {
+    
     })
   })
 
@@ -250,14 +277,14 @@ describe('Adapter EVM -> EOS testing', () => {
       const metadata = evmMetadataSamples.pegin
       
       const quantity = `${amounts.pegin} TST`
-      const xquantity = `${trimPrecision(amounts.pegin, xerc20.precision)} XTST`
+      const xquantity = `${trimPrecision(amounts.pegin, fromEvmXerc20.precision)} XTST`
       const normalizedAmount = ethers
         .parseUnits(Asset.from(quantity).value.toString(), 18)
         .toString()
 
       const before = getAccountsBalances(
         [user, recipient, adapter.account, feemanager],
-        [xerc20],
+        [fromEvmXerc20],
       )
 
       await adapter.contract.actions
@@ -266,20 +293,20 @@ describe('Adapter EVM -> EOS testing', () => {
         
       const after = getAccountsBalances(
         [user, recipient, adapter.account, feemanager],
-        [xerc20],
+        [fromEvmXerc20],
       )
 
       expect(
-          after[recipient][xerc20.symbol],
+          after[recipient][fromEvmXerc20.symbol],
       ).to.be.equal(xquantity)
 
-      expect(after[adapter.account][xerc20.symbol]).to.be.equal(
-        `0.0000 ${xerc20.symbol}`,
+      expect(after[adapter.account][fromEvmXerc20.symbol]).to.be.equal(
+        `0.0000 ${fromEvmXerc20.symbol}`,
       )
 
       expect(
-        before[feemanager][xerc20.symbol]
-      ).to.be.equal(after[feemanager][xerc20.symbol])
+        before[feemanager][fromEvmXerc20.symbol]
+      ).to.be.equal(after[feemanager][fromEvmXerc20.symbol])
 
     })
 
@@ -288,7 +315,7 @@ describe('Adapter EVM -> EOS testing', () => {
       const metadata = evmMetadataSamples.peginWithUserData
 
       const quantity = `${amounts.peginWithUserData} TST`
-      const xquantity = `${trimPrecision(amounts.peginWithUserData, xerc20.precision)} XTST`
+      const xquantity = `${trimPrecision(amounts.peginWithUserData, fromEvmXerc20.precision)} XTST`
       const normalizedAmount = ethers
         .parseUnits(Asset.from(quantity).value.toString(), 18)
         .toString()
@@ -296,9 +323,9 @@ describe('Adapter EVM -> EOS testing', () => {
 
       const before = getAccountsBalances(
         [user, recipient, adapter.account],
-        [xerc20],
+        [fromEvmXerc20],
       )
-      const beforeAsset = Asset.from(before[recipient][xerc20.symbol])
+      const beforeAsset = Asset.from(before[recipient][fromEvmXerc20.symbol])
 
       await adapter.contract.actions
         .settle([user, operation, metadata])
@@ -306,15 +333,15 @@ describe('Adapter EVM -> EOS testing', () => {
 
       const after = getAccountsBalances(
         [user, recipient, adapter.account],
-        [xerc20],
+        [fromEvmXerc20],
       )
 
       expect(
-          after[recipient][xerc20.symbol],
+          after[recipient][fromEvmXerc20.symbol],
       ).to.be.equal(`${xquantityAsset.value + beforeAsset.value} XTST`)
 
-      expect(after[adapter.account][xerc20.symbol]).to.be.equal(
-        `0.0000 ${xerc20.symbol}`,
+      expect(after[adapter.account][fromEvmXerc20.symbol]).to.be.equal(
+        `0.0000 ${fromEvmXerc20.symbol}`,
       )
     })
   })
