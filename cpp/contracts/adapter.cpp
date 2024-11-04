@@ -52,7 +52,6 @@ void adapter::create(
    require_auth(get_self());
 
    auto _token_bytes = token_bytes.extract_as_byte_array();
-   check(_token_bytes.size() == 32, "token bytes length must be 32");
    check(is_account(xerc20), "xERC20 account does not exist");
    check(min_fee.symbol == xerc20_symbol, "invalid minimum fee symbol");
 
