@@ -90,7 +90,6 @@ contract PAM is Ownable, IPAM {
 
         if (ECDSA.recover(eventId, metadata.signature) != teeAddress)
             return (false, eventId);
-
         // Event payload format
         // |  emitter  |    topic-0     |    topics-1     |    topics-2     |    topics-3     |  eventBytes  |
         // |    32B    |      32B       |       32B       |       32B       |       32B       |    varlen    |
@@ -110,7 +109,28 @@ contract PAM is Ownable, IPAM {
 
         offset += 32 * 3; // skip other topics
 
-        if (!this.doesContentMatchOperation(eventPayload[offset:], operation))
+        // Checking the protocol id against 0x02 (EOS chains)
+        // If the condition is satified we expect data content to be
+        // a JSON string like:
+        //
+        //    '{"event_bytes":"00112233445566"}'
+        //
+        // in hex would be
+        //
+        //     7b226576656e745f6279746573223a223030313132323333343435353636227d
+        //
+        // We want to extract 00112233445566, so this is performed by skipping
+        // the first 16 chars  and the trailing 2 chars
+        //
+        // Can't factor out these into variables because otherwise it would
+        // raise the "stack too deep" error
+        bytes memory eventBytes = uint8(metadata.preimage[1]) == 0x02
+            ? _fromUTF8EncodedToBytes(
+                eventPayload[(offset + 16):(eventPayload.length - 2)]
+            )
+            : eventPayload[offset:];
+
+        if (!this.doesContentMatchOperation(eventBytes, operation))
             return (false, eventId);
 
         return (true, eventId);
@@ -150,6 +170,7 @@ contract PAM is Ownable, IPAM {
         Metadata calldata metadata
     ) internal pure returns (bool) {
         uint16 offset = 2; // skip protocol, version
+
         bytes32 originChainId = bytes32(metadata.preimage[offset:offset += 32]);
 
         if (originChainId != operation.originChainId) return false;
@@ -161,6 +182,37 @@ contract PAM is Ownable, IPAM {
             return false;
 
         return true;
+    }
+
+    function _fromUTF8EncodedToBytes(
+        bytes memory utf8Encoded
+    ) internal pure returns (bytes memory) {
+        require(utf8Encoded.length % 2 == 0, "invalid utf-8 encoded string");
+        bytes memory x = new bytes(utf8Encoded.length / 2);
+
+        uint k;
+        uint8 b1;
+        uint8 b2;
+        for (uint i = 0; i < utf8Encoded.length; i += 2) {
+            b1 = uint8(utf8Encoded[i]);
+            b2 = uint8(utf8Encoded[i + 1]);
+            if ((b1 >= 97) && (b1 <= 102)) {
+                b1 -= 87;
+            } else if ((b1 >= 65) && (b1 <= 70)) {
+                b1 -= 55;
+            } else if ((b1 >= 48) && (b1 <= 57)) {
+                b1 -= 48;
+            }
+            if ((b2 >= 97) && (b2 <= 102)) {
+                b2 -= 87;
+            } else if ((b2 >= 65) && (b2 <= 70)) {
+                b2 -= 55;
+            } else if ((b2 >= 48) && (b2 <= 57)) {
+                b2 -= 48;
+            }
+            x[k++] = bytes1(b1 * 16 + b2);
+        }
+        return x;
     }
 
     function _bytesToAddress(bytes memory tmp) internal pure returns (address) {
