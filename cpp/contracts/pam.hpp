@@ -145,6 +145,7 @@ namespace eosio {
             name recipient_name = bytes_to_name(recipient);
             check(operation.recipient == recipient_name, "recipient do not match");
             check(is_account(operation.recipient), "invalid account");
+
             offset += recipient_len_num;
 
             bytes user_data(event_data.begin() + offset, event_data.end());

@@ -56,6 +56,12 @@ const INVALID_RECIPIENT = eosio_assert('recipient do not match')
 
 const INVALID_USER_DATA = eosio_assert('user data do not match')
 
+const ACCOUNT_STR_IS_TOO_LONG = eosio_assert(
+  'string is too long to be a valid name',
+)
+
+const INVALID_ACCOUNT = eosio_assert('invalid account')
+
 module.exports = {
   AUTH_MISSING,
   SYMBOL_NOT_FOUND,
@@ -84,4 +90,6 @@ module.exports = {
   INVALID_SENDER,
   INVALID_RECIPIENT,
   INVALID_USER_DATA,
+  INVALID_ACCOUNT,
+  ACCOUNT_STR_IS_TOO_LONG,
 }

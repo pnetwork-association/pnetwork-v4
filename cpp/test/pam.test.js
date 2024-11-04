@@ -5,8 +5,7 @@ const {
   Protocols,
   Versions,
 } = require('@pnetwork/event-attestator')
-const { expect } = require('chai')
-const { parseUnits, zeroPadValue } = require('ethers')
+const { zeroPadValue } = require('ethers')
 
 const {
   deploy,
@@ -18,6 +17,8 @@ const {
   no0x,
 } = require('./utils')
 const { active, getSingletonInstance } = require('./utils/eos-ext')
+const { expect } = require('chai')
+const assert = require('assert')
 
 describe('PAM testing', () => {
   const user = 'user'
@@ -51,15 +52,19 @@ describe('PAM testing', () => {
     '0x66756e6473206172652073616675207361667520736166752073616675202e2e',
   )
 
+  const recipient = 'recipient'
+
   const attestation = []
   const blockchain = new Blockchain()
   const operation = getOperationSample({
-    amount: '9983.0000 TKN',
+    amount: '1337.0000 TKN',
+    sender: '0000000000000000000000002b5ad5c4795c026514f8317c7a215e218dccd6cf',
     token: '000000000000000000000000f2e246bb76df876cef8b38ae84130f4f55de395b',
     chainId: 'aca376f206b8fc25a6ed44dbdc66547c36c6c33e3a119ffbeaef943642f0e906',
+    recipient,
   })
   const data =
-    '0x0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000f2e246bb76df876cef8b38ae84130f4f55de395baca376f206b8fc25a6ed44dbdc66547c36c6c33e3a119ffbeaef943642f0e90600000000000000000000000000000000000000000000000000000000000026ff0000000000000000000000002b5ad5c4795c026514f8317c7a215e218dccd6cf000000000000000000000000000000000000000000000000000000000000002a307836383133456239333632333732454546363230306633623164624333663831393637316342413639'
+    '0x0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000f2e246bb76df876cef8b38ae84130f4f55de395baca376f206b8fc25a6ed44dbdc66547c36c6c33e3a119ffbeaef943642f0e9060000000000000000000000000000000000000000000000487a9a3045394400000000000000000000000000002b5ad5c4795c026514f8317c7a215e218dccd6cf0000000000000000000000000000000000000000000000000000000000000009726563697069656e74'
   const event = {
     blockHash: operation.blockId,
     transactionHash: operation.txId,
@@ -73,7 +78,7 @@ describe('PAM testing', () => {
   const metadata = getMetadataSample({ signature, preimage })
 
   before(async () => {
-    blockchain.createAccounts(user)
+    blockchain.createAccounts(user, recipient)
     pam.contract = deploy(blockchain, pam.account, 'contracts/build/test.pam')
     adapter.contract = deploy(
       blockchain,
@@ -219,27 +224,95 @@ describe('PAM testing', () => {
         await expectToThrow(action, errors.INVALID_AMOUNT)
       })
 
-      // TODO: stuck because amount is not an asset
-      // it('Should reject when the sender is different', async () => {
-      //   const wrongOperation = {
-      //     ...operation,
-      //     sender: no0x(zeroPadValue('0x01', 32)),
-      //   }
+      it('Should reject when the sender is different', async () => {
+        const wrongOperation = {
+          ...operation,
+          sender: no0x(zeroPadValue('0x01', 32)),
+        }
 
-      //   let action
-      //   try {
-      //     action = await pam.contract.actions
-      //       .isauthorized([wrongOperation, metadata])
-      //       .send(active(user))
-      //   } finally {
-      //     console.log(pam.contract.bc.console)
-      //   }
+        action = pam.contract.actions
+          .isauthorized([wrongOperation, metadata])
+          .send(active(user))
 
-      //   await expectToThrow(action, errors.INVALID_SENDER)
-      // })
+        await expectToThrow(action, errors.INVALID_SENDER)
+      })
 
-      // TODO: implement
-      // it('Should reject if the operation chain id is different from the underlying chain one', async () => {})
+      it('Should reject when the recipient is different', async () => {
+        const wrongOperation = {
+          ...operation,
+          recipient: 'evil',
+        }
+
+        action = pam.contract.actions
+          .isauthorized([wrongOperation, metadata])
+          .send(active(user))
+
+        await expectToThrow(action, errors.INVALID_RECIPIENT)
+      })
+
+      it('Should reject when the recipient is a string too long', async () => {
+        const invalid = 'invalidrecipient'
+        const wrongOperation = {
+          ...operation,
+          recipient: invalid,
+        }
+        const data =
+          '0x0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000f2e246bb76df876cef8b38ae84130f4f55de395baca376f206b8fc25a6ed44dbdc66547c36c6c33e3a119ffbeaef943642f0e9060000000000000000000000000000000000000000000000487a9a3045394400000000000000000000000000002b5ad5c4795c026514f8317c7a215e218dccd6cf0000000000000000000000000000000000000000000000000000000000000010696e76616c6964726563697069656e74'
+        const newEvent = { ...event, data }
+        const metadata = {
+          preimage: no0x(ea.getEventPreImage(newEvent)),
+          signature: no0x(ea.formatEosSignature(ea.sign(newEvent))),
+        }
+
+        action = pam.contract.actions
+          .isauthorized([wrongOperation, metadata])
+          .send(active(user))
+
+        await expectToThrow(action, errors.ACCOUNT_STR_IS_TOO_LONG)
+      })
+
+      it('Should reject when the recipient is an invalid account', async () => {
+        const wrong = {
+          ...operation,
+          recipient: 'invalid',
+        }
+        const data =
+          '0x0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000f2e246bb76df876cef8b38ae84130f4f55de395baca376f206b8fc25a6ed44dbdc66547c36c6c33e3a119ffbeaef943642f0e9060000000000000000000000000000000000000000000000487a9a3045394400000000000000000000000000002b5ad5c4795c026514f8317c7a215e218dccd6cf0000000000000000000000000000000000000000000000000000000000000007696e76616c6964'
+        const newEvent = { ...event, data }
+        const metadata = {
+          preimage: no0x(ea.getEventPreImage(newEvent)),
+          signature: no0x(ea.formatEosSignature(ea.sign(newEvent))),
+        }
+
+        action = pam.contract.actions
+          .isauthorized([wrong, metadata])
+          .send(active(user))
+
+        await expectToThrow(action, errors.INVALID_ACCOUNT)
+      })
+
+      it('Should reject when user data is different', async () => {
+        const wrong = {
+          ...operation,
+          data: '001122',
+        }
+
+        action = pam.contract.actions
+          .isauthorized([wrong, metadata])
+          .send(active(user))
+
+        await expectToThrow(action, errors.INVALID_USER_DATA)
+      })
+      it('Should validate the operation successfully', async () => {
+        await pam.contract.actions
+          .isauthorized([operation, metadata])
+          .send(active(user))
+
+        const expectedEventId =
+          '5677b05279928a1f054526d27f25bb081d1ef295738496dcf2a8f9507dc0bd7e'
+
+        expect(pam.contract.bc.console).to.be.equal(expectedEventId)
+      })
     })
   })
 })
