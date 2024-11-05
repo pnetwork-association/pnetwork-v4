@@ -323,6 +323,8 @@ contract PAMTest is Test, Helper {
 
         metadata.signature = abi.encodePacked(r, s, v);
 
+        // Ugly but necessary in order to avoid the stack
+        // too deep error
         operation = IAdapter.Operation(
             0x179ed57f474f446f2c9f6ea6702724cdad0cf26422299b368755ed93c0134a35, // blockhash
             0x27598a45ee610287d85695f823f8992c10602ce5bf3240ee20635219de4f734f, // txHash
@@ -331,7 +333,7 @@ contract PAMTest is Test, Helper {
             eosChainId, // origin chain id
             bytes32(destinationChainId), // destination chain id
             9982500000000000000, // amount
-            0x0000000000000000000000000000000000000000000000000000000075736572, // sender
+            0x0000000000000000000000000000000000000000000000000000000075736572, // sender ('user')
             0x68BbEd6A47194EFf1CF514B50Ea91895597fc91E, // recipient
             userdata // user data
         );
