@@ -184,6 +184,17 @@ contract PAM is Ownable, IPAM {
         return true;
     }
 
+    function _fromHexCharToUint8(uint8 x) internal pure returns (uint8) {
+        if ((x >= 97) && (x <= 102)) {
+            x -= 87;
+        } else if ((x >= 65) && (x <= 70)) {
+            x -= 55;
+        } else if ((x >= 48) && (x <= 57)) {
+            x -= 48;
+        }
+        return x;
+    }
+
     function _fromUTF8EncodedToBytes(
         bytes memory utf8Encoded
     ) internal pure returns (bytes memory) {
@@ -194,22 +205,8 @@ contract PAM is Ownable, IPAM {
         uint8 b1;
         uint8 b2;
         for (uint i = 0; i < utf8Encoded.length; i += 2) {
-            b1 = uint8(utf8Encoded[i]);
-            b2 = uint8(utf8Encoded[i + 1]);
-            if ((b1 >= 97) && (b1 <= 102)) {
-                b1 -= 87;
-            } else if ((b1 >= 65) && (b1 <= 70)) {
-                b1 -= 55;
-            } else if ((b1 >= 48) && (b1 <= 57)) {
-                b1 -= 48;
-            }
-            if ((b2 >= 97) && (b2 <= 102)) {
-                b2 -= 87;
-            } else if ((b2 >= 65) && (b2 <= 70)) {
-                b2 -= 55;
-            } else if ((b2 >= 48) && (b2 <= 57)) {
-                b2 -= 48;
-            }
+            b1 = _fromHexCharToUint8(uint8(utf8Encoded[i]));
+            b2 = _fromHexCharToUint8(uint8(utf8Encoded[i + 1]));
             x[k++] = bytes1(b1 * 16 + b2);
         }
         return x;
@@ -221,22 +218,8 @@ contract PAM is Ownable, IPAM {
         uint160 b2;
         for (uint256 i = 2; i < 2 + 2 * 20; i += 2) {
             iaddr *= 256;
-            b1 = uint160(uint8(tmp[i]));
-            b2 = uint160(uint8(tmp[i + 1]));
-            if ((b1 >= 97) && (b1 <= 102)) {
-                b1 -= 87;
-            } else if ((b1 >= 65) && (b1 <= 70)) {
-                b1 -= 55;
-            } else if ((b1 >= 48) && (b1 <= 57)) {
-                b1 -= 48;
-            }
-            if ((b2 >= 97) && (b2 <= 102)) {
-                b2 -= 87;
-            } else if ((b2 >= 65) && (b2 <= 70)) {
-                b2 -= 55;
-            } else if ((b2 >= 48) && (b2 <= 57)) {
-                b2 -= 48;
-            }
+            b1 = uint160(_fromHexCharToUint8(uint8(tmp[i])));
+            b2 = uint160(_fromHexCharToUint8(uint8(tmp[i + 1])));
             iaddr += (b1 * 16 + b2);
         }
         return address(iaddr);
