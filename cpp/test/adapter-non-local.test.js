@@ -27,6 +27,7 @@ const getSwapMemo = (sender, destinationChainId, recipient, data) =>
   `${sender},${destinationChainId},${recipient},${R.isEmpty(data) ? '0' : '1'}`
 
 const attestation = 'deadbeef'
+const NULL_KEY = 'PUB_K1_11111111111111111111111111111111149Mr2R' // null initialization of public_key() CDT function
 
 describe('Adapter EVM -> EOS testing', () => {
   const symbol = 'TST'
@@ -40,12 +41,20 @@ describe('Adapter EVM -> EOS testing', () => {
   const FEE_BASIS_POINTS = 1750
   const FEE_BASIS_POINTS_DIVISOR = 1000000
 
+  const compressed = Uint8Array.from(
+    Buffer.from(
+      teeCompressedPubKey,
+      'hex',
+    ),
+  )
+  const teePubKey = PublicKey.from({ type: 'K1', compressed })
+
   const localToken = {
     symbol: symbol,
     precision: localprecision,
     account: `${symbol.toLowerCase()}.token`,
     maxSupply: `${trimPrecision(maxSupply, localprecision)} ${symbol}`,
-    bytes: '',
+    bytes: 'aa',
     contract: null,
   }
 
@@ -100,6 +109,11 @@ describe('Adapter EVM -> EOS testing', () => {
     contract: null,
   }
 
+  const notInitAdapter = {
+    account: 'adapter2',
+    contract: null,
+  }
+
   const receiver = {
     account: 'receiver',
     contract: null,
@@ -131,6 +145,11 @@ describe('Adapter EVM -> EOS testing', () => {
       adapter.account,
       'contracts/build/adapter',
     )
+    notInitAdapter.contract = deploy(
+      blockchain,
+      notInitAdapter.account,
+      'contracts/build/adapter',
+    )
     receiver.contract = deploy(
       blockchain,
       receiver.account,
@@ -152,6 +171,145 @@ describe('Adapter EVM -> EOS testing', () => {
   }
 
   describe('adapter::create', () => {
+    it('Should throw if called by not authorized account', async () => {
+      const action = adapter.contract.actions
+        .create([
+          fromEvmXerc20.account,
+          precision(fromEvmXerc20.precision, fromEvmXerc20.symbol),
+          evmUnderlyingToken.account,
+          precision(evmUnderlyingToken.precision, evmUnderlyingToken.symbol),
+          evmUnderlyingToken.bytes,
+          fromEvmXerc20.minFee,
+        ])
+        .send(active(evil))
+
+        await expectToThrow(action, errors.AUTH_MISSING(adapter.account))
+    })
+    
+    it('Should throw if tokenByte size is not 32', async () => {
+      try {
+      await adapter.contract.actions
+        .create([
+          fromEvmXerc20.account,
+          precision(fromEvmXerc20.precision, fromEvmXerc20.symbol),
+          localToken.account,
+          precision(localToken.precision, localToken.symbol),
+          localToken.bytes,
+          fromEvmXerc20.minFee,
+        ])
+        .send(active(adapter.account))
+
+        fail()
+      } catch (_err) {
+        expect(_err.underlyingError.toString()).to.be.equal(`Error: Checksum size mismatch, expected 32 bytes got ${localToken.bytes.length / 2}`)
+      }
+    })
+
+    it('Should throw if xERC20 account does not exist', async () => {
+      const action = adapter.contract.actions
+        .create([
+          'undeployed',
+          precision(fromEvmXerc20.precision, fromEvmXerc20.symbol),
+          evmUnderlyingToken.account,
+          precision(evmUnderlyingToken.precision, evmUnderlyingToken.symbol),
+          evmUnderlyingToken.bytes,
+          fromEvmXerc20.minFee,
+        ])
+        .send(active(adapter.account))
+
+      await expectToThrow(action, 'eosio_assert: xERC20 account does not exist')
+    })
+
+    it('Should throw if minFee precision does not match', async () => {
+      const action = adapter.contract.actions
+        .create([
+          fromEvmXerc20.account,
+          precision(fromEvmXerc20.precision, fromEvmXerc20.symbol),
+          evmUnderlyingToken.account,
+          precision(evmUnderlyingToken.precision, evmUnderlyingToken.symbol),
+          evmUnderlyingToken.bytes,
+          '12, XTST',
+        ])
+        .send(active(adapter.account))
+
+      await expectToThrow(action, 'eosio_assert: invalid minimum fee symbol')
+    })
+
+    it('Should throw if minFee symbol does not match', async () => {
+      const action = adapter.contract.actions
+        .create([
+          fromEvmXerc20.account,
+          precision(fromEvmXerc20.precision, fromEvmXerc20.symbol),
+          evmUnderlyingToken.account,
+          precision(evmUnderlyingToken.precision, evmUnderlyingToken.symbol),
+          evmUnderlyingToken.bytes,
+          `${trimPrecision('0.0018', fromEvmXerc20Precision)} XYYY`,
+        ])
+        .send(active(adapter.account))
+
+      await expectToThrow(action, 'eosio_assert: invalid minimum fee symbol')
+    })
+
+    it('Should throw if xERC20 symbol is not found on xERC20 account', async () => {
+      const action = adapter.contract.actions
+        .create([
+          fromEvmXerc20.account,
+          precision(fromEvmXerc20.precision, 'XYYY'),
+          evmUnderlyingToken.account,
+          precision(evmUnderlyingToken.precision, evmUnderlyingToken.symbol),
+          evmUnderlyingToken.bytes,
+          fromEvmXerc20.minFee,
+        ])
+        .send(active(adapter.account))
+
+      await expectToThrow(action, 'eosio_assert: invalid minimum fee symbol')
+    })
+
+
+    //TODO deploy local token
+    // it('Should throw if token is local and token symbol is not found on xERC20 account', async () => {
+    //   const action = adapter.contract.actions
+    //     .create([
+    //       fromEvmXerc20.account,
+    //       precision(fromEvmXerc20.precision, fromEvmXerc20.symbol),
+    //       evmUnderlyingToken.account,
+    //       precision(evmUnderlyingToken.precision, 'XYYY'),
+    //       evmUnderlyingToken.bytes,
+    //       fromEvmXerc20.minFee,
+    //     ])
+    //     .send(active(adapter.account))
+
+    //   await expectToThrow(action, 'eosio_assert: invalid minimum fee symbol')
+    // })
+    // it('Should throw if token is local and xERC20 precision do not match it', async () => {
+    //   const action = adapter.contract.actions
+    //     .create([
+    //       fromEvmXerc20.account,
+    //       precision(fromEvmXerc20.precision, fromEvmXerc20.symbol),
+    //       'token',
+    //       precision(evmUnderlyingToken.precision, evmUnderlyingToken.symbol),
+    //       evmUnderlyingToken.bytes,
+    //       fromEvmXerc20.minFee,
+    //     ])
+    //     .send(active(adapter.account))
+
+    //   await expectToThrow(action, 'eosio_assert: invalid minimum fee symbol')
+    // })
+    // it('Should throw if token is local and token account does not exist', async () => {
+    //   const action = adapter.contract.actions
+    //     .create([
+    //       'undeployed',
+    //       precision(fromEvmXerc20.precision, fromEvmXerc20.symbol),
+    //       evmUnderlyingToken.account,
+    //       precision(evmUnderlyingToken.precision, evmUnderlyingToken.symbol),
+    //       evmUnderlyingToken.bytes,
+    //       fromEvmXerc20.minFee,
+    //     ])
+    //     .send(active(adapter.account))
+
+    //   await expectToThrow(action, 'eosio_assert: xERC20 account does not exist')
+    // })
+
     it('Should create the pair successfully', async () => {
       await setup()
 
@@ -166,54 +324,15 @@ describe('Adapter EVM -> EOS testing', () => {
         ])
         .send(active(adapter.account))
 
-      await adapter.contract.actions
-        .setfeemanagr([feemanager])
-        .send(active(adapter.account))
-
       const row = adapter.contract.tables
         .regadapter(getAccountCodeRaw(adapter.account))
         .getTableRow(getSymbolCodeRaw(evmUnderlyingToken.maxSupply))
-
-      const storage = getSingletonInstance(adapter.contract, TABLE_STORAGE)
-
-      const compressed = Uint8Array.from(
-        Buffer.from(
-          teeCompressedPubKey,
-          'hex',
-        ),
-      )
-      const pubKey = PublicKey.from({ type: 'K1', compressed })
-      await adapter.contract.actions
-        .settee([pubKey, attestation])
-        .send(active(adapter.account))
-      
-      const tee = getSingletonInstance(adapter.contract, 'tee')
-
-      expect(tee.key).to.be.equal(pubKey.toString())
-
-      const originChainId = evmOperationSamples.pegin.originChainId
-      const originAdapter = evmAdapter
-      const topicZero = evmTopicZero
-      const normalizedOriginChainId = hexStringToBytes(originChainId)
-      const normalizedOriginAdapter = hexStringToBytes(originAdapter)
-      const normalizeTopicZero = hexStringToBytes(topicZero)
-      
-      await adapter.contract.actions
-        .setemitter([normalizedOriginChainId, normalizedOriginAdapter])
-        .send(active(adapter.account))
-
-      await adapter.contract.actions
-        .settopiczero([normalizedOriginChainId, normalizeTopicZero])
-        .send(active(adapter.account))
-      
-      const emitterRow = adapter.contract.tables
+      const storage = getSingletonInstance(adapter.contract, TABLE_STORAGE)      
+      const tee = getSingletonInstance(adapter.contract, 'tee')      
+      const mappingsRow = adapter.contract.tables
         .mappings(getAccountCodeRaw(adapter.account))
-        .getTableRow(BigInt('0x' + originChainId.slice(-16)))
+        .getTableRows()
       
-      expect(emitterRow.chain_id).to.be.equal(originChainId)
-      expect(emitterRow.emitter).to.be.equal(originAdapter)
-      expect(emitterRow.topic_zero).to.be.equal(topicZero)
-
       expect(row).to.be.deep.equal({
         token: '',
         token_symbol: precision(evmUnderlyingToken.precision, evmUnderlyingToken.symbol),
@@ -222,11 +341,215 @@ describe('Adapter EVM -> EOS testing', () => {
         xerc20_symbol: precision(fromEvmXerc20.precision, fromEvmXerc20.symbol),
         min_fee: fromEvmXerc20.minFee,
       })
+      expect(storage).be.deep.equal({
+        nonce: 0,
+        feesmanager: '',
+      })
+      expect(tee).to.be.deep.equal({
+        key: NULL_KEY,
+        attestation: '',
+      })
+      expect(mappingsRow).to.be.deep.equal([])
+    })
+
+    it('Should throw if already created', async () => {
+      const action = adapter.contract.actions
+        .create([
+          fromEvmXerc20.account,
+          precision(fromEvmXerc20.precision, fromEvmXerc20.symbol),
+          evmUnderlyingToken.account,
+          precision(evmUnderlyingToken.precision, evmUnderlyingToken.symbol),
+          evmUnderlyingToken.bytes,
+          fromEvmXerc20.minFee,
+        ])
+        .send(active(adapter.account))
+      
+      await expectToThrow(action, 'eosio_assert: token already registered')
+    })
+  })
+
+  describe('adapter::setfeemanagr', () => {
+    it('Should throw if called by not authorized account', async () => {
+      const action = adapter.contract.actions
+        .setfeemanagr([feemanager])
+        .send(active(evil))
+
+        await expectToThrow(action, errors.AUTH_MISSING(adapter.account))
+    })
+
+    it('Should throw if adapter is not initialized', async () => {
+      const action = notInitAdapter.contract.actions
+        .setfeemanagr([feemanager])
+        .send(active(notInitAdapter.account))
+
+      await expectToThrow(action, 'eosio_assert: adapter contract not initialized')
+    })
+
+    it('Should set the feemanager correctly', async () => {
+      await adapter.contract.actions
+        .setfeemanagr([user])
+        .send(active(adapter.account))
+
+      const storage = getSingletonInstance(adapter.contract, TABLE_STORAGE)
+
+      expect(storage).be.deep.equal({
+        nonce: 0,
+        feesmanager: user,
+      })
+    })
+
+    it('Should update the feemanager correctly', async () => {
+      await adapter.contract.actions
+        .setfeemanagr([feemanager])
+        .send(active(adapter.account))
+
+      const storage = getSingletonInstance(adapter.contract, TABLE_STORAGE)
 
       expect(storage).be.deep.equal({
         nonce: 0,
         feesmanager: feemanager,
       })
+    })
+  })
+
+  describe('adapter::settee', () => {
+    it('Should throw if called by not authorized account', async () => {
+      const action = adapter.contract.actions
+        .settee([teePubKey, attestation])
+        .send(active(evil))
+
+        await expectToThrow(action, errors.AUTH_MISSING(adapter.account))
+    })
+
+    it('Should throw if adapter is not initialized', async () => {
+      const action = notInitAdapter.contract.actions
+        .settee([teePubKey, attestation])
+        .send(active(notInitAdapter.account))
+
+      await expectToThrow(action, 'eosio_assert: adapter contract not initialized')
+    })
+
+    it('Should set the tee pubKey and attestation correctly', async () => {
+      await adapter.contract.actions
+        .settee([teePubKey, attestation])
+        .send(active(adapter.account))
+
+      const tee = getSingletonInstance(adapter.contract, 'tee')
+
+      expect(tee.key).to.be.equal(teePubKey.toString())
+      expect(tee.attestation).to.be.equal(attestation)
+    })
+  })
+
+  describe('adapter::setemitter', () => {
+    it('Should throw if called by not authorized account', async () => {
+      const originChainId = evmOperationSamples.pegin.originChainId
+      const action = adapter.contract.actions
+        .setemitter([hexStringToBytes(originChainId), hexStringToBytes(evmAdapter)])
+        .send(active(evil))
+
+        await expectToThrow(action, errors.AUTH_MISSING(adapter.account))
+    })
+
+    it('Should throw if emitter is not 32 bytes', async () => {
+      const originChainId = evmOperationSamples.pegin.originChainId
+      const action = adapter.contract.actions
+        .setemitter([hexStringToBytes(originChainId), 'a899118f4bccb62f8c6a37887a4f450d8a4e92e0'])
+        .send(active(adapter.account))
+
+      await expectToThrow(action, 'eosio_assert: expected 32 bytes emitter')
+    })
+
+    it('Should throw if origin chain id is not 32 bytes', async () => {
+      const action = adapter.contract.actions
+        .setemitter([1, hexStringToBytes(evmAdapter)])
+        .send(active(adapter.account))
+
+      await expectToThrow(action, 'eosio_assert: expected 32 bytes chain_id')
+    })
+
+    it('Should set the emitter and chainId correctly', async () => {
+      const originChainId = evmOperationSamples.pegin.originChainId
+      await adapter.contract.actions
+        .setemitter([hexStringToBytes(originChainId), hexStringToBytes(evmTopicZero)])
+        .send(active(adapter.account))
+      
+      const emitterRow = adapter.contract.tables
+        .mappings(getAccountCodeRaw(adapter.account))
+        .getTableRow(BigInt('0x' + originChainId.slice(-16)))
+      
+      expect(emitterRow.chain_id).to.be.equal(originChainId)
+      expect(emitterRow.emitter).to.be.equal(evmTopicZero)
+    })
+
+    it('Should update the emitter correctly', async () => {
+      const originChainId = evmOperationSamples.pegin.originChainId
+      await adapter.contract.actions
+        .setemitter([hexStringToBytes(originChainId), hexStringToBytes(evmAdapter)])
+        .send(active(adapter.account))
+      
+      const emitterRow = adapter.contract.tables
+        .mappings(getAccountCodeRaw(adapter.account))
+        .getTableRow(BigInt('0x' + originChainId.slice(-16)))
+      
+      expect(emitterRow.chain_id).to.be.equal(originChainId)
+      expect(emitterRow.emitter).to.be.equal(evmAdapter)
+    })
+  })
+
+  describe('adapter::settopiczero', () => {
+    it('Should throw if called by not authorized account', async () => {
+      const originChainId = evmOperationSamples.pegin.originChainId        
+      const action = adapter.contract.actions
+        .settopiczero([hexStringToBytes(originChainId), hexStringToBytes(evmTopicZero)])
+        .send(active(evil))
+
+        await expectToThrow(action, errors.AUTH_MISSING(adapter.account))
+    })
+
+    it('Should throw if emitter is not 32 bytes', async () => {
+      const originChainId = evmOperationSamples.pegin.originChainId
+      const action = adapter.contract.actions
+        .settopiczero([hexStringToBytes(originChainId), 'a899118f4bccb62f8c6a37887a4f450d8a4e92e0'])
+        .send(active(adapter.account))
+
+      await expectToThrow(action, 'eosio_assert: expected 32 bytes emitter')
+    })
+
+    it('Should throw if origin chain id is not 32 bytes', async () => {
+      const action = adapter.contract.actions
+        .settopiczero([1, hexStringToBytes(evmTopicZero)])
+        .send(active(adapter.account))
+
+      await expectToThrow(action, 'eosio_assert: expected 32 bytes chain_id')
+    })
+
+    it('Should set the topic0 and chainId correctly', async () => {
+      const originChainId = no0x(ethers.zeroPadValue('0x02',32))
+      await adapter.contract.actions
+        .settopiczero([hexStringToBytes(originChainId), hexStringToBytes(evmTopicZero)])
+        .send(active(adapter.account))
+      
+      const emitterRow = adapter.contract.tables
+        .mappings(getAccountCodeRaw(adapter.account))
+        .getTableRow(BigInt('0x' + originChainId.slice(-16)))
+      
+      expect(emitterRow.chain_id).to.be.equal(originChainId)
+      expect(emitterRow.topic_zero).to.be.equal(evmTopicZero)
+    })
+
+    it('Should update the topic0 correctly', async () => {
+      const originChainId = evmOperationSamples.pegin.originChainId
+      await adapter.contract.actions
+        .settopiczero([hexStringToBytes(originChainId), hexStringToBytes(evmTopicZero)])
+        .send(active(adapter.account))
+      
+      const emitterRow = adapter.contract.tables
+        .mappings(getAccountCodeRaw(adapter.account))
+        .getTableRow(BigInt('0x' + originChainId.slice(-16)))
+      
+      expect(emitterRow.chain_id).to.be.equal(originChainId)
+      expect(emitterRow.topic_zero).to.be.equal(evmTopicZero)
     })
   })
   
