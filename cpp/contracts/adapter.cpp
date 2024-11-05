@@ -86,7 +86,7 @@ void adapter::create(
 void adapter::setfeemanagr(const name& fee_manager) {
    storage _storage(get_self(), get_self().value);
 
-   check(_storage.exists(), "contract not initialized");
+   check(_storage.exists(), "adapter contract not initialized");
    auto storage = _storage.get();
 
    storage.feesmanager = fee_manager;
@@ -160,7 +160,7 @@ void adapter::freeuserdata(const name& account) {
 }
 
 void adapter::settee(public_key pub_key, bytes attestation) {
-   print("set tee");
+   // FIXME add cool down phase
    require_auth(get_self());
    pam::tee_pubkey _tee_pubkey(get_self(), get_self().value);
 
@@ -172,8 +172,6 @@ void adapter::settee(public_key pub_key, bytes attestation) {
    _tee_pubkey.set(pam::tee{
       .key = pub_key 
    }, get_self());
-
-   // print("attestation: ")
 }
 
 void adapter::settopiczero(bytes chain_id, bytes topic_zero) {
@@ -189,19 +187,14 @@ void adapter::settopiczero(bytes chain_id, bytes topic_zero) {
          row.chain_id = chain_id;
          row.topic_zero = topic_zero;
       });
-
-      print("Added a new mapping for chain_id: ", get_mappings_key(chain_id));
    } else {
       _mappings_table.modify(mappings_itr, get_self(), [&](auto& row) {
          row.topic_zero = topic_zero;
       });
-
-      print("Updated the topic zero for chain_id: ", get_mappings_key(chain_id));
    }
 }
 
 void adapter::setemitter(bytes chain_id , bytes emitter) {
-   print("set emitter");
    require_auth(get_self());
    check(emitter.size() == 32, "expected 32 bytes emitter");
    check(chain_id.size() == 32, "expected 32 bytes chain_id");
@@ -213,14 +206,10 @@ void adapter::setemitter(bytes chain_id , bytes emitter) {
          row.chain_id = chain_id;
          row.emitter = emitter;
       });
-
-      print("Added a new mapping for chain_id: ", get_mappings_key(chain_id));
    } else {
       _mappings_table.modify(mappings_itr, get_self(), [&](auto& row) {
          row.emitter = emitter;
       });
-
-      print("Updated the emitter for chain_id: ", get_mappings_key(chain_id));
    }
 }
 
