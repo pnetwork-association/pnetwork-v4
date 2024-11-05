@@ -87,6 +87,7 @@ void adapter::create(
 }
 
 void adapter::setfeemanagr(const name& fee_manager) {
+   require_auth(get_self());
    storage _storage(get_self(), get_self().value);
 
    check(_storage.exists(), "adapter contract not initialized");
