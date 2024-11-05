@@ -1,7 +1,7 @@
 const { deploy } = require('./utils/deploy')
 const { Blockchain, expectToThrow } = require('@eosnetwork/vert')
-const { getEvmPeginMetadataSample } = require('./utils/get-metadata-sample')
-const { getEvmPeginOperationSample } = require('./utils/get-operation-sample')
+const { getMetadataSample } = require('./utils/get-metadata-sample')
+const { getOperationSample } = require('./utils/get-operation-sample')
 const { active } = require('./utils/eos-ext')
 
 describe('PAM testing', () => {
@@ -15,8 +15,8 @@ describe('PAM testing', () => {
   })
   describe('pam::isauthorized', () => {
     it('Should authorize the operation successfully', async () => {
-      const operation = getEvmPeginOperationSample()
-      const metadata = getEvmPeginMetadataSample()
+      const operation = getOperationSample()
+      const metadata = getMetadataSample()
 
       // await pam.actions.isauthorized([operation, metadata]).send(active(user))
     })
