@@ -55,7 +55,7 @@ class ProofcastEventAttestator {
     return concat([
       zeroPadValue(Buffer.from(event.account, 'utf-8'), 32),
       ...topics,
-      event.data,
+      Buffer.from(JSON.stringify(event.data), 'utf-8'),
     ])
   }
 
