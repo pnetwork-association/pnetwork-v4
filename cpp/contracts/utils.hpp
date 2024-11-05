@@ -214,4 +214,32 @@ namespace eosio {
       name name_value(name_str);
       return name_value;
    }
+
+   uint8_t from_hex_char_to_uint8(uint8_t x) {
+      if ((x >= 97) && (x <= 102)) { // [a, b, c, ..., f]
+            x -= 87;
+      } else if ((x >= 65) && (x <= 70)) { // [A, B, C, ..., F]
+            x -= 55;
+      } else if ((x >= 48) && (x <= 57)) { // [0, 1, 2, ... ,9]
+            x -= 48;
+      }
+
+      return x;
+   }
+
+   bytes from_utf8_encoded_to_bytes(const bytes &utf8_encoded) {
+      check(utf8_encoded.size() % 2 == 0, "invalid utf-8 encoded string");
+
+      bytes x(utf8_encoded.size() / 2, 0); // fill it with zeros
+
+      uint64_t k = 0;
+      uint8_t b1, b2;
+      for (uint64_t i = 0; i < utf8_encoded.size(); i += 2) {
+            b1 = from_hex_char_to_uint8(utf8_encoded[i]);
+            b2 = from_hex_char_to_uint8(utf8_encoded[i + 1]);
+            x[k++] = b1 * 16 + b2;
+      }
+
+      return x;
+   }
 }

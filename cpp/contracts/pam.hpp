@@ -65,38 +65,6 @@ namespace eosio {
             return true;
         }
 
-        bytes _fromUTF8EncodedToBytes(const bytes &utf8_encoded) {
-            check(utf8_encoded.size() % 2 == 0, "invalid utf-8 encoded string");
-
-            bytes x(utf8_encoded.size() / 2, 0); // fill it with zeros
-
-            uint64_t k = 0;
-            uint8_t b1, b2;
-            for (uint64_t i = 0; i < utf8_encoded.size(); i += 2) {
-                b1 = utf8_encoded[i];
-                b2 = utf8_encoded[i + 1];
-
-                if ((b1 >= 97) && (b1 <= 102)) { // [a, b, c, ..., f]
-                    b1 -= 87;
-                } else if ((b1 >= 65) && (b1 <= 70)) { // [A, B, C, ..., F]
-                    b1 -= 55;
-                } else if ((b1 >= 48) && (b1 <= 57)) { // [0, 1, 2, ... ,9]
-                    b1 -= 48;
-                }
-                if ((b2 >= 97) && (b2 <= 102)) {
-                    b2 -= 87;
-                } else if ((b2 >= 65) && (b2 <= 70)) {
-                    b2 -= 55;
-                } else if ((b2 >= 48) && (b2 <= 57)) {
-                    b2 -= 48;
-                }
-
-                x[k++] = b1 * 16 + b2;
-            }
-
-            return x;
-        }
-
         void check_authorization(name adapter, const operation& operation, const metadata& metadata, checksum256& event_id) {
             //  Metadata preimage format:
             //    | version | protocol | origin | blockHash | txHash | eventPayload |
@@ -158,7 +126,7 @@ namespace eosio {
             bytes raw_data(start, end);
 
             bytes event_data = protocol_id == 2
-                ? _fromUTF8EncodedToBytes(raw_data)
+                ? from_utf8_encoded_to_bytes(raw_data)
                 : raw_data;
 
             offset = 0;
