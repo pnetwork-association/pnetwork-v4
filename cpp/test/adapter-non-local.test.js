@@ -20,7 +20,7 @@ const errors = require('./utils/errors')
 const ethers = require('ethers')
 const { evmOperationSamples, amounts, evmTopicZero, evmAdapter } = require('./samples/evm-operations')
 const { evmMetadataSamples, teeCompressedPubKey } = require('./samples/evm-metadata')
-const { trimPrecision } = require('./utils/precision-utils')
+const { adjustPrecision } = require('./utils/precision-utils')
 const { symbolName } = require('typescript')
 
 const getSwapMemo = (sender, destinationChainId, recipient, data) =>
@@ -53,7 +53,7 @@ describe('Adapter EVM -> EOS testing', () => {
     symbol: symbol,
     precision: localprecision,
     account: `${symbol.toLowerCase()}.token`,
-    maxSupply: `${trimPrecision(maxSupply, localprecision)} ${symbol}`,
+    maxSupply: `${adjustPrecision(maxSupply, localprecision)} ${symbol}`,
     bytes: 'aa',
     contract: null,
   }
@@ -63,7 +63,7 @@ describe('Adapter EVM -> EOS testing', () => {
     symbol: evmTokenSymbol,
     precision: evmPrecision, // this should be the actual precision of the underlying token
     account: '',
-    maxSupply: `${trimPrecision(maxSupply, fromEvmXerc20Precision)} ${evmTokenSymbol}`, // use fromEvmXerc20Precision to avoid overflow
+    maxSupply: `${adjustPrecision(maxSupply, fromEvmXerc20Precision)} ${evmTokenSymbol}`, // use fromEvmXerc20Precision to avoid overflow
     bytes: evmOperationSamples.pegin.token,
     contract: null,
   }
@@ -72,8 +72,8 @@ describe('Adapter EVM -> EOS testing', () => {
     symbol: `X${symbol}`,
     precision: localprecision,
     account: `x${symbol.toLowerCase()}.token`,
-    maxSupply: `${trimPrecision(maxSupply, localprecision)} X${symbol}`,
-    minFee: `${trimPrecision('0.0018', localprecision)} X${symbol}`,
+    maxSupply: `${adjustPrecision(maxSupply, localprecision)} X${symbol}`,
+    minFee: `${adjustPrecision('0.0018', localprecision)} X${symbol}`,
     contract: null,
   }
 
@@ -81,8 +81,8 @@ describe('Adapter EVM -> EOS testing', () => {
     symbol: `X${evmTokenSymbol}`,
     precision: fromEvmXerc20Precision, // different from the underlying token - only uint64 is supported by Asset type
     account: `x${evmTokenSymbol.toLowerCase()}.token`,
-    maxSupply: `${trimPrecision(maxSupply, fromEvmXerc20Precision)} X${evmTokenSymbol}`,
-    minFee: `${trimPrecision('0.0018', fromEvmXerc20Precision)} X${evmTokenSymbol}`,
+    maxSupply: `${adjustPrecision(maxSupply, fromEvmXerc20Precision)} X${evmTokenSymbol}`,
+    minFee: `${adjustPrecision('0.0018', fromEvmXerc20Precision)} X${evmTokenSymbol}`,
     contract: null,
   }
 
@@ -162,8 +162,8 @@ describe('Adapter EVM -> EOS testing', () => {
       .create([issuer, fromEvmXerc20.maxSupply])
       .send(active(fromEvmXerc20.account))
 
-    const mintingLimit = `${trimPrecision('1000', fromEvmXerc20Precision)} ${fromEvmXerc20.symbol}`
-    const burningLimit = `${trimPrecision('600', fromEvmXerc20Precision)} ${fromEvmXerc20.symbol}`
+    const mintingLimit = `${adjustPrecision('1000', fromEvmXerc20Precision)} ${fromEvmXerc20.symbol}`
+    const burningLimit = `${adjustPrecision('600', fromEvmXerc20Precision)} ${fromEvmXerc20.symbol}`
 
     await fromEvmXerc20.contract.actions
       .setlimits([adapter.account, mintingLimit, burningLimit])
@@ -243,7 +243,7 @@ describe('Adapter EVM -> EOS testing', () => {
           evmUnderlyingToken.account,
           precision(evmUnderlyingToken.precision, evmUnderlyingToken.symbol),
           evmUnderlyingToken.bytes,
-          `${trimPrecision('0.0018', fromEvmXerc20Precision)} XYYY`,
+          `${adjustPrecision('0.0018', fromEvmXerc20Precision)} XYYY`,
         ])
         .send(active(adapter.account))
 
@@ -600,7 +600,7 @@ describe('Adapter EVM -> EOS testing', () => {
       const metadata = evmMetadataSamples.pegin
       
       const quantity = `${amounts.pegin} TST`
-      const xquantity = `${trimPrecision(amounts.pegin, fromEvmXerc20.precision)} XTST`
+      const xquantity = `${adjustPrecision(amounts.pegin, fromEvmXerc20.precision)} XTST`
       const normalizedAmount = ethers
         .parseUnits(Asset.from(quantity).value.toString(), 18)
         .toString()
@@ -638,7 +638,7 @@ describe('Adapter EVM -> EOS testing', () => {
       const metadata = evmMetadataSamples.peginWithUserData
 
       const quantity = `${amounts.peginWithUserData} TST`
-      const xquantity = `${trimPrecision(amounts.peginWithUserData, fromEvmXerc20.precision)} XTST`
+      const xquantity = `${adjustPrecision(amounts.peginWithUserData, fromEvmXerc20.precision)} XTST`
       const normalizedAmount = ethers
         .parseUnits(Asset.from(quantity).value.toString(), 18)
         .toString()

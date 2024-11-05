@@ -1,4 +1,4 @@
-const trimPrecision = (amount, precision) => {
+const adjustPrecision = (amount, precision) => {
   if (typeof amount === 'number') {
     amount = amount.toString()
   }
@@ -10,5 +10,5 @@ const trimPrecision = (amount, precision) => {
 }
 
 module.exports = {
-  trimPrecision
+  adjustPrecision
 }
