@@ -10,6 +10,7 @@
 namespace eosio {
     using bytes = std::vector<uint8_t>;
     namespace pam {
+        // aca376f206b8fc25a6ed44dbdc66547c36c6c33e3a119ffbeaef943642f0e906
         const bytes CHAIN_ID = {
             0xac, 0xa3, 0x76, 0xf2, 0x06, 0xb8, 0xfc, 0x25,
             0xa6, 0xed, 0x44, 0xdb, 0xdc, 0x66, 0x54, 0x7c,
@@ -64,7 +65,43 @@ namespace eosio {
             return true;
         }
 
+        bytes _fromUTF8EncodedToBytes(const bytes &utf8_encoded) {
+            check(utf8_encoded.size() % 2 == 0, "invalid utf-8 encoded string");
+
+            bytes x(utf8_encoded.size() / 2, 0); // fill it with zeros
+
+            uint64_t k = 0;
+            uint8_t b1, b2;
+            for (uint64_t i = 0; i < utf8_encoded.size(); i += 2) {
+                b1 = utf8_encoded[i];
+                b2 = utf8_encoded[i + 1];
+
+                if ((b1 >= 97) && (b1 <= 102)) { // [a, b, c, ..., f]
+                    b1 -= 87;
+                } else if ((b1 >= 65) && (b1 <= 70)) { // [A, B, C, ..., F]
+                    b1 -= 55;
+                } else if ((b1 >= 48) && (b1 <= 57)) { // [0, 1, 2, ... ,9]
+                    b1 -= 48;
+                }
+                if ((b2 >= 97) && (b2 <= 102)) {
+                    b2 -= 87;
+                } else if ((b2 >= 65) && (b2 <= 70)) {
+                    b2 -= 55;
+                } else if ((b2 >= 48) && (b2 <= 57)) {
+                    b2 -= 48;
+                }
+
+                x[k++] = b1 * 16 + b2;
+            }
+
+            return x;
+        }
+
         void check_authorization(name adapter, const operation& operation, const metadata& metadata, checksum256& event_id) {
+            //  Metadata preimage format:
+            //    | version | protocol | origin | blockHash | txHash | eventPayload |
+            //    |   1B    |    1B    |   32B  |    32B    |   32B  |    varlen    |
+            //    +----------- context ---------+------------- event ---------------+
             check(context_checks(operation, metadata), "unexpected context");
 
             tee_pubkey _tee_pubkey(adapter, adapter.value);
@@ -84,6 +121,9 @@ namespace eosio {
             public_key recovered_pubkey = recover_key(event_id, sig);
             check(recovered_pubkey == tee_key, "invalid signature");
 
+            // Event payload format
+            // |  emitter  |    topic-0     |    topics-1     |    topics-2     |    topics-3     |  eventBytes  |
+            // |    32B    |      32B       |       32B       |       32B       |       32B       |    varlen    |
             offset = 0;
             bytes event_payload(metadata.preimage.begin() + 98, metadata.preimage.end());
             bytes emitter = extract_32bytes(event_payload, offset);
@@ -94,8 +134,33 @@ namespace eosio {
             check(topic_zero == exp_topic_zero && !is_all_zeros(topic_zero), "unexpected topic zero");
             offset += 32 * 4; // skip other topics
 
-            // check nonce
-            bytes event_data(event_payload.begin() + offset, event_payload.end());
+            // Checking the protocol id against 0x02 (EOS chains)
+            // If the condition is satified we expect data content to be
+            // a JSON string like:
+            //
+            //    '{"event_bytes":"00112233445566"}'
+            //
+            // in hex would be
+            //
+            //     7b226576656e745f6279746573223a223030313132323333343435353636227d
+            //
+            // We want to extract 00112233445566, so this is performed by skipping
+            // the first 16 chars  and the trailing 2 chars
+            uint8_t protocol_id = metadata.preimage[1];
+            auto start = protocol_id == 2 // EOSIO protocol
+                ? event_payload.begin() + offset + 16
+                : event_payload.begin() + offset;
+
+            auto end = protocol_id == 2
+                ? event_payload.end() - 2
+                : event_payload.end();
+
+            bytes raw_data(start, end);
+
+            bytes event_data = protocol_id == 2
+                ? _fromUTF8EncodedToBytes(raw_data)
+                : raw_data;
+
             offset = 0;
             bytes nonce = extract_32bytes(event_data, offset);
             uint64_t nonce_int = bytes32_to_uint64(nonce);
@@ -103,30 +168,25 @@ namespace eosio {
             check(operation.nonce == nonce_int, "nonce do not match");
             offset += 32;
 
-            // check origin token
             bytes token = extract_32bytes(event_data, offset);
             checksum256 token_hash = bytes32_to_checksum256(token);
             check(operation.token == token_hash, "token address do not match");
             offset += 32;
 
-            // check destination chain id
             bytes dest_chain_id = extract_32bytes(event_data, offset);
             check(operation.destinationChainId == dest_chain_id, "destination chain id does not match with the expected one");
             check(CHAIN_ID == dest_chain_id, "destination chain id does not match with the current chain");
             offset += 32;
 
-            // check amount
             bytes amount = extract_32bytes(event_data, offset);
             uint128_t amount_num = bytes32_to_uint128(amount);
             check(to_wei(operation.amount) == amount_num, "amount do not match");
             offset += 32;
 
-            // check sender address
             bytes sender = extract_32bytes(event_data, offset);
             check(operation.sender == sender, "sender do not match");
             offset += 32;
 
-            // check recipient address
             bytes recipient_len = extract_32bytes(event_data, offset);
             offset += 32;
             uint128_t recipient_len_num = bytes32_to_uint128(recipient_len);
