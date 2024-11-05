@@ -1,4 +1,13 @@
+const { PublicKey } = require('@wharfkit/antelope')
+
 const teeCompressedPubKey = '0380472f799469d9af8790307a022802785c2b1e2f9c0930bdf9bafe193245e7a3'
+const compressed = Uint8Array.from(
+  Buffer.from(
+    teeCompressedPubKey,
+    'hex',
+  ),
+)
+const teePubKey = PublicKey.from({ type: 'K1', compressed })
 
 const evmMetadataSamples = {
   pegin: {
@@ -22,4 +31,5 @@ const evmMetadataSamples = {
 module.exports = {
   evmMetadataSamples,
   teeCompressedPubKey,
+  teePubKey
 }

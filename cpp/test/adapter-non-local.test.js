@@ -1,7 +1,7 @@
 const { expect } = require('chai')
 const { Blockchain, expectToThrow, mintTokens } = require('@eosnetwork/vert')
 const { deploy } = require('./utils/deploy')
-const { Asset, Bytes, PublicKey } = require('@wharfkit/antelope')
+const { Asset } = require('@wharfkit/antelope')
 const R = require('ramda')
 const {
   active,
@@ -9,22 +9,16 @@ const {
   getAccountCodeRaw,
   getSymbolCodeRaw,
   getSingletonInstance,
-  logExecutionTraces,
-  prettyTrace,
 } = require('./utils/eos-ext')
-const { getEventBytes, hexStringToBytes } = require('./utils/bytes-utils')
-const { substract, no0x } = require('./utils/wharfkit-ext')
+const { hexStringToBytes } = require('./utils/bytes-utils')
+const { no0x } = require('./utils/wharfkit-ext')
 const { getAccountsBalances } = require('./utils/get-token-balance')
 const errors = require('./utils/errors')
 
 const ethers = require('ethers')
 const { evmOperationSamples, amounts, evmTopicZero, evmAdapter } = require('./samples/evm-operations')
-const { evmMetadataSamples, teeCompressedPubKey } = require('./samples/evm-metadata')
+const { evmMetadataSamples, teePubKey } = require('./samples/evm-metadata')
 const { adjustPrecision } = require('./utils/precision-utils')
-const { symbolName } = require('typescript')
-
-const getSwapMemo = (sender, destinationChainId, recipient, data) =>
-  `${sender},${destinationChainId},${recipient},${R.isEmpty(data) ? '0' : '1'}`
 
 const attestation = 'deadbeef'
 const NULL_KEY = 'PUB_K1_11111111111111111111111111111111149Mr2R' // null initialization of public_key() CDT function
@@ -41,15 +35,7 @@ describe('Adapter EVM -> EOS testing', () => {
   const FEE_BASIS_POINTS = 1750
   const FEE_BASIS_POINTS_DIVISOR = 1000000
 
-  const compressed = Uint8Array.from(
-    Buffer.from(
-      teeCompressedPubKey,
-      'hex',
-    ),
-  )
-  const teePubKey = PublicKey.from({ type: 'K1', compressed })
-
-  const localToken = {
+const localToken = {
     symbol: symbol,
     precision: localprecision,
     account: `${symbol.toLowerCase()}.token`,
