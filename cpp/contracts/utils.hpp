@@ -132,8 +132,8 @@ namespace eosio {
    }
 
    bytes extract_32bytes(const bytes& data, uint128_t offset) {
-   bytes _data(data.begin() + offset, data.begin() + offset + 32);
-   return _data;
+      bytes _data(data.begin() + offset, data.begin() + offset + 32);
+      return _data;
    }
 
    signature convert_bytes_to_signature(const bytes& input_bytes) {
