@@ -81,6 +81,9 @@ void adapter::create(
 
    storage _storage(get_self(), get_self().value);
    _storage.get_or_create(get_self(), adapter::empty_storage);
+
+   pam::tee_pubkey _tee_pubkey(get_self(), get_self().value);
+   _tee_pubkey.get_or_create(get_self(), pam::null_key);
 }
 
 void adapter::setfeemanagr(const name& fee_manager) {
@@ -164,13 +167,11 @@ void adapter::settee(public_key pub_key, bytes attestation) {
    require_auth(get_self());
    pam::tee_pubkey _tee_pubkey(get_self(), get_self().value);
 
-   _tee_pubkey.get_or_create(
-      get_self(),
-      pam::tee{.key = public_key()}
-   );
+   check(_tee_pubkey.exists(), "adapter contract not initialized");
 
    _tee_pubkey.set(pam::tee{
-      .key = pub_key 
+      .key = pub_key,
+      .attestation = attestation
    }, get_self());
 }
 

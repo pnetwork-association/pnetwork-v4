@@ -8,6 +8,8 @@
 namespace eosio {
     using bytes = std::vector<uint8_t>;
     namespace pam {
+        const public_key NULL_PUBLIC_KEY = public_key();
+
         TABLE mappings {
             bytes chain_id;
             bytes emitter;
@@ -28,11 +30,17 @@ namespace eosio {
 
         TABLE tee {
             public_key key;
+            bytes attestation;
         };
 
         using tee_pubkey = singleton<"tee"_n, tee>;
         typedef eosio::multi_index<"mappings"_n, mappings> mappings_table;
 
+        tee null_key = {
+            .key = NULL_PUBLIC_KEY,
+            .attestation = {},
+        };
+        
         bool context_checks(const operation& operation, const metadata& metadata);
         void check_authorization(name adapter, const operation& operation, const metadata& metadata, checksum256 event_id);
    };
