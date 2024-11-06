@@ -337,10 +337,7 @@ describe('Adapter EVM -> EOS testing', () => {
         nonce: 0,
         feesmanager: '',
       })
-      expect(tee).to.be.deep.equal({
-        key: NULL_KEY,
-        attestation: '',
-      })
+      expect(tee).to.be.undefined
       expect(mappingsRow).to.be.deep.equal([])
     })
 

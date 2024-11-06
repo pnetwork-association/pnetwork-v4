@@ -10,8 +10,6 @@
 namespace eosio {
     using bytes = std::vector<uint8_t>;
     namespace pam {
-        const public_key NULL_PUBLIC_KEY = public_key();
-
         const bytes CHAIN_ID = {
             0xac, 0xa3, 0x76, 0xf2, 0x06, 0xb8, 0xfc, 0x25,
             0xa6, 0xed, 0x44, 0xdb, 0xdc, 0x66, 0x54, 0x7c,
@@ -44,11 +42,6 @@ namespace eosio {
 
         using tee_pubkey = singleton<"tee"_n, tee>;
         typedef eosio::multi_index<"mappings"_n, mappings> mappings_table;
-
-        tee null_key = {
-            .key = NULL_PUBLIC_KEY,
-            .attestation = {},
-        };
 
         bool context_checks(const operation& operation, const metadata& metadata) {
             uint8_t offset = 2; // Skip protocol, version

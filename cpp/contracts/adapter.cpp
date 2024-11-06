@@ -73,9 +73,6 @@ void adapter::create(
 
    storage _storage(get_self(), get_self().value);
    _storage.get_or_create(get_self(), adapter::empty_storage);
-
-   pam::tee_pubkey _tee_pubkey(get_self(), get_self().value);
-   _tee_pubkey.get_or_create(get_self(), pam::null_key);
 }
 
 void adapter::setfeemanagr(const name& fee_manager) {
