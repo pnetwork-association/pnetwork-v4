@@ -50,8 +50,6 @@ namespace eosio {
             .attestation = {},
         };
 
-        void check_authorization(name adapter, const operation& operation, const metadata& metadata, checksum256 event_id);
-
         bool context_checks(const operation& operation, const metadata& metadata) {
             uint8_t offset = 2; // Skip protocol, version
             bytes origin_chain_id = extract_32bytes(metadata.preimage, offset);
