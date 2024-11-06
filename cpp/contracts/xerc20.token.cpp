@@ -48,7 +48,7 @@ void xtoken::mint( const name& caller, const name& to, const asset& quantity, co
     if (caller != lockbox) {
       auto bridge = *itr;
       auto current_limit = minting_current_limit_of(bridge);
-      check(quantity <= current_limit, "xerc20_assert: not hight enough limits");
+      check(quantity <= current_limit, "xerc20_assert: not high enough limits");
       use_minter_limits(bridge, quantity);
 
       bridgestable.modify(*itr, same_payer, [&](auto& r) { r = bridge; });

@@ -205,7 +205,6 @@ namespace eosio {
    }
 
    name bytes_to_name(const bytes& data) {
-      // check(data.size() <= 12, "Input is too long for EOSIO name (max 12 characters).");
       uint8_t length = std::min(static_cast<uint8_t>(data.size()), static_cast<uint8_t>(8));
       std::string name_str;
       for (uint8_t byte : data) {

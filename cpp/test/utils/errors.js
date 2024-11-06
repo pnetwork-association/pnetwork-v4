@@ -16,13 +16,53 @@ const SYMBOL_NOT_FOUND = eosio_assert('symbol not found')
 const FROM_ACCOUNT_IS_FROZEN = eosio_assert('from account is frozen')
 const TO_ACCOUNT_IS_FROZEN = eosio_assert('to account is frozen')
 
-const INVALID_TOKEN = eosio_assert('underlying token does not match with adapter registry')
+const INVALID_TOKEN = eosio_assert(
+  'underlying token does not match with adapter registry',
+)
+
 const UNEXPECTED_CONTEXT = eosio_assert('unexpected context')
-const INVALID_SIGNATURE = eosio_assert('invalid signature')
+
 const INVALID_MINFEE_SYMBOL = eosio_assert('invalid minimum fee symbol')
 
 const NOT_INITIALIZED = eosio_assert('adapter contract not initialized')
+
 const WRONG_SYM_PRECISION = eosio_assert('symbol not found')
+
+const SINGLETON_NOT_EXISTING = eosio_assert('singleton does not exist')
+
+const ORIGIN_CHAINID_NOT_REGISTERED = eosio_assert(
+  'origin chain_id not registered',
+)
+
+const INVALID_SIGNATURE = eosio_assert('invalid signature')
+
+const UNEXPECTED_EMITTER = eosio_assert('unexpected emitter')
+
+const UNEXPECTED_TOPIC_ZERO = eosio_assert('unexpected topic zero')
+
+const INVALID_NONCE = eosio_assert('nonce do not match')
+
+const INVALID_TOKEN_ADDRESS = eosio_assert('token address do not match')
+
+const INVALID_DESTINATION_CHAIN = eosio_assert(
+  'destination chain id does not match with the expected one',
+)
+
+const INVALID_AMOUNT = eosio_assert('amount do not match')
+
+const INVALID_SENDER = eosio_assert('sender do not match')
+
+const INVALID_RECIPIENT = eosio_assert('recipient do not match')
+
+const INVALID_USER_DATA = eosio_assert('user data do not match')
+
+const ACCOUNT_STR_IS_TOO_LONG = eosio_assert(
+  'string is too long to be a valid name',
+)
+
+const INVALID_ACCOUNT = eosio_assert('invalid account')
+
+const EXPECTED_32_BYTES = _thing => eosio_assert(`expected 32 bytes ${_thing}`)
 
 module.exports = {
   AUTH_MISSING,
@@ -40,4 +80,19 @@ module.exports = {
   INVALID_MINFEE_SYMBOL,
   NOT_INITIALIZED,
   WRONG_SYM_PRECISION,
+  SINGLETON_NOT_EXISTING,
+  ORIGIN_CHAINID_NOT_REGISTERED,
+  INVALID_SIGNATURE,
+  UNEXPECTED_EMITTER,
+  UNEXPECTED_TOPIC_ZERO,
+  INVALID_NONCE,
+  INVALID_TOKEN_ADDRESS,
+  INVALID_DESTINATION_CHAIN,
+  INVALID_AMOUNT,
+  INVALID_SENDER,
+  INVALID_RECIPIENT,
+  INVALID_USER_DATA,
+  INVALID_ACCOUNT,
+  ACCOUNT_STR_IS_TOO_LONG,
+  EXPECTED_32_BYTES,
 }

@@ -1,7 +1,6 @@
 const { expect } = require('chai')
-const { Blockchain, expectToThrow, mintTokens } = require('@eosnetwork/vert')
+const { Blockchain, expectToThrow } = require('@eosnetwork/vert')
 const { deploy } = require('./utils/deploy')
-const { Asset, Bytes, PublicKey } = require('@wharfkit/antelope')
 const R = require('ramda')
 const {
   active,
@@ -9,17 +8,18 @@ const {
   getAccountCodeRaw,
   getSymbolCodeRaw,
   getSingletonInstance,
-  logExecutionTraces,
   prettyTrace,
 } = require('./utils/eos-ext')
-const { getXbytesHex, hexToString, removeNullChars } = require('./utils/bytes-utils')
+const {
+  getXbytesHex,
+  hexToString,
+  removeNullChars,
+} = require('./utils/bytes-utils')
 const { getEventBytes } = require('./utils/get-event-bytes')
-const { substract, no0x } = require('./utils/wharfkit-ext')
+const { substract } = require('./utils/wharfkit-ext')
 const { getAccountsBalances } = require('./utils/get-token-balance')
-const { getMetadataSample } = require('./utils/get-metadata-sample')
-const { getOperationSample } = require('./utils/get-operation-sample')
 const errors = require('./utils/errors')
-
+const { no0x } = require('./utils')
 const ethers = require('ethers')
 
 const getSwapMemo = (sender, destinationChainId, recipient, data) =>
@@ -230,7 +230,7 @@ describe('Adapter EOS -> ETH testing', () => {
       await token.contract.actions
         .transfer([user, adapter.account, quantity, memo])
         .send(active(user))
-        
+
       const after = getAccountsBalances(
         [user, lockbox.account, adapter.account, feemanager],
         [token, xerc20],
@@ -286,7 +286,7 @@ describe('Adapter EOS -> ETH testing', () => {
       const eventBytes = getEventBytes(adapter.contract)
       const expectedEventBytes =
         '00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000746b6e2e746f6b656e00000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000008a88f6dc465640000000000000000000000000000000000000000000000000000000000075736572000000000000000000000000000000000000000000000000000000000000002a307836386262656436613437313934656666316366353134623530656139313839353539376663393165'
-        expect(eventBytes).to.be.equal(expectedEventBytes)
+      expect(eventBytes).to.be.equal(expectedEventBytes)
 
       offset = 0
       const nonce = getXbytesHex(eventBytes, offset, 32)
@@ -301,11 +301,15 @@ describe('Adapter EOS -> ETH testing', () => {
       offset += 32
       const recipientLen = getXbytesHex(eventBytes, offset, 32)
       offset += 32
-      const swapRecipient = getXbytesHex(eventBytes, offset, parseInt(recipientLen, 16))
+      const swapRecipient = getXbytesHex(
+        eventBytes,
+        offset,
+        parseInt(recipientLen, 16),
+      )
       offset += parseInt(recipientLen, 16)
       const userData = eventBytes.slice(offset * 2, eventBytes.length)
 
-      const expectedAmount = (parseInt(amount) - intFees) * (10 ** 18)
+      const expectedAmount = (parseInt(amount) - intFees) * 10 ** 18
       expect(parseInt(nonce)).to.be.equal(before.storage.nonce)
       expect(removeNullChars(hexToString(swapToken))).to.be.equal(token.account)
       expect(destChainId).to.be.equal(destinationChainId.slice(2))
@@ -344,15 +348,15 @@ describe('Adapter EOS -> ETH testing', () => {
   //         'hex',
   //       ),
   //     )
-  //     const pubKey = PublicKey.from({ type: 'K1', compressed }) 
+  //     const pubKey = PublicKey.from({ type: 'K1', compressed })
   //     await adapter.contract.actions
   //       .settee([pubKey, attestation])
   //       .send(active(adapter.account))
-      
-  //     const normalizedOriginChainId = hexStringToBytes('0000000000000000000000000000000000000000000000000000000000000001') 
+
+  //     const normalizedOriginChainId = hexStringToBytes('0000000000000000000000000000000000000000000000000000000000000001')
   //     const normalizedOriginAdapter = hexStringToBytes('000000000000000000000000cc9676b9bf25ce45a3a5f88205239afddecf1bc7')
   //     const normalizeTopicZero = hexStringToBytes('9b706941b48091a1c675b439064f40b9d43c577d9c7134cce93179b9b0bf2a52')
-                                                        
+
   //     await adapter.contract.actions
   //       .setemitter([normalizedOriginChainId, normalizedOriginAdapter])
   //       .send(active(adapter.account))
@@ -407,46 +411,46 @@ describe('Adapter EOS -> ETH testing', () => {
   //     )
   //   })
 
-    // it('Should send userdata to a receiver contract', async () => {
-    //   const quantity = `1.0000 ${token.symbol}`
-    //   const normalizedAmount = ethers
-    //     .parseUnits(Asset.from(quantity).units.toString(), 18)
-    //     .toString()
+  // it('Should send userdata to a receiver contract', async () => {
+  //   const quantity = `1.0000 ${token.symbol}`
+  //   const normalizedAmount = ethers
+  //     .parseUnits(Asset.from(quantity).units.toString(), 18)
+  //     .toString()
 
-    //   const metadata = getMetadataSample()
-    //   const operation = getOperationSample({
-    //     amount: normalizedAmount,
-    //     data: 'c0ffeec0ffeec0ffee',
-    //     recipient: receiver.account,
-    //   })
+  //   const metadata = getMetadataSample()
+  //   const operation = getOperationSample({
+  //     amount: normalizedAmount,
+  //     data: 'c0ffeec0ffeec0ffee',
+  //     recipient: receiver.account,
+  //   })
 
-    //   const before = getAccountsBalances([receiver.account], [token, xerc20])
+  //   const before = getAccountsBalances([receiver.account], [token, xerc20])
 
-    //   // Fill in some tokens as collateral
-    //   await token.contract.actions
-    //     .transfer([user, lockbox.account, quantity, ''])
-    //     .send(active(user))
+  //   // Fill in some tokens as collateral
+  //   await token.contract.actions
+  //     .transfer([user, lockbox.account, quantity, ''])
+  //     .send(active(user))
 
-    //   await adapter.contract.actions
-    //     .settle([user, operation, metadata])
-    //     .send(active(user))
+  //   await adapter.contract.actions
+  //     .settle([user, operation, metadata])
+  //     .send(active(user))
 
-    //   const after = getAccountsBalances([receiver.account], [token, xerc20])
-    //   const receiverResults = receiver.contract.tables
-    //     .results(getAccountCodeRaw(receiver.account))
-    //     .getTableRow(0n)
+  //   const after = getAccountsBalances([receiver.account], [token, xerc20])
+  //   const receiverResults = receiver.contract.tables
+  //     .results(getAccountCodeRaw(receiver.account))
+  //     .getTableRow(0n)
 
-    //   expect(
-    //     substract(
-    //       after[receiver.account][token.symbol],
-    //       before[receiver.account][token.symbol],
-    //     ).toString(),
-    //   ).to.be.equal(quantity)
+  //   expect(
+  //     substract(
+  //       after[receiver.account][token.symbol],
+  //       before[receiver.account][token.symbol],
+  //     ).toString(),
+  //   ).to.be.equal(quantity)
 
-    //   expect(receiverResults).to.be.deep.equal({
-    //     id: 0,
-    //     data: operation.data,
-    //   })
-    // })
+  //   expect(receiverResults).to.be.deep.equal({
+  //     id: 0,
+  //     data: operation.data,
+  //   })
+  // })
   // })
 })
