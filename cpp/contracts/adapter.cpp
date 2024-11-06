@@ -197,7 +197,7 @@ void adapter::settle(const name& caller, const operation& operation, const metad
    auto idx_registry = _registry.get_index<adapter_registry_idx_token_bytes>();
    auto search_token_bytes = idx_registry.find(operation.token);
    check(search_token_bytes != idx_registry.end(), "underlying token does not match with adapter registry");
-   check(search_token_bytes->xerc20_symbol == operation.amount.symbol, "registered xerc20 symbols differs from the operation one");
+   check(search_token_bytes->xerc20_symbol == operation.amount.symbol, "registered xerc20 symbols differs from the operation one"); // TODO: test me
 
    checksum256 event_id; // output
    pam::check_authorization(get_self(), operation, metadata, event_id);
