@@ -16,8 +16,10 @@
     "test:forge": "forge test",
     "test:hh": "hardhat clean && FORK=1 hardhat test",
     "test:hh-no-fork": "hardhat test",
-    "lint": "npx solhint src/**/*.sol",
-    "prettier": "prettier --write ./src ./test",
+    "solhint": "npx solhint src/**/*.sol",
+    "prettier": "npx prettier --cache --check --ignore-path ../.prettierignore --config ../.prettierrc ./src ./test",
+    "lint": "yarn solhint && yarn prettier",
+    "prettier:fix": "yarn prettier --write",
     "coverage": "./coverage.sh"
   },
   "devDependencies": {
