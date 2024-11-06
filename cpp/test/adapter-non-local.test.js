@@ -440,7 +440,7 @@ const localToken = {
     it('Should throw if emitter is not 32 bytes', async () => {
       const originChainId = evmOperationSamples.pegin.originChainId
       const action = adapter.contract.actions
-        .setemitter([hexStringToBytes(originChainId), 'a899118f4bccb62f8c6a37887a4f450d8a4e92e0'])
+        .setemitter([hexStringToBytes(originChainId), 'BCF063A9eB18bc3C6eB005791C61801B7cB16fe4'])
         .send(active(adapter.account))
 
       await expectToThrow(action, 'eosio_assert: expected 32 bytes emitter')
@@ -639,6 +639,9 @@ const localToken = {
       await adapter.contract.actions
         .settle([user, operation, metadata])
         .send(active(user))
+
+
+      console.log(adapter.contract.bc.console)
 
       const after = getAccountsBalances(
         [user, recipient, adapter.account],
