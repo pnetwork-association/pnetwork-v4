@@ -56,11 +56,13 @@ describe('PAM testing', () => {
 
   const attestation = []
   const blockchain = new Blockchain()
+  const eosChainId =
+    'aca376f206b8fc25a6ed44dbdc66547c36c6c33e3a119ffbeaef943642f0e906'
   const operation = getOperationSample({
     amount: '1337.0000 TKN',
     sender: '0000000000000000000000002b5ad5c4795c026514f8317c7a215e218dccd6cf',
     token: '000000000000000000000000f2e246bb76df876cef8b38ae84130f4f55de395b',
-    chainId: 'aca376f206b8fc25a6ed44dbdc66547c36c6c33e3a119ffbeaef943642f0e906',
+    chainId: eosChainId,
     recipient,
   })
   const data =
@@ -313,6 +315,76 @@ describe('PAM testing', () => {
 
         expect(pam.contract.bc.console).to.be.equal(expectedEventId)
       })
+    })
+
+    it('Should authorize an EOSIO operation successfully', async () => {
+      const blockId =
+        '179ed57f474f446f2c9f6ea6702724cdad0cf26422299b368755ed93c0134a35'
+      const txId =
+        '27598a45ee610287d85695f823f8992c10602ce5bf3240ee20635219de4f734f'
+      const nonce = 0
+      const token =
+        '0000000000000000000000000000000000000000000000746b6e2e746f6b656e'
+      const originChainId = no0x(Chains(Protocols.Eos).Jungle)
+      const destinationChainId = eosChainId
+      const amount = '9.9825 TKN'
+      const sender =
+        '0000000000000000000000000000000000000000000000000000000075736572'
+      const recipient = 'recipient'
+      const data = ''
+      const operation2 = getOperationSample({
+        blockId,
+        txId,
+        nonce,
+        token,
+        originChainId,
+        destinationChainId,
+        amount,
+        sender,
+        recipient,
+        data,
+      })
+
+      const eosEmitter = Buffer.from('adapter')
+        .toString('hex')
+        .padStart(64, '0')
+      const eosTopic0 = Buffer.from('swap').toString('hex').padStart(64, '0')
+
+      const ea2 = new ProofcastEventAttestator({
+        version: Versions.V1,
+        protocolId: Protocols.Eos,
+        chainId: Chains(Protocols.Eos).Jungle,
+        privateKey,
+      })
+
+      const eventData = {
+        event_bytes:
+          '00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000746b6e2e746f6b656eaca376f206b8fc25a6ed44dbdc66547c36c6c33e3a119ffbeaef943642f0e9060000000000000000000000000000000000000000000000008a88f6dc4656400000000000000000000000000000000000000000000000000000000000757365720000000000000000000000000000000000000000000000000000000000000009726563697069656e74',
+      }
+
+      const event2 = {
+        blockHash: operation2.blockId,
+        transactionHash: operation2.txId,
+        account: 'adapter',
+        action: 'swap',
+        data: eventData,
+      }
+
+      await adapter.contract.actions
+        .setorigin([operation2.originChainId, eosEmitter, eosTopic0])
+        .send(active(adapter.account))
+
+      const metadata2 = getMetadataSample({
+        signature: no0x(ea2.formatEosSignature(ea2.sign(event2))),
+        preimage: no0x(ea2.getEventPreImage(event2)),
+      })
+
+      await pam.contract.actions
+        .isauthorized([operation2, metadata2])
+        .send(active(user))
+      expect(pam.contract.bc.console).to.be.equal(
+        '42cde5d898147a7bd21006e0fe541092151262cb2bde3a3244587e7993c473e0',
+      )
     })
   })
 })
