@@ -4,11 +4,13 @@ const adjustPrecision = (amount, precision) => {
   }
 
   const [integerPart, decimalPart] = amount.split('.')
-  const trimmedDecimals = (decimalPart || '').slice(0, precision).padEnd(precision, '0')
+  const trimmedDecimals = (decimalPart || '')
+    .slice(0, precision)
+    .padEnd(precision, '0')
 
   return precision > 0 ? `${integerPart}.${trimmedDecimals}` : integerPart
 }
 
 module.exports = {
-  adjustPrecision
+  adjustPrecision,
 }

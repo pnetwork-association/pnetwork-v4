@@ -22,7 +22,7 @@ interface IAdapter {
     event Settled(bytes32 indexed eventId);
     event FeesManagerChanged(address newAddress);
     // Low level event
-    // Swap(bytes) 
+    // Swap(bytes)
     // topic: 0x66756E6473206172652073616675207361667520736166752073616675202E2E
 
     error NotAContract(address addr);

@@ -15,7 +15,8 @@
     "test": "yarn workspaces foreach --all --parallel --no-private run test",
     "lint": "yarn workspaces foreach --all --parallel --no-private run lint",
     "build": "yarn workspaces foreach --all --parallel --no-private run build",
-    "prettier": "yarn workspaces foreach --all --parallel --no-private run prettier"
+    "prettier": "yarn workspaces foreach --all --parallel --no-private run prettier",
+    "prepare": "husky"
   },
   "devDependencies": {
     "@eslint/js": "^9.5.0",
@@ -29,5 +30,8 @@
     "typescript": "4.7.4",
     "typescript-eslint": "^7.13.1"
   },
-  "packageManager": "yarn@4.3.1"
+  "packageManager": "yarn@4.3.1",
+  "dependencies": {
+    "husky": "^9.1.6"
+  }
 }

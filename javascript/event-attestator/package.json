@@ -6,8 +6,11 @@
   "license": "MIT",
   "scripts": {
     "test": "jest",
-    "lint": "npx eslint .",
-    "lint:fix": "npx eslint --fix ."
+    "eslint": "npx eslint .",
+    "eslint:fix": "yarn eslint --fix",
+    "prettier:fix": "yarn prettier --write",
+    "lint": "yarn prettier",
+    "prettier": "npx prettier --cache --check --ignore-path ../../.prettierignore --config ../../.prettierrc ./src ./test"
   },
   "devDependencies": {
     "eslint": "^9.13.0",
