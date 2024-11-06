@@ -552,14 +552,6 @@ describe('Adapter EVM -> EOS testing', () => {
       const operation = evmOperationSamples.pegin
       const metadata = evmMetadataSamples.pegin
 
-      const amount = operation.amount / 10 ** evmPrecision
-
-      const quantity = `${amount} TST`
-      const xquantity = `${adjustPrecision(amount, evmXERC20.precision)} XTST`
-      const normalizedAmount = ethers
-        .parseUnits(Asset.from(quantity).value.toString(), 18)
-        .toString()
-
       const before = getAccountsBalances(
         [user, recipient, adapter.account, feemanager],
         [evmXERC20],
@@ -574,7 +566,7 @@ describe('Adapter EVM -> EOS testing', () => {
         [evmXERC20],
       )
 
-      expect(after[recipient][evmXERC20.symbol]).to.be.equal(xquantity)
+      expect(after[recipient][evmXERC20.symbol]).to.be.equal(operation.amount)
 
       expect(after[adapter.account][evmXERC20.symbol]).to.be.equal(
         `0.0000 ${evmXERC20.symbol}`,
@@ -588,14 +580,6 @@ describe('Adapter EVM -> EOS testing', () => {
     it('Should settle the operation properly and send userdata', async () => {
       const operation = evmOperationSamples.peginWithUserData
       const metadata = evmMetadataSamples.peginWithUserData
-      const amount = operation.amount / 10 ** evmPrecision
-
-      const quantity = `${amount} TST`
-      const xquantity = `${adjustPrecision(amount, evmXERC20.precision)} XTST`
-      const normalizedAmount = ethers
-        .parseUnits(Asset.from(quantity).value.toString(), 18)
-        .toString()
-      const xquantityAsset = Asset.from(xquantity)
 
       const before = getAccountsBalances(
         [user, recipient, adapter.account],
@@ -613,7 +597,7 @@ describe('Adapter EVM -> EOS testing', () => {
       )
 
       expect(after[recipient][evmXERC20.symbol]).to.equal(
-        sum(xquantityAsset, beforeAsset).toString(),
+        sum(operation.amount, beforeAsset).toString(),
       )
 
       expect(after[adapter.account][evmXERC20.symbol]).to.be.equal(
