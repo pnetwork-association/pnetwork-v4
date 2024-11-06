@@ -30,14 +30,19 @@ contract Adapter is IAdapter, Ownable, ReentrancyGuard {
     address public pam;
     uint256 public minFee;
     mapping(bytes32 => bool) public pastEvents;
+    bool public isNative;
 
     constructor(
         address xerc20_,
         address erc20_,
+        bool isNative_,
         address feesManager_,
         address pam_
     ) Ownable(msg.sender) {
-        erc20 = erc20_;
+        isNative = isNative_;
+        if (!isNative) {
+            erc20 = erc20_;
+        }
         xerc20 = xerc20_;
         feesManager = feesManager_;
         pam = pam_;
@@ -124,7 +129,7 @@ contract Adapter is IAdapter, Ownable, ReentrancyGuard {
         string memory recipient,
         bytes memory data
     ) external payable {
-        if (erc20 == address(0)) {
+        if (erc20 == address(0) && isNative) {
             _swapNative(destinationChainId, recipient, data);
         } else {
             _swapToken(token, amount, destinationChainId, recipient, data);
