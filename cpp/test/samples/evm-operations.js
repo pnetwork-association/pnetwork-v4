@@ -1,11 +1,6 @@
 const { toBeHex, zeroPadValue, parseUnits } = require('ethers')
 const { no0x } = require('../utils/wharfkit-ext')
 
-const amounts = {
-  pegin: '5.87190615',
-  peginWithUserData: '0.9974995655625',
-}
-
 const evmTopicZero = '66756e6473206172652073616675207361667520736166752073616675202e2e'
 const evmAdapter = '000000000000000000000000bcf063a9eb18bc3c6eb005791c61801b7cb16fe4'
 
@@ -17,7 +12,7 @@ const evmOperationSamples = {
     token: no0x(zeroPadValue(toBeHex('0x810090f35dfa6b18b5eb59d298e2a2443a2811e2'),32)),
     originChainId: no0x(zeroPadValue('0x01',32)), // EVM mainnet chain id
     destinationChainId: no0x(zeroPadValue('0xaca376f206b8fc25a6ed44dbdc66547c36c6c33e3a119ffbeaef943642f0e906',32)), // EOS chain id
-    amount: parseUnits(amounts.pegin, 18).toString(),
+    amount: parseUnits('5.87190615', 18).toString(),
     sender: no0x(zeroPadValue('0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266', 32)),
     recipient: 'eosrecipient',
     data: '',
@@ -29,7 +24,7 @@ const evmOperationSamples = {
     token: no0x(zeroPadValue(toBeHex('0x810090f35DFA6B18b5EB59d298e2A2443a2811E2'), 32)),
     originChainId: no0x(zeroPadValue('0x01',32)), // ETH chain id
     destinationChainId: no0x(zeroPadValue('0xaca376f206b8fc25a6ed44dbdc66547c36c6c33e3a119ffbeaef943642f0e906', 32)), // EOS chain id
-    amount: parseUnits(amounts.peginWithUserData, 18).toString(),
+    amount: parseUnits('0.9974995655625', 18).toString(),
     sender: no0x(zeroPadValue('0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266', 32)),
     recipient: 'eosrecipient',
     data: '12345abcdefc0de1337f',
@@ -40,5 +35,4 @@ module.exports = {
   evmOperationSamples,
   evmTopicZero,
   evmAdapter,
-  amounts,
 }
