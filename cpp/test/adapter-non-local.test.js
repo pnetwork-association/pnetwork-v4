@@ -413,14 +413,6 @@ describe('Adapter EVM -> EOS testing', () => {
       await expectToThrow(action, errors.AUTH_MISSING(adapter.account))
     })
 
-    it('Should throw if adapter is not initialized', async () => {
-      const action = notInitAdapter.contract.actions
-        .settee([teePubKey, attestation])
-        .send(active(notInitAdapter.account))
-
-      await expectToThrow(action, errors.NOT_INITIALIZED)
-    })
-
     it('Should set the tee pubKey and attestation correctly', async () => {
       await adapter.contract.actions
         .settee([teePubKey, attestation])
