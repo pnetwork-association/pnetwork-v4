@@ -105,6 +105,7 @@ abstract contract Helper is Test, DeployHelper {
         adapter = new Adapter(
             address(xerc20),
             address(erc20),
+            notNative,
             address(feesManager),
             address(pam)
         );

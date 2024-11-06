@@ -45,6 +45,7 @@ conditionalDescribe(
     const burningLimit = hre.ethers.parseEther('500000')
     const swapAmount = hre.ethers.parseEther('10000')
     const userdata = '0x'
+    const isNative = false
 
     let erc20,
       adapterEth,
@@ -93,6 +94,7 @@ conditionalDescribe(
         adapterBsc = await deploy(hre, 'Adapter', [
           ptoken.target,
           ADDRESS_ERC20_TOKEN,
+          isNative,
           feesManagerBsc,
           pamBsc,
         ])
@@ -179,7 +181,6 @@ conditionalDescribe(
 
         const name = `p${await erc20.name()}`
         const symbol = `p${await erc20.symbol()}`
-        const isNative = false
 
         const factory = await deploy(hre, 'XERC20Factory', [])
         xerc20 = await deployXERC20(hre, factory, name, symbol)
@@ -204,6 +205,7 @@ conditionalDescribe(
         adapterEth = await deploy(hre, 'Adapter', [
           xerc20.target,
           ADDRESS_ERC20_TOKEN,
+          isNative,
           feesManagerEth,
           pamEth,
         ])

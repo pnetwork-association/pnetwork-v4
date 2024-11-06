@@ -43,6 +43,7 @@ contract AdapterTest is Test, Helper {
         adapter = new Adapter(
             address(xerc20),
             address(erc20),
+            notNative,
             address(feesManager),
             address(pam)
         );
