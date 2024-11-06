@@ -62,6 +62,8 @@ const ACCOUNT_STR_IS_TOO_LONG = eosio_assert(
 
 const INVALID_ACCOUNT = eosio_assert('invalid account')
 
+const EXPECTED_32_BYTES = _thing => eosio_assert(`expected 32 bytes ${_thing}`)
+
 module.exports = {
   AUTH_MISSING,
   SYMBOL_NOT_FOUND,
@@ -92,4 +94,5 @@ module.exports = {
   INVALID_USER_DATA,
   INVALID_ACCOUNT,
   ACCOUNT_STR_IS_TOO_LONG,
+  EXPECTED_32_BYTES,
 }

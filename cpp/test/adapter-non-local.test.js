@@ -433,13 +433,14 @@ describe('Adapter EVM -> EOS testing', () => {
     })
   })
 
-  describe('adapter::setemitter', () => {
+  describe('adapter::setorigin', () => {
     it('Should throw if called by not authorized account', async () => {
       const originChainId = evmOperationSamples.pegin.originChainId
       const action = adapter.contract.actions
-        .setemitter([
+        .setorigin([
           hexStringToBytes(originChainId),
           hexStringToBytes(evmAdapter),
+          hexStringToBytes(evmTopicZero),
         ])
         .send(active(evil))
 
@@ -448,47 +449,74 @@ describe('Adapter EVM -> EOS testing', () => {
 
     it('Should throw if emitter is not 32 bytes', async () => {
       const originChainId = evmOperationSamples.pegin.originChainId
+      const wrong = '0xC0FFEE'
       const action = adapter.contract.actions
-        .setemitter([
+        .setorigin([
           hexStringToBytes(originChainId),
-          'BCF063A9eB18bc3C6eB005791C61801B7cB16fe4',
-        ])
-        .send(active(adapter.account))
-
-      await expectToThrow(action, 'eosio_assert: expected 32 bytes emitter')
-    })
-
-    it('Should throw if origin chain id is not 32 bytes', async () => {
-      const action = adapter.contract.actions
-        .setemitter([1, hexStringToBytes(evmAdapter)])
-        .send(active(adapter.account))
-
-      await expectToThrow(action, 'eosio_assert: expected 32 bytes chain_id')
-    })
-
-    it('Should set the emitter and chainId correctly', async () => {
-      const originChainId = evmOperationSamples.pegin.originChainId
-      await adapter.contract.actions
-        .setemitter([
-          hexStringToBytes(originChainId),
+          hexStringToBytes(wrong),
           hexStringToBytes(evmTopicZero),
         ])
         .send(active(adapter.account))
 
-      const emitterRow = adapter.contract.tables
+      await expectToThrow(action, errors.EXPECTED_32_BYTES('emitter'))
+    })
+
+    it('Should throw if topic zero is not 32 bytes', async () => {
+      const originChainId = evmOperationSamples.pegin.originChainId
+      const wrong = '0xC0FFEE'
+      const action = adapter.contract.actions
+        .setorigin([
+          hexStringToBytes(originChainId),
+          hexStringToBytes(evmAdapter),
+          hexStringToBytes(wrong),
+        ])
+        .send(active(adapter.account))
+
+      await expectToThrow(action, errors.EXPECTED_32_BYTES('topic zero'))
+    })
+
+    it('Should throw if origin chain id is not 32 bytes', async () => {
+      const wrong = 1
+      const action = adapter.contract.actions
+        .setorigin([
+          wrong,
+          hexStringToBytes(evmAdapter),
+          hexStringToBytes(evmTopicZero),
+        ])
+        .send(active(adapter.account))
+
+      await expectToThrow(action, errors.EXPECTED_32_BYTES('chain_id'))
+    })
+
+    it('Should set the origin details correctly', async () => {
+      const originChainId = evmOperationSamples.pegin.originChainId
+      const anAddress = no0x(
+        ethers.zeroPadValue('0xe396757ec7e6ac7c8e5abe7285dde47b98f22db8', 32),
+      )
+      await adapter.contract.actions
+        .setorigin([
+          hexStringToBytes(originChainId),
+          hexStringToBytes(anAddress),
+          hexStringToBytes(evmTopicZero),
+        ])
+        .send(active(adapter.account))
+
+      const row = adapter.contract.tables
         .mappings(getAccountCodeRaw(adapter.account))
         .getTableRow(ethers.stripZerosLeft(`0x${originChainId}`))
 
-      expect(emitterRow.chain_id).to.be.equal(originChainId)
-      expect(emitterRow.emitter).to.be.equal(evmTopicZero)
+      expect(row.chain_id).to.be.equal(originChainId)
+      expect(row.emitter).to.be.equal(anAddress)
+      expect(row.topic_zero).to.be.equal(evmTopicZero)
     })
 
-    it('Should update the emitter correctly', async () => {
+    it('Should update the origin details correctly', async () => {
       const originChainId = evmOperationSamples.pegin.originChainId
       await adapter.contract.actions
-        .setemitter([
+        .setorigin([
           hexStringToBytes(originChainId),
           hexStringToBytes(evmAdapter),
+          hexStringToBytes(evmTopicZero),
         ])
         .send(active(adapter.account))
 
@@ -498,73 +526,6 @@ describe('Adapter EVM -> EOS testing', () => {
 
       expect(emitterRow.chain_id).to.be.equal(originChainId)
       expect(emitterRow.emitter).to.be.equal(evmAdapter)
-    })
-  })
-
-  describe('adapter::settopiczero', () => {
-    it('Should throw if called by not authorized account', async () => {
-      const originChainId = evmOperationSamples.pegin.originChainId
-      const action = adapter.contract.actions
-        .settopiczero([
-          hexStringToBytes(originChainId),
-          hexStringToBytes(evmTopicZero),
-        ])
-        .send(active(evil))
-
-      await expectToThrow(action, errors.AUTH_MISSING(adapter.account))
-    })
-
-    it('Should throw if emitter is not 32 bytes', async () => {
-      const originChainId = evmOperationSamples.pegin.originChainId
-      const action = adapter.contract.actions
-        .settopiczero([
-          hexStringToBytes(originChainId),
-          'a899118f4bccb62f8c6a37887a4f450d8a4e92e0',
-        ])
-        .send(active(adapter.account))
-
-      await expectToThrow(action, 'eosio_assert: expected 32 bytes emitter')
-    })
-
-    it('Should throw if origin chain id is not 32 bytes', async () => {
-      const action = adapter.contract.actions
-        .settopiczero([1, hexStringToBytes(evmTopicZero)])
-        .send(active(adapter.account))
-
-      await expectToThrow(action, 'eosio_assert: expected 32 bytes chain_id')
-    })
-
-    it('Should set the topic0 and chainId correctly', async () => {
-      const originChainId = no0x(ethers.zeroPadValue('0x02', 32))
-      await adapter.contract.actions
-        .settopiczero([
-          hexStringToBytes(originChainId),
-          hexStringToBytes(evmTopicZero),
-        ])
-        .send(active(adapter.account))
-
-      const emitterRow = adapter.contract.tables
-        .mappings(getAccountCodeRaw(adapter.account))
-        .getTableRow(BigInt('0x' + originChainId.slice(-16)))
-
-      expect(emitterRow.chain_id).to.be.equal(originChainId)
-      expect(emitterRow.topic_zero).to.be.equal(evmTopicZero)
-    })
-
-    it('Should update the topic0 correctly', async () => {
-      const originChainId = evmOperationSamples.pegin.originChainId
-      await adapter.contract.actions
-        .settopiczero([
-          hexStringToBytes(originChainId),
-          hexStringToBytes(evmTopicZero),
-        ])
-        .send(active(adapter.account))
-
-      const emitterRow = adapter.contract.tables
-        .mappings(getAccountCodeRaw(adapter.account))
-        .getTableRow(BigInt('0x' + originChainId.slice(-16)))
-
-      expect(emitterRow.chain_id).to.be.equal(originChainId)
       expect(emitterRow.topic_zero).to.be.equal(evmTopicZero)
     })
   })
