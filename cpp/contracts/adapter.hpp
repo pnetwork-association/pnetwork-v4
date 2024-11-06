@@ -72,8 +72,8 @@ namespace eosio {
          uint128_t FEE_BASIS_POINTS_DIVISOR = 1000000; // 4 decimals for basis point + 2 decimals for percentage
 
          TABLE global_storage_table {
-            uint128_t   nonce;
-            name        feesmanager;
+            uint64_t nonce;
+            name     feesmanager;
          };
 
          // Scoped with user account
@@ -98,11 +98,14 @@ namespace eosio {
          using lockbox_singleton = singleton<"lockbox"_n, name>;
          using storage = singleton<"storage"_n, global_storage_table>;
 
+         // Define alias for ABI inclusion
+         using mappings_table = pam::mappings_table;
+         using tee_pubkey = pam::tee_pubkey;
+
          global_storage_table empty_storage = {
             .nonce = 0,
             .feesmanager = ""_n
          };
-
 
          void check_symbol_is_valid(const name& account, const symbol& sym);
          void extract_memo_args(

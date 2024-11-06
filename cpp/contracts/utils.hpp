@@ -127,8 +127,8 @@ namespace eosio {
    }
 
    asset from_wei(uint128_t amount, const symbol& sym) {
-      const uint128_t divisor = 1000000000000000000; // 1e18
-      return asset(amount / divisor, sym);
+      const uint8_t exp = 18 - sym.precision();
+      return asset(amount / powint(10, exp), sym);
    }
 
    bytes extract_32bytes(const bytes& data, uint128_t offset) {

@@ -52,7 +52,6 @@ void adapter::create(
    require_auth(get_self());
 
    auto _token_bytes = token_bytes.extract_as_byte_array();
-   check(_token_bytes.size() == 32, "token bytes length must be 32");
    check(is_account(xerc20), "xERC20 account does not exist");
    check(min_fee.symbol == xerc20_symbol, "invalid minimum fee symbol");
 
@@ -82,12 +81,16 @@ void adapter::create(
 
    storage _storage(get_self(), get_self().value);
    _storage.get_or_create(get_self(), adapter::empty_storage);
+
+   pam::tee_pubkey _tee_pubkey(get_self(), get_self().value);
+   _tee_pubkey.get_or_create(get_self(), pam::null_key);
 }
 
 void adapter::setfeemanagr(const name& fee_manager) {
+   require_auth(get_self());
    storage _storage(get_self(), get_self().value);
 
-   check(_storage.exists(), "contract not initialized");
+   check(_storage.exists(), "adapter contract not initialized");
    auto storage = _storage.get();
 
    storage.feesmanager = fee_manager;
@@ -161,20 +164,16 @@ void adapter::freeuserdata(const name& account) {
 }
 
 void adapter::settee(public_key pub_key, bytes attestation) {
-   print("set tee");
+   // FIXME add cool down phase
    require_auth(get_self());
    pam::tee_pubkey _tee_pubkey(get_self(), get_self().value);
 
-   _tee_pubkey.get_or_create(
-      get_self(),
-      pam::tee{.key = public_key()}
-   );
+   check(_tee_pubkey.exists(), "adapter contract not initialized");
 
    _tee_pubkey.set(pam::tee{
-      .key = pub_key 
+      .key = pub_key,
+      .attestation = attestation
    }, get_self());
-
-   // print("attestation: ")
 }
 
 void adapter::settopiczero(bytes chain_id, bytes topic_zero) {
@@ -190,23 +189,18 @@ void adapter::settopiczero(bytes chain_id, bytes topic_zero) {
          row.chain_id = chain_id;
          row.topic_zero = topic_zero;
       });
-
-      print("Added a new mapping for chain_id: ", get_mappings_key(chain_id));
    } else {
       _mappings_table.modify(mappings_itr, get_self(), [&](auto& row) {
          row.topic_zero = topic_zero;
       });
-
-      print("Updated the topic zero for chain_id: ", get_mappings_key(chain_id));
    }
 }
 
 void adapter::setemitter(bytes chain_id , bytes emitter) {
-   print("set emitter");
    require_auth(get_self());
    check(emitter.size() == 32, "expected 32 bytes emitter");
    check(chain_id.size() == 32, "expected 32 bytes chain_id");
-   pam:: mappings_table _mappings_table(get_self(), get_self().value);
+   pam::mappings_table _mappings_table(get_self(), get_self().value);
 
    auto mappings_itr = _mappings_table.find(get_mappings_key(chain_id));
    if (mappings_itr == _mappings_table.end()) {
@@ -214,14 +208,10 @@ void adapter::setemitter(bytes chain_id , bytes emitter) {
          row.chain_id = chain_id;
          row.emitter = emitter;
       });
-
-      print("Added a new mapping for chain_id: ", get_mappings_key(chain_id));
    } else {
       _mappings_table.modify(mappings_itr, get_self(), [&](auto& row) {
          row.emitter = emitter;
       });
-
-      print("Updated the emitter for chain_id: ", get_mappings_key(chain_id));
    }
 }
 
@@ -231,7 +221,7 @@ void adapter::settle(const name& caller, const operation& operation, const metad
    registry_adapter _registry(get_self(), get_self().value);
    auto idx_registry = _registry.get_index<adapter_registry_idx_token_bytes>();
    auto search_token_bytes = idx_registry.find(operation.token);
-   check(search_token_bytes != idx_registry.end(), "invalid token");
+   check(search_token_bytes != idx_registry.end(), "underlying token does not match with adapter registry");
 
    checksum256 event_id = sha256((const char*)metadata.preimage.data(), metadata.preimage.size());
    
@@ -240,10 +230,18 @@ void adapter::settle(const name& caller, const operation& operation, const metad
    past_events _past_events(get_self(), get_self().value);
    auto idx_past_events = _past_events.get_index<adapter_registry_idx_eventid>();
    auto itr = idx_past_events.find(event_id);
-
-   // TODO: disabled for tests, enable this when PAM is ready
    check(itr == idx_past_events.end(), "event already processed");
-   _past_events.emplace(caller, [&](auto& r) { r.event_id = event_id; });
+
+   storage _storage(get_self(), get_self().value);
+   check(_storage.exists(), "contract not initialized");
+   auto storage = _storage.get();
+
+   _past_events.emplace(caller, [&](auto& r) { 
+      r.notused = storage.nonce;
+      r.event_id = event_id;
+   });
+   storage.nonce++;
+   _storage.set(storage, get_self());
 
    name xerc20 = search_token_bytes->xerc20;
    check(is_account(xerc20), "Not valid xerc20 name");
@@ -444,10 +442,9 @@ void pam::check_authorization(name adapter, const operation& operation, const me
    check(itr_mappings != _mappings_table.end(), "origin chain_id not registered");
    bytes exp_emitter = itr_mappings->emitter;
    bytes exp_topic_zero =  itr_mappings->topic_zero;
-
    signature sig = convert_bytes_to_signature(metadata.signature);
    public_key recovered_pubkey = recover_key(event_id, sig);
-   check(recovered_pubkey == tee_key, "Invalid signature");
+   check(recovered_pubkey == tee_key, "invalid signature");
 
    offset = 0; 
    bytes event_payload(metadata.preimage.begin() + 98, metadata.preimage.end());
@@ -457,50 +454,46 @@ void pam::check_authorization(name adapter, const operation& operation, const me
 
    bytes topic_zero = extract_32bytes(event_payload, offset);
    check(topic_zero == exp_topic_zero && !is_all_zeros(topic_zero), "unexpected Topic Zero");
-   offset += 32 * 3; // skip other topics
+   offset += 32 * 4; // skip other topics
 
-   // check nonce
-   bytes event_data(event_payload.begin() + offset, event_payload.end());
-   bytes nonce = extract_32bytes(event_data, offset);
+   bytes nonce = extract_32bytes(event_payload, offset);
    uint64_t nonce_int = bytes32_to_uint64(nonce);
    check(operation.nonce == nonce_int, "nonce do not match");
    offset += 32;
-
    // check origin token
-   bytes token = extract_32bytes(event_data, offset);
+   bytes token = extract_32bytes(event_payload, offset);
    checksum256 token_hash = bytes32_to_checksum256(token);
-   check(operation.token == token_hash, "token adddress do not match");
+   check(operation.token == token_hash, "token address do not match");
    offset += 32;
 
    // check destination chain id
-   bytes dest_chain_id = extract_32bytes(event_data, offset);
+   bytes dest_chain_id = extract_32bytes(event_payload, offset);
    check(operation.destinationChainId == dest_chain_id, "destination chain Id does not match with the expected one");
    check(CHAIN_ID == dest_chain_id, "destination chain Id does not match with the current chain");
    offset += 32;
 
    // check amount
-   bytes amount = extract_32bytes(event_data, offset);
+   bytes amount = extract_32bytes(event_payload, offset);
    uint128_t amount_num = bytes32_to_uint128(amount);
-   check(operation.amount == amount_num, "amount do not match");
    offset += 32;
    
    // check sender address
-   bytes sender = extract_32bytes(event_data, offset);
+   bytes sender = extract_32bytes(event_payload, offset);
    check(operation.sender == sender, "sender do not match");
    offset += 32;
 
    // check recipient address
-   bytes recipient_len = extract_32bytes(event_data, offset);
+   bytes recipient_len = extract_32bytes(event_payload, offset);
    offset += 32;
    uint128_t recipient_len_num = bytes32_to_uint128(recipient_len);
    const uint128_t UINT128_MAX = (uint128_t)-1;
    check(recipient_len_num <= UINT128_MAX - offset, "overflow detected in data field");
-   bytes recipient(event_data.begin() + offset, event_data.begin() + offset + recipient_len_num);
+   bytes recipient(event_payload.begin() + offset, event_payload.begin() + offset + recipient_len_num);
    name recipient_name = bytes_to_name(recipient);
    check(operation.recipient == recipient_name, "recipient do not match");
    offset += recipient_len_num;
 
-   bytes user_data(event_data.begin() + offset, event_data.end());
+   bytes user_data(event_payload.begin() + offset, event_payload.end());
    checksum256 data256 = sha256((const char*)user_data.data(), user_data.size());
    checksum256 op_data256 = sha256((const char*)operation.data.data(), operation.data.size());
    check(data256 == op_data256, "user data do not match");
