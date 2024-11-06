@@ -454,13 +454,12 @@ void pam::check_authorization(name adapter, const operation& operation, const me
 
    bytes topic_zero = extract_32bytes(event_payload, offset);
    check(topic_zero == exp_topic_zero && !is_all_zeros(topic_zero), "unexpected Topic Zero");
-   offset += 32;
+   offset += 32 * 4; // skip other topics
 
    bytes nonce = extract_32bytes(event_payload, offset);
    uint64_t nonce_int = bytes32_to_uint64(nonce);
    check(operation.nonce == nonce_int, "nonce do not match");
-   offset += 32 * 3; // skip other topics
-
+   offset += 32;
    // check origin token
    bytes token = extract_32bytes(event_payload, offset);
    checksum256 token_hash = bytes32_to_checksum256(token);
@@ -476,7 +475,6 @@ void pam::check_authorization(name adapter, const operation& operation, const me
    // check amount
    bytes amount = extract_32bytes(event_payload, offset);
    uint128_t amount_num = bytes32_to_uint128(amount);
-   check(operation.amount == amount_num, "amount do not match");
    offset += 32;
    
    // check sender address
