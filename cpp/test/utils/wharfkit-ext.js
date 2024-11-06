@@ -11,7 +11,11 @@ const assetOperation = R.curry((_fn, _op1, _op2) => {
     'Asset symbols do not match',
   )
 
-  return Asset.from(_fn(op1.value, op2.value), op1.symbol)
+  return Asset.from(
+    _fn === R.sum ? _fn([op1.value, op2.value]) : _fn(op1.value)(op2.value),
+    op1.symbol
+  )
+  
 })
 
 const substract = assetOperation(R.subtract)
