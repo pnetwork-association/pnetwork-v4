@@ -11,6 +11,7 @@ const INSUFFICIENT_BALANCE_INC = eosio_assert(
 const NO_ALLOWANCE_SET = eosio_assert('No allowance set for this node')
 
 const AUTH_MISSING = _account => `missing required authority ${_account}`
+
 const SYMBOL_NOT_FOUND = eosio_assert('symbol not found')
 
 const FROM_ACCOUNT_IS_FROZEN = eosio_assert('from account is frozen')
@@ -25,8 +26,6 @@ const UNEXPECTED_CONTEXT = eosio_assert('unexpected context')
 const INVALID_MINFEE_SYMBOL = eosio_assert('invalid minimum fee symbol')
 
 const NOT_INITIALIZED = eosio_assert('adapter contract not initialized')
-
-const WRONG_SYM_PRECISION = eosio_assert('symbol not found')
 
 const SINGLETON_NOT_EXISTING = eosio_assert('singleton does not exist')
 
@@ -62,6 +61,8 @@ const ACCOUNT_STR_IS_TOO_LONG = eosio_assert(
 
 const INVALID_ACCOUNT = eosio_assert('invalid account')
 
+const INVALID_SYMBOL = eosio_assert('invalid symbol')
+
 const EXPECTED_32_BYTES = _thing => eosio_assert(`expected 32 bytes ${_thing}`)
 
 module.exports = {
@@ -79,7 +80,7 @@ module.exports = {
   INVALID_SIGNATURE,
   INVALID_MINFEE_SYMBOL,
   NOT_INITIALIZED,
-  WRONG_SYM_PRECISION,
+  SYMBOL_NOT_FOUND,
   SINGLETON_NOT_EXISTING,
   ORIGIN_CHAINID_NOT_REGISTERED,
   INVALID_SIGNATURE,
@@ -95,4 +96,5 @@ module.exports = {
   INVALID_ACCOUNT,
   ACCOUNT_STR_IS_TOO_LONG,
   EXPECTED_32_BYTES,
+  INVALID_SYMBOL,
 }

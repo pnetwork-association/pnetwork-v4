@@ -8,7 +8,7 @@ asset adapter::calculate_fees(const asset& quantity) {
    auto registry_data = _registry.get();
 
    check(
-      quantity.symbol == registry_data.token_symbol || 
+      quantity.symbol == registry_data.token_symbol ||
       quantity.symbol == registry_data.xerc20_symbol,
       "invalid quantity given for calculating the fees"
    );
@@ -27,6 +27,7 @@ void adapter::check_symbol_is_valid(const name& account, const symbol& sym) {
    stats _stats(account, sym.code().raw());
    auto itr = _stats.find(sym.code().raw());
    check(itr != _stats.end(), "symbol not found");
+   check(sym == itr->supply.symbol, "invalid symbol");
 }
 
 void adapter::create(
@@ -45,6 +46,7 @@ void adapter::create(
    check(is_account(xerc20), "xERC20 account does not exist");
    check(min_fee.symbol == xerc20_symbol, "invalid minimum fee symbol");
    check_symbol_is_valid(xerc20, xerc20_symbol);
+   check(min_fee.symbol == xerc20_symbol, "invalid minimum fee symbol");
 
    // Checks done only for the local token
    if (token != name(0)) {
