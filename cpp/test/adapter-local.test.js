@@ -170,9 +170,7 @@ describe('Adapter EOS -> ETH testing', () => {
         .setfeemanagr([feemanager])
         .send(active(adapter.account))
 
-      const row = adapter.contract.tables
-        .regadapter(getAccountCodeRaw(adapter.account))
-        .getTableRow(getSymbolCodeRaw(token.maxSupply))
+      const row = getSingletonInstance(adapter.contract, 'regadapter')
 
       const storage = getSingletonInstance(adapter.contract, TABLE_STORAGE)
 
