@@ -247,7 +247,6 @@ void adapter::swap(const bytes& event_bytes) {
    // deserialize the event_bytes arg, so we'll get it from
    // the bc.console
    // NOTE: performance are not affected by this
-   print("adapter_swap_event_bytes:");
    printhex(event_bytes.data(), event_bytes.size());
 }
 
