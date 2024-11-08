@@ -5,7 +5,7 @@ namespace eosio {
 asset adapter::calculate_fees(const asset& quantity) {
    registry_adapter _registry(get_self(), get_self().value);
    check(_registry.exists(), "contract not inizialized");
-   adapter_registry_table registry_data = _registry.get();
+   auto registry_data = _registry.get();
 
    check(
       quantity.symbol == registry_data.token_symbol || 
@@ -39,20 +39,21 @@ void adapter::create(
 ) {
    require_auth(get_self());
    registry_adapter _registry(get_self(), get_self().value);
-   check(!_registry.exists(), "adapter already registered");
+   check(!_registry.exists(), "adapter already initialized");
 
    auto _token_bytes = token_bytes.extract_as_byte_array();
    check(is_account(xerc20), "xERC20 account does not exist");
    check(min_fee.symbol == xerc20_symbol, "invalid minimum fee symbol");
    check_symbol_is_valid(xerc20, xerc20_symbol);
 
+   // Checks done only for the local token
    if (token != name(0)) {
-      // checks done only for local token
       check_symbol_is_valid(token, token_symbol);
       check(token_symbol.precision() == xerc20_symbol.precision(), "invalid xerc20 precision");
       check(is_account(token), "token account does not exist");
    }
 
+   // Default value for the token symbol on non-local deployments
    symbol non_local_token_symbol = symbol(symbol_code("XXX"), token_symbol.precision());
 
    adapter_registry_table registry_data {
@@ -186,7 +187,7 @@ void adapter::settle(const name& caller, const operation& operation, const metad
 
    registry_adapter _registry(get_self(), get_self().value);
    check(_registry.exists(), "contract not inizialized");
-   adapter_registry_table registry_data = _registry.get();
+   auto registry_data = _registry.get();
    check(registry_data.token_bytes == operation.token, "underlying token does not match with adapter registry");
    checksum256 event_id; // output
    pam::check_authorization(get_self(), operation, metadata, event_id);
@@ -335,7 +336,7 @@ void adapter::ontransfer(const name& from, const name& to, const asset& quantity
 
    registry_adapter _registry(get_self(), get_self().value);
    check(_registry.exists(), "contract not inizialized");
-   adapter_registry_table registry_data = _registry.get();
+   auto registry_data = _registry.get();
 
    bool is_token_transfer = registry_data.token_symbol == quantity.symbol;
    bool is_xerc20_transfer = registry_data.xerc20_symbol == quantity.symbol;
