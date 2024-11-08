@@ -59,7 +59,7 @@ describe('PAM testing', () => {
   const eosChainId =
     'aca376f206b8fc25a6ed44dbdc66547c36c6c33e3a119ffbeaef943642f0e906'
   const operation = getOperationSample({
-    amount: '1337.0000 TKN',
+    amount: '1337000000000000000000',
     sender: '0000000000000000000000002b5ad5c4795c026514f8317c7a215e218dccd6cf',
     token: '000000000000000000000000f2e246bb76df876cef8b38ae84130f4f55de395b',
     chainId: eosChainId,
@@ -327,7 +327,7 @@ describe('PAM testing', () => {
         '0000000000000000000000000000000000000000000000746b6e2e746f6b656e'
       const originChainId = no0x(Chains(Protocols.Eos).Jungle)
       const destinationChainId = eosChainId
-      const amount = '9.9825 TKN'
+      const amount = '9982500000000000000'
       const sender =
         '0000000000000000000000000000000000000000000000000000000075736572'
       const recipient = 'recipient'
