@@ -23,8 +23,9 @@ namespace eosio {
    // WETH ERC20 => local chain is Ethereum, then adapter's registry is
    //
    // |_____token____|___token_symbol___|______token_bytes_______|_____xerc20_____|
-   // |      ''      |     '0,XXX'      | bytes32(address(WETH)) | 'xweth.token'  |
-   // NOTE: for not local token_symbol = '0,XXX'
+   // |      ''      |     '18,XXX'      | bytes32(address(WETH)) | 'xweth.token'  |
+   //
+   // NOTE: for not local token_symbol = '<actual_precision>,XXX'
 
    TABLE adapter_registry_table {
       name                 token;

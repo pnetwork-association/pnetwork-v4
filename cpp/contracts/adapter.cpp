@@ -53,7 +53,7 @@ void adapter::create(
       check(is_account(token), "token account does not exist");
    }
 
-   symbol non_local_token_symbol = symbol(symbol_code("XXX"), 0);
+   symbol non_local_token_symbol = symbol(symbol_code("XXX"), token_symbol.precision());
 
    adapter_registry_table registry_data {
       .token = token,
