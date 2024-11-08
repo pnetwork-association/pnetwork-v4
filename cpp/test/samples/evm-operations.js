@@ -16,7 +16,7 @@ const evmOperationSamples = {
       '0000000000000000000000000000000000000000000000000000000000000001', // EVM mainnet chain id
     destinationChainId:
       'aca376f206b8fc25a6ed44dbdc66547c36c6c33e3a119ffbeaef943642f0e906', // EOS chain id
-    amount: '5.87190615 XTST',
+    amount: '5871906150000000000',
     sender: '000000000000000000000000f39fd6e51aad88f6f4ce6ab8827279cfffb92266',
     recipient: 'eosrecipient',
     data: '',
@@ -30,10 +30,24 @@ const evmOperationSamples = {
       '0000000000000000000000000000000000000000000000000000000000000001', // ETH chain id
     destinationChainId:
       'aca376f206b8fc25a6ed44dbdc66547c36c6c33e3a119ffbeaef943642f0e906', // EOS chain id
-    amount: '0.99749956 XTST',
+    amount: '997499560000000000',
     sender: '000000000000000000000000f39fd6e51aad88f6f4ce6ab8827279cfffb92266',
     recipient: 'eosrecipient',
     data: '12345abcdefc0de1337f',
+  },
+  peginLargePrecision: {
+    blockId: '9c6d1358f426fe23fc7cf0e67aa422ff27c4e5ec7899297a10f036e6cf6643da',
+    txId: '96d4d6885f072cb3f734d1b4add1d78d46487692cf9d912a6a91cfc6c65bc7d6',
+    nonce: 0,
+    token: '000000000000000000000000810090f35dfa6b18b5eb59d298e2a2443a2811e2',
+    originChainId:
+      '0000000000000000000000000000000000000000000000000000000000000001', // ETH chain id
+    destinationChainId:
+      'aca376f206b8fc25a6ed44dbdc66547c36c6c33e3a119ffbeaef943642f0e906', // EOS chain id
+    amount: '1189215224969292133',
+    sender: '000000000000000000000000f39fd6e51aad88f6f4ce6ab8827279cfffb92266',
+    recipient: 'eosrecipient',
+    data: '',
   },
 }
 

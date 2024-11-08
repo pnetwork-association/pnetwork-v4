@@ -13,7 +13,7 @@ const getOperationSample = _injectedOperation =>
       '0000000000000000000000000000000000000000000000000000000000000001', // ETH chain id
     destinationChainId:
       'aca376f206b8fc25a6ed44dbdc66547c36c6c33e3a119ffbeaef943642f0e906', // EOS chain id
-    amount: '5.889675 XTKN',
+    amount: '5889675000000000000',
     sender:
       '0x000000000000000000000000f39fd6e51aad88f6f4ce6ab8827279cfffb92266',
     recipient: 'destinatieos',
