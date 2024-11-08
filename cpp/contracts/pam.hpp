@@ -148,7 +148,7 @@ namespace eosio {
 
             bytes amount = extract_32bytes(event_data, offset);
             uint128_t amount_num = bytes32_to_uint128(amount);
-            check(to_wei(operation.amount) == amount_num, "amount do not match");
+            check(operation.amount == amount_num, "amount do not match");
             offset += 32;
 
             bytes sender = extract_32bytes(event_data, offset);

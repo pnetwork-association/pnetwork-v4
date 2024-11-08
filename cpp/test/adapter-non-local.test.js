@@ -22,7 +22,7 @@ const {
   evmAdapter,
 } = require('./samples/evm-operations')
 const { evmMetadataSamples, teePubKey } = require('./samples/evm-metadata')
-const { adjustPrecision } = require('./utils/precision-utils')
+const { adjustPrecision, fromWei } = require('./utils/precision-utils')
 
 const attestation = 'deadbeef'
 
@@ -318,7 +318,7 @@ describe('Adapter EVM -> EOS testing', () => {
 
       expect(row).to.be.deep.equal({
         token: '',
-        token_symbol: precision(0, 'XXX'),
+        token_symbol: precision(18, 'XXX'),
         token_bytes: evmUnderlyingToken.bytes,
         xerc20: evmXERC20.account,
         xerc20_symbol: precision(evmXERC20.precision, evmXERC20.symbol),
@@ -517,6 +517,12 @@ describe('Adapter EVM -> EOS testing', () => {
   })
 
   describe('adapter::settle', () => {
+    const createOperationAsset = amount =>
+      Asset.from(
+        amount / 10 ** evmPrecision,
+        precision(evmXERC20.precision, evmXERC20.symbol),
+      )
+
     it('Should reject if adapter and token do not match', async () => {
       const operation = evmOperationSamples.pegin
       const metadata = evmMetadataSamples.pegin
@@ -546,7 +552,10 @@ describe('Adapter EVM -> EOS testing', () => {
         [evmXERC20],
       )
 
-      expect(after[recipient][evmXERC20.symbol]).to.be.equal(operation.amount)
+      const operationAsset = createOperationAsset(operation.amount)
+      expect(after[recipient][evmXERC20.symbol]).to.be.equal(
+        operationAsset.toString(),
+      )
 
       expect(after[adapter.account][evmXERC20.symbol]).to.be.equal(
         `0.0000 ${evmXERC20.symbol}`,
@@ -576,8 +585,9 @@ describe('Adapter EVM -> EOS testing', () => {
         [evmXERC20],
       )
 
+      const operationAsset = createOperationAsset(operation.amount)
       expect(after[recipient][evmXERC20.symbol]).to.equal(
-        sum(operation.amount, beforeAsset).toString(),
+        sum(operationAsset, beforeAsset).toString(),
       )
 
       expect(after[adapter.account][evmXERC20.symbol]).to.be.equal(
@@ -606,7 +616,11 @@ describe('Adapter EVM -> EOS testing', () => {
         [evmXERC20],
       )
 
-      const adjAmount = adjustPrecision(operation.amount, evmXERC20Precision)
+      const operationAsset = createOperationAsset(operation.amount)
+      const adjAmount = adjustPrecision(
+        operationAsset.toString(),
+        evmXERC20Precision,
+      )
       const adjOperationAmount = Asset.from(`${adjAmount} ${evmXERC20.symbol}`)
       expect(after[recipient][evmXERC20.symbol]).to.equal(
         sum(adjOperationAmount, beforeAsset).toString(),
