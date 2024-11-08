@@ -374,8 +374,31 @@ describe('Adapter tests', () => {
 
       const tee = getSingletonInstance(adapter.contract, 'tee')
 
+      const nullKey = 'PUB_K1_11111111111111111111111111111111149Mr2R'
       expect(tee.key).to.be.equal(teePubKey.toString())
+      expect(tee.updating_key).to.be.equal(nullKey)
       expect(tee.attestation).to.be.equal(attestation)
+      expect(tee.updating_attestation).to.be.equal('')
+      expect(tee.change_grace_threshold).to.be.equal(0)
+    })
+
+    it('Should wait and set a grace time period when a new tee is set', async () => {
+      const anotherAttestation = 'deadc0de'
+      const anotherEventAttestator = new ProofcastEventAttestator()
+      const anotherPublicKey = fromEthersPublicKey(
+        anotherEventAttestator.signingKey.compressedPublicKey,
+      )
+      await adapter.contract.actions
+        .settee([anotherPublicKey, anotherAttestation])
+        .send(active(adapter.account))
+
+      const tee = getSingletonInstance(adapter.contract, 'tee')
+
+      expect(tee.key).to.be.equal(teePubKey.toString())
+      expect(tee.updating_key).to.be.equal(anotherPublicKey.toString())
+      expect(tee.attestation).to.be.equal(attestation)
+      expect(tee.updating_attestation).to.be.equal(anotherAttestation)
+      expect(tee.change_grace_threshold).to.not.be.equal(0)
     })
   })
 
