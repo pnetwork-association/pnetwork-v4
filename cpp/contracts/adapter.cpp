@@ -240,7 +240,7 @@ void adapter::settle(const name& caller, const operation& operation, const metad
    }
 }
 
-void adapter::swap(const uint64_t& nonce, const bytes& event_bytes) {
+void adapter::swap(const bytes& event_bytes) {
    require_auth(get_self());
 
    // IMPORTANT: this is for the tests, vert doesn't correctly
@@ -324,7 +324,7 @@ void adapter::xerc20_transfer_from_any(
    );
 
    action_swap _swap{self, {self, "active"_n}};
-   _swap.send(storage.nonce, event_bytes);
+   _swap.send(event_bytes);
 
    storage.nonce++;
    _storage.set(storage, self);

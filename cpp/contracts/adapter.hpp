@@ -49,7 +49,7 @@ namespace eosio {
 
          ACTION setorigin(bytes chain_id, bytes emitter, bytes topic_zero);
 
-         ACTION swap(const uint64_t& nonce, const bytes& event_bytes);
+         ACTION swap(const bytes& event_bytes);
 
          ACTION settle(const name& caller, const operation& operation, const metadata& metadata);
 
