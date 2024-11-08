@@ -82,7 +82,7 @@ void xtoken::burn( const name& caller, const asset& quantity, const string& memo
    const auto& st = *existing;
 
    lockbox_singleton _lockbox( get_self(), get_self().value );
-   auto lockbox = _lockbox.get();
+   auto lockbox = _lockbox.get_or_default(name(0));
    bridges bridgestable( get_self(), get_self().value );
    auto idx = bridgestable.get_index<name("bysymbol")>();
    auto itr = idx.lower_bound( quantity.symbol.code().raw() );
