@@ -187,8 +187,10 @@ void adapter::settle(const name& caller, const operation& operation, const metad
    registry_adapter _registry(get_self(), get_self().value);
    check(_registry.exists(), "contract not inizialized");
    adapter_registry_table registry_data = _registry.get();
-   check (registry_data.token_bytes == operation.token, "underlying token does not match with adapter registry");
-   check(registry_data.xerc20_symbol == operation.amount.symbol, "registered xerc20 symbols differs from the operation one"); // TODO: test me
+   check(registry_data.token_bytes == operation.token, "underlying token does not match with adapter registry");
+   // symbol check if underlying is EOS type
+   if (registry_data.token != name(0)) // TODO add test
+      check(registry_data.xerc20_symbol == operation.amount.symbol, "registered xerc20 symbols differs from the operation one");
 
    checksum256 event_id; // output
    pam::check_authorization(get_self(), operation, metadata, event_id);
@@ -213,8 +215,10 @@ void adapter::settle(const name& caller, const operation& operation, const metad
    name xerc20 = registry_data.xerc20;
    check(is_account(xerc20), "Not valid xerc20 name");
    if (operation.amount.amount > 0) {
-      asset quantity(operation.amount.amount, registry_data.xerc20_symbol);
-
+      asset adj_operation_amount = (registry_data.token == name(0) && registry_data.token_symbol == symbol(symbol_code("XXX"), 0)) ?
+         adjust_precision(operation.amount, registry_data.xerc20_symbol) :
+         operation.amount;
+      asset quantity(adj_operation_amount.amount, registry_data.xerc20_symbol);
       lockbox_singleton _lockbox(xerc20, xerc20.value);
       action_mint _mint(registry_data.xerc20, {get_self(), "active"_n});
       if (_lockbox.exists()) {

@@ -131,6 +131,22 @@ namespace eosio {
       return asset(amount / powint(10, exp), sym);
    }
 
+   asset adjust_precision(const asset& from_asset, const symbol& to_sym) {
+      int16_t exp = from_asset.symbol.precision() - to_sym.precision();
+      uint128_t factor;
+      uint128_t adjusted_amount;
+      if (exp < 0) {
+         exp = -exp;
+         factor = powint(10, exp);
+         adjusted_amount = from_asset.amount * factor;
+      } else {
+         print("WARNING: Operation precision exceeds destination symbol; amount will be floored to destination symbol precision.");
+         factor = powint(10, exp);
+         adjusted_amount = from_asset.amount / factor;
+      }
+      return asset(adjusted_amount, to_sym);
+   }
+
    bytes extract_32bytes(const bytes& data, uint128_t offset) {
       bytes _data(data.begin() + offset, data.begin() + offset + 32);
       return _data;
