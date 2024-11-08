@@ -584,5 +584,37 @@ describe('Adapter EVM -> EOS testing', () => {
         `0.0000 ${evmXERC20.symbol}`,
       )
     })
+
+    it('Should truncate the passed amount to the set precision', async () => {
+      const operation = evmOperationSamples.peginLargePrecision
+      const metadata = evmMetadataSamples.peginLargePrecision
+
+      const before = getAccountsBalances(
+        [user, recipient, adapter.account],
+        [evmXERC20],
+      )
+      const beforeAsset = Asset.from(before[recipient][evmXERC20.symbol])
+
+      await adapter.contract.actions
+        .settle([user, operation, metadata])
+        .send(active(user))
+
+      console.log(adapter.contract.bc.console)
+
+      const after = getAccountsBalances(
+        [user, recipient, adapter.account],
+        [evmXERC20],
+      )
+
+      const adjAmount = adjustPrecision(operation.amount, evmXERC20Precision)
+      const adjOperationAmount = Asset.from(`${adjAmount} ${evmXERC20.symbol}`)
+      expect(after[recipient][evmXERC20.symbol]).to.equal(
+        sum(adjOperationAmount, beforeAsset).toString(),
+      )
+
+      expect(after[adapter.account][evmXERC20.symbol]).to.be.equal(
+        `0.0000 ${evmXERC20.symbol}`,
+      )
+    })
   })
 })
