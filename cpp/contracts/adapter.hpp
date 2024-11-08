@@ -86,13 +86,8 @@ namespace eosio {
          typedef eosio::multi_index<"userdata"_n, user_data_table> user_data;
          typedef eosio::multi_index<"pastevents"_n, adapter_past_events_table, adapter_past_events_byeventid> past_events;
          typedef eosio::multi_index<"reglockbox"_n, lockbox_registry_table, lockbox_registry_byxtoken> registry_lockbox;
-         typedef eosio::multi_index<
-            "regadapter"_n,
-            adapter_registry_table,
-            adapter_registry_byxtoken,
-            adapter_registry_bytokenbytes
-         > registry_adapter;
 
+         using registry_adapter = singleton<"regadapter"_n, adapter_registry_table>;
          using lockbox_singleton = singleton<"lockbox"_n, name>;
          using storage = singleton<"storage"_n, global_storage_table>;
 

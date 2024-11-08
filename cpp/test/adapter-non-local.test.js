@@ -18,15 +18,13 @@ const errors = require('./utils/errors')
 const ethers = require('ethers')
 const {
   evmOperationSamples,
-  amounts,
   evmTopicZero,
   evmAdapter,
 } = require('./samples/evm-operations')
 const { evmMetadataSamples, teePubKey } = require('./samples/evm-metadata')
-const { adjustPrecision } = require('./utils/precision-utils')
+const { adjustPrecision, fromWei } = require('./utils/precision-utils')
 
 const attestation = 'deadbeef'
-const NULL_KEY = 'PUB_K1_11111111111111111111111111111111149Mr2R' // null initialization of public_key() CDT function
 
 describe('Adapter EVM -> EOS testing', () => {
   const evmTokenSymbol = 'TST'
@@ -35,8 +33,6 @@ describe('Adapter EVM -> EOS testing', () => {
   const evmXERC20Precision = 8
 
   const TABLE_STORAGE = 'storage'
-  const FEE_BASIS_POINTS = 1750
-  const FEE_BASIS_POINTS_DIVISOR = 1000000
 
   // infos of the underlying token
   const evmUnderlyingToken = {
@@ -313,9 +309,7 @@ describe('Adapter EVM -> EOS testing', () => {
         ])
         .send(active(adapter.account))
 
-      const row = adapter.contract.tables
-        .regadapter(getAccountCodeRaw(adapter.account))
-        .getTableRow(getSymbolCodeRaw(evmUnderlyingToken.maxSupply))
+      const row = getSingletonInstance(adapter.contract, 'regadapter')
       const storage = getSingletonInstance(adapter.contract, TABLE_STORAGE)
       const tee = getSingletonInstance(adapter.contract, 'tee')
       const mappingsRow = adapter.contract.tables
@@ -324,10 +318,7 @@ describe('Adapter EVM -> EOS testing', () => {
 
       expect(row).to.be.deep.equal({
         token: '',
-        token_symbol: precision(
-          evmUnderlyingToken.precision,
-          evmUnderlyingToken.symbol,
-        ),
+        token_symbol: precision(18, 'XXX'),
         token_bytes: evmUnderlyingToken.bytes,
         xerc20: evmXERC20.account,
         xerc20_symbol: precision(evmXERC20.precision, evmXERC20.symbol),
@@ -344,16 +335,16 @@ describe('Adapter EVM -> EOS testing', () => {
     it('Should throw if already created', async () => {
       const action = adapter.contract.actions
         .create([
-          evmXERC20.account,
-          precision(evmXERC20.precision, evmXERC20.symbol),
-          evmUnderlyingToken.account,
-          precision(evmUnderlyingToken.precision, evmUnderlyingToken.symbol),
+          'xerc20.2',
+          precision(6, 'XERC'),
+          'local',
+          precision(6, 'XXX'),
           evmUnderlyingToken.bytes,
           evmXERC20.minFee,
         ])
         .send(active(adapter.account))
 
-      await expectToThrow(action, 'eosio_assert: token already registered')
+      await expectToThrow(action, 'eosio_assert: adapter already initialized')
     })
   })
 
@@ -526,6 +517,12 @@ describe('Adapter EVM -> EOS testing', () => {
   })
 
   describe('adapter::settle', () => {
+    const createOperationAsset = amount =>
+      Asset.from(
+        amount / 10 ** evmPrecision,
+        precision(evmXERC20.precision, evmXERC20.symbol),
+      )
+
     it('Should reject if adapter and token do not match', async () => {
       const operation = evmOperationSamples.pegin
       const metadata = evmMetadataSamples.pegin
@@ -555,7 +552,10 @@ describe('Adapter EVM -> EOS testing', () => {
         [evmXERC20],
       )
 
-      expect(after[recipient][evmXERC20.symbol]).to.be.equal(operation.amount)
+      const operationAsset = createOperationAsset(operation.amount)
+      expect(after[recipient][evmXERC20.symbol]).to.be.equal(
+        operationAsset.toString(),
+      )
 
       expect(after[adapter.account][evmXERC20.symbol]).to.be.equal(
         `0.0000 ${evmXERC20.symbol}`,
@@ -585,8 +585,45 @@ describe('Adapter EVM -> EOS testing', () => {
         [evmXERC20],
       )
 
+      const operationAsset = createOperationAsset(operation.amount)
       expect(after[recipient][evmXERC20.symbol]).to.equal(
-        sum(operation.amount, beforeAsset).toString(),
+        sum(operationAsset, beforeAsset).toString(),
+      )
+
+      expect(after[adapter.account][evmXERC20.symbol]).to.be.equal(
+        `0.0000 ${evmXERC20.symbol}`,
+      )
+    })
+
+    it('Should truncate the passed amount to the set precision', async () => {
+      const operation = evmOperationSamples.peginLargePrecision
+      const metadata = evmMetadataSamples.peginLargePrecision
+
+      const before = getAccountsBalances(
+        [user, recipient, adapter.account],
+        [evmXERC20],
+      )
+      const beforeAsset = Asset.from(before[recipient][evmXERC20.symbol])
+
+      await adapter.contract.actions
+        .settle([user, operation, metadata])
+        .send(active(user))
+
+      console.log(adapter.contract.bc.console)
+
+      const after = getAccountsBalances(
+        [user, recipient, adapter.account],
+        [evmXERC20],
+      )
+
+      const operationAsset = createOperationAsset(operation.amount)
+      const adjAmount = adjustPrecision(
+        operationAsset.toString(),
+        evmXERC20Precision,
+      )
+      const adjOperationAmount = Asset.from(`${adjAmount} ${evmXERC20.symbol}`)
+      expect(after[recipient][evmXERC20.symbol]).to.equal(
+        sum(adjOperationAmount, beforeAsset).toString(),
       )
 
       expect(after[adapter.account][evmXERC20.symbol]).to.be.equal(

@@ -4,27 +4,23 @@ namespace eosio {
 
 asset adapter::calculate_fees(const asset& quantity) {
    registry_adapter _registry(get_self(), get_self().value);
-   auto idx = _registry.get_index<adapter_registry_idx_xtoken>();
-   auto search_token = _registry.find(quantity.symbol.code().raw());
-   auto search_xerc20 = idx.find(quantity.symbol.code().raw());
+   check(_registry.exists(), "contract not inizialized");
+   auto registry_data = _registry.get();
 
-   asset min_fee;
-   if (search_token != _registry.end()) {
-      min_fee = search_token->min_fee;
-   } else if (search_xerc20 != idx.end()) {
-      min_fee = search_xerc20->min_fee;
-   } else {
-      check(false, "invalid quantity given for calculating the fees");
-   }
+   check(
+      quantity.symbol == registry_data.token_symbol || 
+      quantity.symbol == registry_data.xerc20_symbol,
+      "invalid quantity given for calculating the fees"
+   );
 
    // Fees are expressed in the wrapped token (xerc20), hence why
    // the min_fee.symbol
-   auto ref_symbol = min_fee.symbol;
+   auto ref_symbol = registry_data.min_fee.symbol;
 
    uint128_t fee_amount = (FEE_BASIS_POINTS * quantity.amount) / FEE_BASIS_POINTS_DIVISOR;
    asset fee = asset(fee_amount, ref_symbol);
 
-   return fee < min_fee ? min_fee : fee;
+   return fee < registry_data.min_fee ? registry_data.min_fee : fee;
 }
 
 void adapter::check_symbol_is_valid(const name& account, const symbol& sym) {
@@ -42,34 +38,33 @@ void adapter::create(
    const asset& min_fee
 ) {
    require_auth(get_self());
+   registry_adapter _registry(get_self(), get_self().value);
+   check(!_registry.exists(), "adapter already initialized");
 
    auto _token_bytes = token_bytes.extract_as_byte_array();
    check(is_account(xerc20), "xERC20 account does not exist");
    check(min_fee.symbol == xerc20_symbol, "invalid minimum fee symbol");
-
-   registry_adapter _registry(get_self(), get_self().value);
-   auto itr = _registry.find(token_symbol.code().raw());
-   check(itr == _registry.end(), "token already registered");
    check_symbol_is_valid(xerc20, xerc20_symbol);
 
+   // Checks done only for the local token
    if (token != name(0)) {
-      // Check token symbol if toekn is local to a EOS like chain
       check_symbol_is_valid(token, token_symbol);
-      // Difference in precision allowed if token is not local
       check(token_symbol.precision() == xerc20_symbol.precision(), "invalid xerc20 precision");
-      // Do not check token validity if token is not local
       check(is_account(token), "token account does not exist");
    }
 
-   checksum256 c;
-   _registry.emplace( get_self(), [&]( auto& r ) {
-       r.xerc20 = xerc20;
-       r.xerc20_symbol = xerc20_symbol;
-       r.token = token;
-       r.token_symbol = token_symbol;
-       r.token_bytes = token_bytes;
-       r.min_fee = min_fee;
-   });
+   // Default value for the token symbol on non-local deployments
+   symbol non_local_token_symbol = symbol(symbol_code("XXX"), token_symbol.precision());
+
+   adapter_registry_table registry_data {
+      .token = token,
+      .token_symbol = token == name(0) ? non_local_token_symbol : token_symbol,
+      .token_bytes = token_bytes,
+      .xerc20 = xerc20,
+      .xerc20_symbol = xerc20_symbol,
+      .min_fee = min_fee
+   };
+   _registry.set(registry_data, get_self());
 
    storage _storage(get_self(), get_self().value);
    _storage.get_or_create(get_self(), adapter::empty_storage);
@@ -191,11 +186,9 @@ void adapter::settle(const name& caller, const operation& operation, const metad
    require_auth(caller);
 
    registry_adapter _registry(get_self(), get_self().value);
-   auto idx_registry = _registry.get_index<adapter_registry_idx_token_bytes>();
-   auto search_token_bytes = idx_registry.find(operation.token);
-   check(search_token_bytes != idx_registry.end(), "underlying token does not match with adapter registry");
-   check(search_token_bytes->xerc20_symbol == operation.amount.symbol, "registered xerc20 symbols differs from the operation one"); // TODO: test me
-
+   check(_registry.exists(), "contract not inizialized");
+   auto registry_data = _registry.get();
+   check(registry_data.token_bytes == operation.token, "underlying token does not match with adapter registry");
    checksum256 event_id; // output
    pam::check_authorization(get_self(), operation, metadata, event_id);
 
@@ -216,13 +209,13 @@ void adapter::settle(const name& caller, const operation& operation, const metad
    storage.nonce++;
    _storage.set(storage, get_self());
 
-   name xerc20 = search_token_bytes->xerc20;
+   name xerc20 = registry_data.xerc20;
    check(is_account(xerc20), "Not valid xerc20 name");
-   if (operation.amount.amount > 0) {
-      asset quantity(operation.amount.amount, search_token_bytes->xerc20_symbol);
-
+   if (operation.amount > 0) {
+      asset adj_operation_amount = adjust_precision(operation.amount, registry_data.token_symbol, registry_data.xerc20_symbol);
+      asset quantity(adj_operation_amount.amount, registry_data.xerc20_symbol);
       lockbox_singleton _lockbox(xerc20, xerc20.value);
-      action_mint _mint(search_token_bytes->xerc20, {get_self(), "active"_n});
+      action_mint _mint(registry_data.xerc20, {get_self(), "active"_n});
       if (_lockbox.exists()) {
          // If the lockbox exists, we release the collateral
          auto lockbox = _lockbox.get();
@@ -342,19 +335,18 @@ void adapter::ontransfer(const name& from, const name& to, const asset& quantity
    check(quantity.amount > 0, "invalid amount");
 
    registry_adapter _registry(get_self(), get_self().value);
-   auto search_token = _registry.find(quantity.symbol.code().raw());
-   auto idx = _registry.get_index<adapter_registry_idx_xtoken>();
-   auto search_xerc20 = idx.find(quantity.symbol.code().raw());
+   check(_registry.exists(), "contract not inizialized");
+   auto registry_data = _registry.get();
 
-   bool is_token_transfer = search_token != _registry.end();
-   bool is_xerc20_transfer = search_xerc20 != idx.end();
+   bool is_token_transfer = registry_data.token_symbol == quantity.symbol;
+   bool is_xerc20_transfer = registry_data.xerc20_symbol == quantity.symbol;
 
-   check(is_token_transfer || is_xerc20_transfer, "token not registered");
+   check(is_token_transfer || is_xerc20_transfer, "token not supported by this adapter");
 
-   auto xerc20 = is_token_transfer ? search_token->xerc20 : search_xerc20->xerc20;
-   auto xerc20_symbol = is_token_transfer ? search_token->xerc20_symbol : search_xerc20->xerc20_symbol;
-   auto token = is_token_transfer ? search_token->token : search_xerc20->token;
-   auto token_symbol = is_token_transfer ? search_token->token_symbol : search_xerc20->token_symbol;
+   auto xerc20 = is_token_transfer ? registry_data.xerc20 : registry_data.xerc20;
+   auto xerc20_symbol = is_token_transfer ? registry_data.xerc20_symbol : registry_data.xerc20_symbol;
+   auto token = is_token_transfer ? registry_data.token : registry_data.token;
+   auto token_symbol = is_token_transfer ? registry_data.token_symbol : registry_data.token_symbol;
 
    if (is_token_transfer) check(quantity.symbol == token_symbol, "invalid token quantity symbol");
    if (is_xerc20_transfer) check(quantity.symbol == xerc20_symbol, "invalid xerc20 quantity symbol");

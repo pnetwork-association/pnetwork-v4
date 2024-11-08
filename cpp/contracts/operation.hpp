@@ -14,7 +14,7 @@ namespace eosio {
       checksum256 token; // erc20 on EVM
       bytes originChainId;
       bytes destinationChainId;
-      asset amount;
+      uint128_t amount;
       bytes sender;
       name recipient;
       bytes data;
