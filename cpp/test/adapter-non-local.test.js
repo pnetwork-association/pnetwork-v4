@@ -344,7 +344,7 @@ describe('Adapter EVM -> EOS testing', () => {
         ])
         .send(active(adapter.account))
 
-      await expectToThrow(action, 'eosio_assert: adapter already registered')
+      await expectToThrow(action, 'eosio_assert: adapter already initialized')
     })
   })
 
