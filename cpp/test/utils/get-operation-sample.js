@@ -1,7 +1,9 @@
 const R = require('ramda')
-const { toBeHex, zeroPadValue, parseUnits } = require('ethers')
-
-const { no0x } = require('./bytes-utils')
+const { toBeHex, concat, stripZerosLeft } = require('ethers')
+const { Asset } = require('@wharfkit/antelope')
+const { _0x, no0x, bytes32 } = require('./bytes-utils')
+const { Protocols, Chains } = require('@pnetwork/event-attestator')
+const { getSymbolCodeRaw } = require('./eos-ext')
 
 const getOperationSample = _injectedOperation =>
   R.mergeDeepLeft(_injectedOperation, {
@@ -20,6 +22,68 @@ const getOperationSample = _injectedOperation =>
     data: '',
   })
 
+const isEosChain = _chainId =>
+  R.values(Chains(Protocols.Eos)).includes(stripZerosLeft(_chainId))
+
+const getOperation = _obj => {
+  const blockId = bytes32(_0x(_obj.blockId))
+  const txId = bytes32(_0x(_obj.txId))
+  const nonce = _obj.nonce
+  const originChainId = bytes32(_0x(_obj.originChainId))
+  const token = isEosChain(_obj.originChainId)
+    ? bytes32(toBeHex(getSymbolCodeRaw(_obj.token)))
+    : bytes32(_0x(_obj.token))
+  const destinationChainId = bytes32(_0x(_obj.destinationChainId))
+
+  const amount = isEosChain(_obj.destinationChainId)
+    ? Asset.from(_obj.amount)
+    : amount
+
+  const sender = isEosChain(_obj.originChainId)
+    ? bytes32(_0x(Buffer.from(_obj.sender, 'utf-8').toString('hex')))
+    : bytes32(_obj.sender)
+  const recipient = _obj.recipient
+  const data = _0x(_obj.data)
+
+  return {
+    blockId,
+    txId,
+    nonce,
+    token,
+    originChainId,
+    destinationChainId,
+    amount,
+    sender,
+    recipient,
+    data,
+  }
+}
+
+const serializeOperation = _operation => {
+  const amount = isEosChain(_operation.destinationChainId)
+    ? bytes32(toBeHex(BigInt(_operation.amount.value * 1e18))) // we need to include precision here
+    : bytes32(toBeHex(BigInt(_operation.amount))) // we expect amount to be already normalized
+
+  const recipientLen = bytes32(
+    toBeHex(BigInt(no0x(_operation.recipient).length)),
+  )
+
+  const recipient = _0x(Buffer.from(_operation.recipient, 'utf-8'))
+
+  return concat([
+    bytes32(toBeHex(BigInt(_operation.nonce))),
+    _operation.token,
+    _operation.destinationChainId,
+    amount,
+    _operation.sender,
+    recipientLen,
+    recipient,
+    _operation.data,
+  ])
+}
+
 module.exports = {
+  getOperation,
   getOperationSample,
+  serializeOperation,
 }
