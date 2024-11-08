@@ -5,11 +5,11 @@ const {
   Protocols,
   Versions,
 } = require('@pnetwork/event-attestator')
-const { zeroPadValue } = require('ethers')
 
 const {
   deploy,
   errors,
+  bytes32,
   getMetadataSample,
   getOperationSample,
   hexStringToBytes,
@@ -45,12 +45,9 @@ describe('PAM testing', () => {
 
   const publicKey = hexToPublicKey(ea.signingKey.compressedPublicKey)
 
-  const evmEmitter = hexStringToBytes(
-    zeroPadValue('0x5623D0aF4bfb6F7B18d6618C166d518E4357ceE2', 32),
-  )
-  const evmTopic0 = hexStringToBytes(
-    '0x66756e6473206172652073616675207361667520736166752073616675202e2e',
-  )
+  const evmEmitter = '0x5623D0aF4bfb6F7B18d6618C166d518E4357ceE2'
+  const evmTopic0 =
+    '0x66756e6473206172652073616675207361667520736166752073616675202e2e'
 
   const recipient = 'recipient'
 
@@ -71,7 +68,7 @@ describe('PAM testing', () => {
     blockHash: operation.blockId,
     transactionHash: operation.txId,
     address: evmEmitter,
-    topics: [evmTopic0, zeroPadValue('0x', 32)],
+    topics: [evmTopic0],
     data,
   }
 
@@ -126,8 +123,8 @@ describe('PAM testing', () => {
 
     it('Should reject if the signature is invalid', async () => {
       // We will correct these later
-      const wrongEmitter = no0x(zeroPadValue('0x010203', 32))
-      const wrongTopic0 = no0x(zeroPadValue('0x010203', 32))
+      const wrongEmitter = no0x(bytes32('0x010203'))
+      const wrongTopic0 = no0x(bytes32('0x010203'))
       await adapter.contract.actions
         .setorigin([operation.originChainId, wrongEmitter, wrongTopic0])
         .send(active(adapter.account))
@@ -154,12 +151,14 @@ describe('PAM testing', () => {
     })
 
     it('Should reject if the topic zero is different', async () => {
-      // Should set the correct emitter
-
-      const wrongTopic0 = no0x(zeroPadValue('0x010203', 32))
+      const wrongTopic0 = no0x(bytes32('0x010203'))
 
       await adapter.contract.actions
-        .setorigin([operation.originChainId, evmEmitter, wrongTopic0])
+        .setorigin([
+          operation.originChainId,
+          no0x(bytes32(evmEmitter)),
+          wrongTopic0,
+        ])
         .send(active(adapter.account))
 
       const action = pam.contract.actions
@@ -170,7 +169,11 @@ describe('PAM testing', () => {
 
       // Should set the correct topic zero
       await adapter.contract.actions
-        .setorigin([operation.originChainId, evmEmitter, evmTopic0])
+        .setorigin([
+          operation.originChainId,
+          no0x(bytes32(evmEmitter)),
+          no0x(bytes32(evmTopic0)),
+        ])
         .send(active(adapter.account))
     })
 
@@ -191,7 +194,7 @@ describe('PAM testing', () => {
       it('Should reject if token address does not match', async () => {
         const wrongOperation = {
           ...operation,
-          token: no0x(zeroPadValue('0x01', 32)),
+          token: no0x(bytes32('0x01')),
         }
 
         const action = pam.contract.actions
@@ -204,7 +207,7 @@ describe('PAM testing', () => {
       it('Should reject if the destination chain id does not match', async () => {
         const wrongOperation = {
           ...operation,
-          destinationChainId: no0x(zeroPadValue('0x01', 32)),
+          destinationChainId: no0x(bytes32('0x01')),
         }
         const action = pam.contract.actions
           .isauthorized([wrongOperation, metadata])
@@ -229,7 +232,7 @@ describe('PAM testing', () => {
       it('Should reject when the sender is different', async () => {
         const wrongOperation = {
           ...operation,
-          sender: no0x(zeroPadValue('0x01', 32)),
+          sender: no0x(bytes32('0x01')),
         }
 
         action = pam.contract.actions
@@ -382,6 +385,7 @@ describe('PAM testing', () => {
       await pam.contract.actions
         .isauthorized([operation2, metadata2])
         .send(active(user))
+
       expect(pam.contract.bc.console).to.be.equal(
         '42cde5d898147a7bd21006e0fe541092151262cb2bde3a3244587e7993c473e0',
       )
