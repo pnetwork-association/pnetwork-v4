@@ -12,7 +12,7 @@
     "test": "yarn build && mocha",
     "lint": "./lint scripts/*.sh && npx prettier --check test/",
     "prettier:fix": "npx prettier --check --write test/",
-    "prettier": "npx prettier --cache --check --ignore-path ../.prettierignore --config ../.prettierrc ./src ./test"
+    "prettier": "npx prettier --cache --check --ignore-path ../.prettierignore --config ../.prettierrc ./contracts ./test"
   },
   "devDependencies": {
     "@eosnetwork/vert": "^1.0.0",
