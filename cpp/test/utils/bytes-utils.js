@@ -1,5 +1,5 @@
 const R = require('ramda')
-const { zeroPadValue } = require('ethers')
+const { zeroPadValue, stripZerosLeft } = require('ethers')
 
 const getXbytesHex = (hex, offset, byteNum) =>
   hex.slice(offset * 2, offset * 2 + byteNum * 2)
@@ -49,6 +49,57 @@ const removeNullChars = string => string.replace(/\u0000/g, '')
 
 const bytes32 = _value => zeroPadValue(_0x(_value), 32)
 
+const deserializeEventBytes = _eventBytes => {
+  offset = 0
+  let nonce
+  try {
+    nonce = Number(
+      BigInt(stripZerosLeft(_0x(getXbytesHex(_eventBytes, offset, 32)))),
+    )
+  } catch (e) {
+    nonce = 0
+  }
+  offset += 32
+  const token = Buffer.from(
+    no0x(stripZerosLeft(_0x(getXbytesHex(_eventBytes, offset, 32)))),
+    'hex',
+  ).toString()
+  offset += 32
+  const destinationChainid = stripZerosLeft(
+    _0x(getXbytesHex(_eventBytes, offset, 32)),
+  )
+  offset += 32
+  const amount = Number(
+    BigInt(stripZerosLeft(_0x(getXbytesHex(_eventBytes, offset, 32)))),
+  )
+  offset += 32
+  const sender = Buffer.from(
+    no0x(stripZerosLeft(_0x(getXbytesHex(_eventBytes, offset, 32)))),
+    'hex',
+  ).toString()
+  offset += 32
+  const recipientLen = Number(
+    BigInt(stripZerosLeft(_0x(getXbytesHex(_eventBytes, offset, 32)))),
+  )
+  offset += 32
+  const recipient = Buffer.from(
+    getXbytesHex(_eventBytes, offset, recipientLen),
+    'hex',
+  ).toString()
+  offset += parseInt(recipientLen, 16)
+  const data = _eventBytes.slice(offset * 2, _eventBytes.length)
+
+  return {
+    nonce,
+    token,
+    destinationChainid,
+    amount,
+    sender,
+    recipient,
+    data,
+  }
+}
+
 module.exports = {
   _0x,
   no0x,
@@ -57,4 +108,5 @@ module.exports = {
   hexToString,
   hexStringToBytes,
   removeNullChars,
+  deserializeEventBytes,
 }
