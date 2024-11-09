@@ -86,7 +86,6 @@ void adapter::setfeemanagr(const name& fee_manager) {
 
 void adapter::extract_memo_args(
    const name& self,
-   const name& userdata_owner,
    const string& memo,
    string& out_sender,
    string& out_dest_chainid,
@@ -102,20 +101,23 @@ void adapter::extract_memo_args(
    out_sender = parts[0];
    out_dest_chainid = parts[1].substr(2);
    out_recipient = parts[2];
-   uint64_t userdata_id = stoull(parts[3]);
+   uint8_t has_userdata = stoi(parts[3]);
 
    check(out_sender.length() > 0, "invalid sender address");
    check(out_recipient.length() > 0, "invalid destination address");
    check(out_dest_chainid.length() == 64, "chain id must be a 32 bytes hex-string");
 
+   auto sender_account = name(out_sender);
+   check(is_account(sender_account), "invalid sender account");
 
-   if (userdata_id > 0) {
-      user_data table(userdata_owner, userdata_owner.value);
-      auto row = table.find(userdata_id);
+   if (has_userdata > 0) {
+      user_data table(self, sender_account.value);
 
-      check(row != table.end(), "userdata record not found");
+      check(table.begin() != table.end(), "userdata record not found");
 
-      out_data = row->payload;
+      auto row = *(table.begin());
+      out_data = row.payload;
+      table.erase(table.begin());
    }
 }
 
@@ -123,18 +125,21 @@ void adapter::adduserdata(const name& caller, bytes payload) {
    require_auth(caller);
    check(payload.size() > 0, "invalid payload");
 
-   user_data table(caller, caller.value);
+   user_data table(get_self(), caller.value);
 
+   // NOTE: we use a single record table here
+   // instead of a singleton because we can
+   // scope it by account value.
+   // Singletons doesn't support scoping and they
+   // are global througout the contract
    if (table.begin() == table.end()) {
       table.emplace(caller, [&](auto& r) {
-          // NOTE: an id == 0 means no userdata, check extract_memo_args
-          // for details
           r.id = 1;
           r.payload = payload;
       });
    } else {
-      table.emplace(caller, [&](auto& r) {
-          r.id = table.end()->id + 1;
+      table.modify(table.begin(), caller, [&](auto& r) {
+          r.id = 1;
           r.payload = payload;
       });
    }
@@ -277,7 +282,7 @@ void adapter::token_transfer_from_user(
 
 void adapter::xerc20_transfer_from_any(
    const name& self,
-   const name& caller,
+   const name& from,
    const name& token,
    const name& xerc20,
    const asset& quantity,
@@ -306,7 +311,7 @@ void adapter::xerc20_transfer_from_any(
    string recipient;
    bytes userdata;
 
-   extract_memo_args(self, caller, memo, sender, dest_chainid, recipient, userdata);
+   extract_memo_args(self, memo, sender, dest_chainid, recipient, userdata);
 
    auto recipient_bytes = to_bytes(recipient);
 
@@ -351,6 +356,7 @@ void adapter::ontransfer(const name& from, const name& to, const asset& quantity
 
    if (is_token_transfer) check(quantity.symbol == token_symbol, "invalid token quantity symbol");
    if (is_xerc20_transfer) check(quantity.symbol == xerc20_symbol, "invalid xerc20 quantity symbol");
+
 
    if (is_token_transfer) {
       lockbox_singleton _lockbox(xerc20, xerc20.value);

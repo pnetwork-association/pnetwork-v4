@@ -101,21 +101,23 @@ namespace eosio {
          };
 
          void check_symbol_is_valid(const name& account, const symbol& sym);
+
          void extract_memo_args(
             const name& self,
-            const name& userdata_owner,
             const string& memo,
             string& out_sender,
             string& out_dest_chainid,
             string& out_recipient,
             bytes& out_dat
          );
+
          void token_transfer_from_lockbox(
             const name& self,
             const name& token,
             const asset& quantity,
             const string& memo
          );
+
          void token_transfer_from_user(
             const name& self,
             const name& token,
@@ -123,9 +125,10 @@ namespace eosio {
             const asset& quantity,
             const string& memo
          );
+
          void xerc20_transfer_from_any(
             const name& self,
-            const name& caller,
+            const name& from,
             const name& token,
             const name& xerc20,
             const asset& quantity,
