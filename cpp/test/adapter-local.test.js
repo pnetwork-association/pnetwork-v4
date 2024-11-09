@@ -1,12 +1,7 @@
 const R = require('ramda')
 const { expect } = require('chai')
 const { Asset, Name } = require('@wharfkit/antelope')
-const {
-  Blockchain,
-  expectToThrow,
-  nameToBigInt,
-  logExecutionTrace,
-} = require('@eosnetwork/vert')
+const { Blockchain, expectToThrow, nameToBigInt } = require('@eosnetwork/vert')
 const { deploy } = require('./utils/deploy')
 const {
   no0x,
@@ -17,18 +12,11 @@ const {
   substract,
   getSwapMemo,
   prettyTrace,
-  hexToString,
-  getXbytesHex,
-  getEventBytes,
-  removeNullChars,
   getSymbolCodeRaw,
   getAccountsBalances,
   getSingletonInstance,
-  _0x,
   fromEthersPublicKey,
   deserializeEventBytes,
-  getAccountCodeRaw,
-  logExecutionTraces,
 } = require('./utils')
 
 const { toBeHex } = require('ethers')
