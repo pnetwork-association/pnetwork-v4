@@ -31,7 +31,7 @@ const getOperation = _obj => {
   const nonce = _obj.nonce
   const originChainId = bytes32(_0x(_obj.originChainId))
   const token = isEosChain(_obj.originChainId)
-    ? bytes32(toBeHex(getSymbolCodeRaw(_obj.token)))
+    ? bytes32(toBeHex(_0x(String(getSymbolCodeRaw(_obj.token)))))
     : bytes32(_0x(_obj.token))
   const destinationChainId = bytes32(_0x(_obj.destinationChainId))
 

@@ -5,20 +5,21 @@ const {
   Protocols,
   Versions,
 } = require('@pnetwork/event-attestator')
-
 const {
+  no0x,
   deploy,
   errors,
   bytes32,
+  getOperation,
   getMetadataSample,
   getOperationSample,
-  hexStringToBytes,
-  hexToPublicKey,
-  no0x,
+  fromEthersPublicKey,
 } = require('./utils')
-const { active, getSingletonInstance } = require('./utils/eos-ext')
 const { expect } = require('chai')
-const assert = require('assert')
+const { parseEther } = require('ethers')
+const { active, getSingletonInstance } = require('./utils/eos-ext')
+const { serializeOperation } = require('./utils/get-operation-sample')
+const { UInt128 } = require('@wharfkit/antelope')
 
 describe('PAM testing', () => {
   const user = 'user'
@@ -43,8 +44,9 @@ describe('PAM testing', () => {
     privateKey,
   })
 
-  const publicKey = hexToPublicKey(ea.signingKey.compressedPublicKey)
+  const publicKey = fromEthersPublicKey(ea.signingKey.compressedPublicKey)
 
+  const evmSwapAmount = 13
   const evmEmitter = '0x5623D0aF4bfb6F7B18d6618C166d518E4357ceE2'
   const evmTopic0 =
     '0x66756e6473206172652073616675207361667520736166752073616675202e2e'
@@ -53,17 +55,25 @@ describe('PAM testing', () => {
 
   const attestation = []
   const blockchain = new Blockchain()
-  const eosChainId =
-    'aca376f206b8fc25a6ed44dbdc66547c36c6c33e3a119ffbeaef943642f0e906'
-  const operation = getOperationSample({
-    amount: '1337000000000000000000',
-    sender: '0000000000000000000000002b5ad5c4795c026514f8317c7a215e218dccd6cf',
-    token: '000000000000000000000000f2e246bb76df876cef8b38ae84130f4f55de395b',
-    chainId: eosChainId,
+
+  let operation = getOperation({
+    blockId:
+      '0x21d41bf94358b9252115aee1eb250ef5a644e7fae776b3de508aacda5f4c26fc',
+    txId: '0x6be2de7375ad7c18fd5ca3ecc8b70e60c535750b042200070dc36f84175a16d6',
+    nonce: 0,
+    token: '0xf2e246bb76df876cef8b38ae84130f4f55de395b',
+    originChainId: Chains(Protocols.Evm).Mainnet,
+    destinationChainId: Chains(Protocols.Eos).Mainnet,
+    amount: Number(parseEther(String(evmSwapAmount))),
+    sender: '0x2b5ad5c4795c026514f8317c7a215e218dccd6cf',
     recipient,
+    data: '',
   })
-  const data =
-    '0x0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000f2e246bb76df876cef8b38ae84130f4f55de395baca376f206b8fc25a6ed44dbdc66547c36c6c33e3a119ffbeaef943642f0e9060000000000000000000000000000000000000000000000487a9a3045394400000000000000000000000000002b5ad5c4795c026514f8317c7a215e218dccd6cf0000000000000000000000000000000000000000000000000000000000000009726563697069656e74'
+
+  const data = serializeOperation(operation)
+
+  operation = no0x(operation)
+
   const event = {
     blockHash: operation.blockId,
     transactionHash: operation.txId,
@@ -74,7 +84,7 @@ describe('PAM testing', () => {
 
   const signature = no0x(ea.formatEosSignature(ea.sign(event)))
   const preimage = no0x(ea.getEventPreImage(event))
-  const metadata = getMetadataSample({ signature, preimage })
+  const metadata = no0x(getMetadataSample({ signature, preimage }))
 
   before(async () => {
     blockchain.createAccounts(user, recipient)
@@ -107,7 +117,7 @@ describe('PAM testing', () => {
 
     it('Should reject when the origin_chain_id is not set', async () => {
       const anotherEventAttestator = new ProofcastEventAttestator()
-      const anotherPublicKey = hexToPublicKey(
+      const anotherPublicKey = fromEthersPublicKey(
         anotherEventAttestator.signingKey.compressedPublicKey,
       )
       await adapter.contract.actions
@@ -261,8 +271,9 @@ describe('PAM testing', () => {
           ...operation,
           recipient: invalid,
         }
+
         const data =
-          '0x0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000f2e246bb76df876cef8b38ae84130f4f55de395baca376f206b8fc25a6ed44dbdc66547c36c6c33e3a119ffbeaef943642f0e9060000000000000000000000000000000000000000000000487a9a3045394400000000000000000000000000002b5ad5c4795c026514f8317c7a215e218dccd6cf0000000000000000000000000000000000000000000000000000000000000010696e76616c6964726563697069656e74'
+          '0x0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000f2e246bb76df876cef8b38ae84130f4f55de395baca376f206b8fc25a6ed44dbdc66547c36c6c33e3a119ffbeaef943642f0e906000000000000000000000000000000000000000000000000b469471f801400000000000000000000000000002b5ad5c4795c026514f8317c7a215e218dccd6cf0000000000000000000000000000000000000000000000000000000000000010696e76616c6964726563697069656e74'
         const newEvent = { ...event, data }
         const metadata = {
           preimage: no0x(ea.getEventPreImage(newEvent)),
@@ -282,7 +293,7 @@ describe('PAM testing', () => {
           recipient: 'invalid',
         }
         const data =
-          '0x0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000f2e246bb76df876cef8b38ae84130f4f55de395baca376f206b8fc25a6ed44dbdc66547c36c6c33e3a119ffbeaef943642f0e9060000000000000000000000000000000000000000000000487a9a3045394400000000000000000000000000002b5ad5c4795c026514f8317c7a215e218dccd6cf0000000000000000000000000000000000000000000000000000000000000007696e76616c6964'
+          '0x0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000f2e246bb76df876cef8b38ae84130f4f55de395baca376f206b8fc25a6ed44dbdc66547c36c6c33e3a119ffbeaef943642f0e906000000000000000000000000000000000000000000000000b469471f801400000000000000000000000000002b5ad5c4795c026514f8317c7a215e218dccd6cf0000000000000000000000000000000000000000000000000000000000000007696e76616c6964'
         const newEvent = { ...event, data }
         const metadata = {
           preimage: no0x(ea.getEventPreImage(newEvent)),
@@ -314,80 +325,71 @@ describe('PAM testing', () => {
           .send(active(user))
 
         const expectedEventId =
-          '5677b05279928a1f054526d27f25bb081d1ef295738496dcf2a8f9507dc0bd7e'
+          '861a9d4acfb2eb75c8093e39ec0af1be4d20a789003c6ec9d2508b2ff1247843'
 
         expect(pam.contract.bc.console).to.be.equal(expectedEventId)
       })
     })
 
     it('Should authorize an EOSIO operation successfully', async () => {
-      const blockId =
-        '179ed57f474f446f2c9f6ea6702724cdad0cf26422299b368755ed93c0134a35'
-      const txId =
-        '27598a45ee610287d85695f823f8992c10602ce5bf3240ee20635219de4f734f'
-      const nonce = 0
-      const token =
-        '0000000000000000000000000000000000000000000000746b6e2e746f6b656e'
-      const originChainId = no0x(Chains(Protocols.Eos).Jungle)
-      const destinationChainId = eosChainId
-      const amount = '9982500000000000000'
-      const sender =
-        '0000000000000000000000000000000000000000000000000000000075736572'
-      const recipient = 'recipient'
-      const data = ''
-      const operation2 = getOperationSample({
-        blockId,
-        txId,
-        nonce,
-        token,
-        originChainId,
-        destinationChainId,
-        amount,
-        sender,
-        recipient,
-        data,
+      let eosOperation = getOperation({
+        nonce: 0,
+        blockId:
+          '179ed57f474f446f2c9f6ea6702724cdad0cf26422299b368755ed93c0134a35',
+        txId: '27598a45ee610287d85695f823f8992c10602ce5bf3240ee20635219de4f734f',
+        token: '4,TKN',
+        originChainId: Chains(Protocols.Eos).Jungle,
+        destinationChainId: Chains(Protocols.Eos).Mainnet,
+        amount: 9982500000000000000,
+        sender: 'user',
+        recipient: 'recipient',
+        data: '',
       })
+
+      const eventData = {
+        event_bytes: no0x(serializeOperation(eosOperation)),
+      }
+
+      eosOperation = no0x(eosOperation)
 
       const eosEmitter = Buffer.from('adapter')
         .toString('hex')
         .padStart(64, '0')
+
       const eosTopic0 = Buffer.from('swap').toString('hex').padStart(64, '0')
 
-      const ea2 = new ProofcastEventAttestator({
+      const eosEA = new ProofcastEventAttestator({
         version: Versions.V1,
         protocolId: Protocols.Eos,
         chainId: Chains(Protocols.Eos).Jungle,
         privateKey,
       })
 
-      const eventData = {
-        event_bytes:
-          '00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000746b6e2e746f6b656eaca376f206b8fc25a6ed44dbdc66547c36c6c33e3a119ffbeaef943642f0e9060000000000000000000000000000000000000000000000008a88f6dc4656400000000000000000000000000000000000000000000000000000000000757365720000000000000000000000000000000000000000000000000000000000000009726563697069656e74',
-      }
-
-      const event2 = {
-        blockHash: operation2.blockId,
-        transactionHash: operation2.txId,
+      const eosEvent = {
+        blockHash: eosOperation.blockId,
+        transactionHash: eosOperation.txId,
         account: 'adapter',
         action: 'swap',
         data: eventData,
       }
 
       await adapter.contract.actions
-        .setorigin([operation2.originChainId, eosEmitter, eosTopic0])
+        .setorigin([eosOperation.originChainId, eosEmitter, eosTopic0])
         .send(active(adapter.account))
 
-      const metadata2 = getMetadataSample({
-        signature: no0x(ea2.formatEosSignature(ea2.sign(event2))),
-        preimage: no0x(ea2.getEventPreImage(event2)),
-      })
+      const eosMetadata = no0x(
+        getMetadataSample({
+          signature: no0x(eosEA.formatEosSignature(eosEA.sign(eosEvent))),
+          preimage: no0x(eosEA.getEventPreImage(eosEvent)),
+        }),
+      )
 
       await pam.contract.actions
-        .isauthorized([operation2, metadata2])
+        .isauthorized([eosOperation, eosMetadata])
         .send(active(user))
 
       expect(pam.contract.bc.console).to.be.equal(
-        '42cde5d898147a7bd21006e0fe541092151262cb2bde3a3244587e7993c473e0',
+        'ff57d8865411fe30f3a29259c17ad16f613bf8fc4ec18269a4ea6c991448d2b6',
       )
     })
   })

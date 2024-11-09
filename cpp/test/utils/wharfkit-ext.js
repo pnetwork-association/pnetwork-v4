@@ -28,17 +28,10 @@ const divide = assetOperation(R.divide)
 
 const utf8HexString = _str => '0x' + Buffer.from(_str, 'utf-8').toString('hex')
 
-const fromEthersPublicKey = _compressed =>
-  PublicKey.from({
-    type: 'K1',
-    compressed: Uint8Array.from(Buffer.from(no0x(_compressed), 'hex')),
-  })
-
 module.exports = {
   sum,
   divide,
   multiply,
   substract,
   utf8HexString,
-  fromEthersPublicKey,
 }
