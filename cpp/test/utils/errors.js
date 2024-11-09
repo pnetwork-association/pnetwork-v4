@@ -65,6 +65,10 @@ const INVALID_SYMBOL = eosio_assert('invalid symbol')
 
 const EXPECTED_32_BYTES = _thing => eosio_assert(`expected 32 bytes ${_thing}`)
 
+const USER_DATA_RECORD_NOT_FOUND = eosio_assert('userdata record not found')
+
+const INVALID_PAYLOAD = eosio_assert('invalid payload')
+
 module.exports = {
   AUTH_MISSING,
   SYMBOL_NOT_FOUND,
@@ -97,4 +101,6 @@ module.exports = {
   ACCOUNT_STR_IS_TOO_LONG,
   EXPECTED_32_BYTES,
   INVALID_SYMBOL,
+  USER_DATA_RECORD_NOT_FOUND,
+  INVALID_PAYLOAD,
 }
