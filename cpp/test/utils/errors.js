@@ -69,6 +69,10 @@ const USER_DATA_RECORD_NOT_FOUND = eosio_assert('userdata record not found')
 
 const INVALID_PAYLOAD = eosio_assert('invalid payload')
 
+const CONTRACT_ALREADY_INITIALIZED = eosio_assert(
+  'contract already initialized',
+)
+
 module.exports = {
   AUTH_MISSING,
   SYMBOL_NOT_FOUND,
@@ -103,4 +107,5 @@ module.exports = {
   INVALID_SYMBOL,
   USER_DATA_RECORD_NOT_FOUND,
   INVALID_PAYLOAD,
+  CONTRACT_ALREADY_INITIALIZED,
 }

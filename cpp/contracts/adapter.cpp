@@ -40,11 +40,10 @@ void adapter::create(
 ) {
    require_auth(get_self());
    registry_adapter _registry(get_self(), get_self().value);
-   check(!_registry.exists(), "adapter already initialized");
+   check(!_registry.exists(), "contract already initialized");
 
    auto _token_bytes = token_bytes.extract_as_byte_array();
-   check(is_account(xerc20), "xERC20 account does not exist");
-   check(min_fee.symbol == xerc20_symbol, "invalid minimum fee symbol");
+   check(is_account(xerc20), "invalid account");
    check_symbol_is_valid(xerc20, xerc20_symbol);
    check(min_fee.symbol == xerc20_symbol, "invalid minimum fee symbol");
 

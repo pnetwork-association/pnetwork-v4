@@ -22,6 +22,7 @@ const {
 } = require('@pnetwork/event-attestator')
 
 const TABLE_STORAGE = 'storage'
+const TABLE_TEE = 'tee'
 
 describe('Adapter tests', () => {
   const symbol = 'TST'
@@ -272,11 +273,9 @@ describe('Adapter tests', () => {
         ])
         .send(active(adapter.account))
 
-      const row = adapter.contract.tables
-        .regadapter(getAccountCodeRaw(adapter.account))
-        .getTableRow(getSymbolCodeRaw(token.maxSupply))
+      const row = getSingletonInstance(adapter.contract, 'regadapter')
       const storage = getSingletonInstance(adapter.contract, TABLE_STORAGE)
-      const tee = getSingletonInstance(adapter.contract, 'tee')
+      const tee = getSingletonInstance(adapter.contract, TABLE_TEE)
       const mappingsRow = adapter.contract.tables
         .mappings(getAccountCodeRaw(adapter.account))
         .getTableRows()
@@ -309,7 +308,7 @@ describe('Adapter tests', () => {
         ])
         .send(active(adapter.account))
 
-      await expectToThrow(action, 'eosio_assert: token already registered')
+      await expectToThrow(action, errors.CONTRACT_ALREADY_INITIALIZED)
     })
   })
 
