@@ -1,6 +1,6 @@
 const R = require('ramda')
 const { toBeHex, concat, stripZerosLeft } = require('ethers')
-const { Asset } = require('@wharfkit/antelope')
+const { Asset, UInt128 } = require('@wharfkit/antelope')
 const { _0x, no0x, bytes32 } = require('./bytes-utils')
 const { Protocols, Chains } = require('@pnetwork/event-attestator')
 const { getSymbolCodeRaw } = require('./eos-ext')
@@ -35,9 +35,7 @@ const getOperation = _obj => {
     : bytes32(_0x(_obj.token))
   const destinationChainId = bytes32(_0x(_obj.destinationChainId))
 
-  const amount = isEosChain(_obj.destinationChainId)
-    ? Asset.from(_obj.amount)
-    : amount
+  const amount = UInt128.from(_obj.amount.toString())
 
   const sender = isEosChain(_obj.originChainId)
     ? bytes32(_0x(Buffer.from(_obj.sender, 'utf-8').toString('hex')))
@@ -60,10 +58,7 @@ const getOperation = _obj => {
 }
 
 const serializeOperation = _operation => {
-  const amount = isEosChain(_operation.destinationChainId)
-    ? bytes32(toBeHex(BigInt(_operation.amount.value * 1e18))) // we need to include precision here
-    : bytes32(toBeHex(BigInt(_operation.amount))) // we expect amount to be already normalized
-
+  const amount = bytes32(toBeHex(BigInt(_operation.amount.toString())))
   const recipientLen = bytes32(
     toBeHex(BigInt(no0x(_operation.recipient).length)),
   )

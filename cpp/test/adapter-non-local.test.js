@@ -1,4 +1,5 @@
 const { expect } = require('chai')
+const { parseEther } = require('ethers')
 const { Blockchain, expectToThrow } = require('@eosnetwork/vert')
 const { Asset } = require('@wharfkit/antelope')
 const { Symbol } = Asset
@@ -22,15 +23,17 @@ const {
   Protocols,
   ProofcastEventAttestator,
 } = require('@pnetwork/event-attestator')
+const { adjustPrecision } = require('./utils/precision-utils')
 
 describe('Adapter Testing - Non Local Deployment', () => {
   const symbol = 'TST'
   const xsymbol = `X${symbol}`
   const maxSupply = 500000000
   const minFee = 0.0018
-  const precision = 8
-  const symbolPrecision = Symbol.fromParts(symbol, precision)
-  const xsymbolPrecision = Symbol.fromParts(xsymbol, precision)
+  const symbolDecimals = 18
+  const xsymbolDecimals = 8
+  const symbolPrecision = Symbol.fromParts(symbol, symbolDecimals)
+  const xsymbolPrecision = Symbol.fromParts(xsymbol, xsymbolDecimals)
 
   const blockchain = new Blockchain()
 
@@ -50,13 +53,15 @@ describe('Adapter Testing - Non Local Deployment', () => {
 
   const token = {
     symbol,
+    decimals: symbolDecimals,
     account: '',
     maxSupply: Asset.from(0, symbolPrecision),
     bytes: '000000000000000000000000810090f35dfa6b18b5eb59d298e2a2443a2811e2', // EVM address
   }
 
   const xerc20 = {
-    symbol: `${xsymbol}`,
+    symbol: xsymbol,
+    decimals: xsymbolDecimals,
     account: `${xsymbol.toLowerCase()}.token`,
     maxSupply: Asset.from(maxSupply, xsymbolPrecision),
     minFee: Asset.from(minFee, xsymbolPrecision),
@@ -140,7 +145,7 @@ describe('Adapter Testing - Non Local Deployment', () => {
       token: '0x810090f35dfa6b18b5eb59d298e2a2443a2811e2',
       originChainId: evmOriginChainId,
       destinationChainId: Chains(Protocols.Eos).Mainnet,
-      amount: Asset.from(evmSwapAmount, xsymbolPrecision),
+      amount: Number(parseEther(String(evmSwapAmount))),
       sender:
         '000000000000000000000000f39fd6e51aad88f6f4ce6ab8827279cfffb92266',
       recipient,
@@ -226,12 +231,12 @@ describe('Adapter Testing - Non Local Deployment', () => {
         [xerc20],
       )
 
-      expect(after[recipient][xerc20.symbol]).to.be.equal(
-        operation.amount.toString(),
+      expect(after[recipient][xerc20.symbol]).to.be.deep.equal(
+        Asset.from(evmSwapAmount, xsymbolPrecision).toString(),
       )
 
-      expect(after[adapter.account][xerc20.symbol]).to.be.equal(
-        `0.0000 ${xerc20.symbol}`,
+      expect(after[adapter.account][xerc20.symbol]).to.be.deep.equal(
+        Asset.from(0, xsymbolPrecision).toString(),
       )
 
       expect(before[feemanager][xerc20.symbol]).to.be.equal(
@@ -272,11 +277,14 @@ describe('Adapter Testing - Non Local Deployment', () => {
       )
 
       expect(after[recipient][xerc20.symbol]).to.equal(
-        sum(operation.amount, beforeAsset).toString(),
+        sum(
+          Asset.from(evmSwapAmount, xsymbolPrecision),
+          beforeAsset,
+        ).toString(),
       )
 
       expect(after[adapter.account][xerc20.symbol]).to.be.equal(
-        `0.0000 ${xerc20.symbol}`,
+        Asset.from(0, xsymbolPrecision).toString(),
       )
     })
   })
