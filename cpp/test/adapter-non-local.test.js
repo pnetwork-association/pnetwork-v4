@@ -287,6 +287,54 @@ describe('Adapter Testing - Non Local Deployment', () => {
         Asset.from(0, xsymbolPrecision).toString(),
       )
     })
+
+    it('Should truncate the passed amount to the set precision', async () => {
+      const largeAmount = '1189215224969292133'
+      const largeOperation = {
+        ...operation,
+        amount: largeAmount,
+      }
+
+      const largeEvent = {
+        ...event,
+        data: serializeOperation(largeOperation),
+      }
+
+      const largeMetadata = {
+        preimage: evmEA.getEventPreImage(largeEvent),
+        signature: evmEA.formatEosSignature(evmEA.sign(largeEvent)),
+      }
+
+      const before = getAccountsBalances(
+        [user, recipient, adapter.account],
+        [xerc20],
+      )
+
+      await adapter.contract.actions
+        .settle([user, no0x(largeOperation), no0x(largeMetadata)])
+        .send(active(user))
+
+      const after = getAccountsBalances(
+        [user, recipient, adapter.account],
+        [xerc20],
+      )
+
+      const adjusted = Asset.from(
+        largeAmount / 10 ** symbolDecimals,
+        xsymbolPrecision,
+      )
+
+      expect(
+        substract(
+          after[recipient][xerc20.symbol],
+          before[recipient][xerc20.symbol],
+        ),
+      ).to.be.deep.equal(adjusted)
+
+      expect(after[adapter.account][xerc20.symbol]).to.be.deep.equal(
+        Asset.from(0, xsymbolPrecision).toString(),
+      )
+    })
   })
 
   describe('adapter::swap', () => {
@@ -317,7 +365,7 @@ describe('Adapter Testing - Non Local Deployment', () => {
       )
 
       const expectedEventBytes =
-        '0000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000005158b1b8444260000000000000000000000000000000000000000000000000000000000075736572000000000000000000000000000000000000000000000000000000000000002a307865333936373537656337653661633763386535616265373238356464653437623938663232646238'
+        '0000000000000000000000000000000000000000000000000000000000000003000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000005158b1b8444260000000000000000000000000000000000000000000000000000000000075736572000000000000000000000000000000000000000000000000000000000000002a307865333936373537656337653661633763386535616265373238356464653437623938663232646238'
 
       expect(adapter.contract.bc.console).to.be.equal(expectedEventBytes)
     })
