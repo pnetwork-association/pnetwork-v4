@@ -86,7 +86,7 @@ const deserializeEventBytes = _eventBytes => {
     getXbytesHex(_eventBytes, offset, recipientLen),
     'hex',
   ).toString()
-  offset += parseInt(recipientLen, 16)
+  offset += recipientLen
   const data = _eventBytes.slice(offset * 2, _eventBytes.length)
 
   return {
