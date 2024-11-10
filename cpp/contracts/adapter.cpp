@@ -170,7 +170,6 @@ void adapter::settee(public_key pub_key, bytes attestation) {
       pam::tee tee_data = _tee_pubkey.get();
       // Start grace period for the new TEE address
       uint64_t current_time = eosio::current_time_point().sec_since_epoch();
-      print("TEE address change pending, grace period started");
       _tee_pubkey.set(pam::tee{
          .key = tee_data.key,
          .attestation = tee_data.attestation,
@@ -185,17 +184,18 @@ void adapter::applynewtee() {
    // TODO test apply
    require_auth(get_self());
    pam::tee_pubkey _tee_pubkey(get_self(), get_self().value);
-   check(_tee_pubkey.exists(), "Tee not set, use settee");
+   check(_tee_pubkey.exists(), "tee not set, use settee");
    uint64_t current_time = eosio::current_time_point().sec_since_epoch();
    pam::tee tee_data = _tee_pubkey.get();
    if (current_time >= tee_data.change_grace_threshold) {
-      tee_data.key = tee_data.updating_key;
-      tee_data.attestation = tee_data.updating_attestation;
-      tee_data.updating_key = public_key();
-      tee_data.updating_attestation = {};
-      tee_data.change_grace_threshold = 0;
-      print("TEE address change completed");
-   } else check(false, "Grace period not elapsed");
+      _tee_pubkey.set(pam::tee{
+         .key = tee_data.updating_key,
+         .attestation = tee_data.updating_attestation,
+         .updating_key = public_key(),
+         .updating_attestation = {},
+         .change_grace_threshold = 0
+      }, get_self());
+   } else check(false, "grace period not elapsed");
 
 }
 
