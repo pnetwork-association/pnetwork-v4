@@ -43,7 +43,6 @@ const getOperation = _obj => {
   const destinationChainId = bytes32(_0x(_obj.destinationChainId))
 
   const amount = String(parseEther(String(_obj.amount))) // UInt128.from()
-  console.log('amount', amount)
   const sender = isEosChain(_obj.originChainId)
     ? bytes32(_0x(Buffer.from(_obj.sender, 'utf-8').toString('hex')))
     : bytes32(_obj.sender)
