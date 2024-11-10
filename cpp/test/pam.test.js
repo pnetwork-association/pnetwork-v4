@@ -47,6 +47,8 @@ describe('PAM testing', () => {
   const evmEmitter = '0x5623D0aF4bfb6F7B18d6618C166d518E4357ceE2'
   const evmTopic0 =
     '0x66756e6473206172652073616675207361667520736166752073616675202e2e'
+  const EOSChainId =
+    'aca376f206b8fc25a6ed44dbdc66547c36c6c33e3a119ffbeaef943642f0e906'
 
   const recipient = 'recipient'
 
@@ -104,12 +106,24 @@ describe('PAM testing', () => {
       )
     })
 
-    it('Should reject when the public key is not set', async () => {
+    it('Should reject when the local chain id is not set', async () => {
       const action = pam.contract.actions
         .isauthorized([operation, metadata])
         .send(active(user))
 
-      await expectToThrow(action, errors.SINGLETON_NOT_EXISTING)
+      await expectToThrow(action, errors.LOCAL_CHAIN_NOT_SET)
+    })
+
+    it('Should reject when the public key is not set', async () => {
+      await adapter.contract.actions
+        .setchainid([EOSChainId])
+        .send(active(adapter.account))
+
+      const action = pam.contract.actions
+        .isauthorized([operation, metadata])
+        .send(active(user))
+
+      await expectToThrow(action, errors.TEE_NOT_SET)
     })
 
     it('Should reject when the origin_chain_id is not set', async () => {

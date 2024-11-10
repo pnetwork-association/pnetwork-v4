@@ -25,6 +25,7 @@ const { TimePointSec } = require('@wharfkit/antelope')
 const TEE_ADDRESS_CHANGE_GRACE_PERIOD_MS = 172800 * 1000
 const TABLE_STORAGE = 'storage'
 const TABLE_TEE = 'tee'
+const TABLE_LOCAL_CHAIN_ID = 'chainid'
 
 describe('Adapter tests', () => {
   const symbol = 'TST'
@@ -48,6 +49,8 @@ describe('Adapter tests', () => {
     '000000000000000000000000bcf063a9eb18bc3c6eb005791c61801b7cb16fe4'
   const evmTopicZero =
     '66756e6473206172652073616675207361667520736166752073616675202e2e'
+  const EOSChainId =
+    'aca376f206b8fc25a6ed44dbdc66547c36c6c33e3a119ffbeaef943642f0e906'
 
   const token = {
     symbol,
@@ -364,6 +367,38 @@ describe('Adapter tests', () => {
         nonce: 0,
         feesmanager: feemanager,
       })
+    })
+  })
+
+  describe('adapter::setchainid', () => {
+    it('Should throw if called by not authorized account', async () => {
+      const action = adapter.contract.actions
+        .setchainid([EOSChainId])
+        .send(active(evil))
+
+      await expectToThrow(action, errors.AUTH_MISSING(adapter.account))
+    })
+
+    it('Should set the local chain id correctly', async () => {
+      const chain_id = 'ababba'
+      await adapter.contract.actions
+        .setchainid([chain_id])
+        .send(active(adapter.account))
+
+      const local_chain_id = getSingletonInstance(
+        adapter.contract,
+        TABLE_LOCAL_CHAIN_ID,
+      )
+      expect(local_chain_id.chain_id).to.be.equal(chain_id)
+    })
+
+    it('Should update the local chain id correctly', async () => {
+      await adapter.contract.actions
+        .setchainid([EOSChainId])
+        .send(active(adapter.account))
+
+      const local_chain_id = getSingletonInstance(adapter.contract, 'chainid')
+      expect(local_chain_id.chain_id).to.be.equal(EOSChainId)
     })
   })
 
