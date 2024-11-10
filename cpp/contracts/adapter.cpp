@@ -154,7 +154,6 @@ void adapter::freeuserdata(const name& account) {
 }
 
 void adapter::settee(public_key pub_key, bytes attestation) {
-   // TODO test cooldown
    require_auth(get_self());
    pam::tee_pubkey _tee_pubkey(get_self(), get_self().value);
 
@@ -181,7 +180,6 @@ void adapter::settee(public_key pub_key, bytes attestation) {
 }
 
 void adapter::applynewtee() {
-   // TODO test apply
    require_auth(get_self());
    pam::tee_pubkey _tee_pubkey(get_self(), get_self().value);
    check(_tee_pubkey.exists(), "tee not set, use settee");
