@@ -26,6 +26,7 @@ const isEosChain = _chainId =>
   R.values(Chains(Protocols.Eos)).includes(stripZerosLeft(_chainId))
 
 const getOperation = _obj => {
+  const local = _obj.local || false
   const defaultBlockId =
     '0x7e21ba208ea2a072bad2d011dbc3a9f870c574a66203d84bde926fcf85756d78'
   const defaultTxId =
@@ -34,13 +35,15 @@ const getOperation = _obj => {
   const txId = bytes32(_0x(_obj.txId || defaultTxId))
   const nonce = _obj.nonce
   const originChainId = bytes32(_0x(_obj.originChainId))
-  const token = isEosChain(_obj.originChainId)
-    ? bytes32(toBeHex(_0x(String(getSymbolCodeRaw(_obj.token)))))
-    : bytes32(_0x(_obj.token))
+
+  const token =
+    local && isEosChain(_obj.destinationChainId)
+      ? bytes32(_0x(Number(getSymbolCodeRaw(_obj.token)).toString(16)))
+      : bytes32(_0x(_obj.token))
   const destinationChainId = bytes32(_0x(_obj.destinationChainId))
 
-  const amount = UInt128.from(String(parseEther(String(_obj.amount))))
-
+  const amount = String(parseEther(String(_obj.amount))) // UInt128.from()
+  console.log('amount', amount)
   const sender = isEosChain(_obj.originChainId)
     ? bytes32(_0x(Buffer.from(_obj.sender, 'utf-8').toString('hex')))
     : bytes32(_obj.sender)
@@ -61,6 +64,8 @@ const getOperation = _obj => {
   }
 }
 
+// From an operation extract the relative
+// event payload
 const serializeOperation = _operation => {
   const amount = bytes32(toBeHex(BigInt(_operation.amount.toString())))
   const recipientLen = bytes32(

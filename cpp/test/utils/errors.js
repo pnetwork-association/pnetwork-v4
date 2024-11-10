@@ -75,6 +75,8 @@ const CONTRACT_ALREADY_INITIALIZED = eosio_assert(
 
 const GRACE_PERIOD_NOT_ELAPSED = eosio_assert('grace period not elapsed')
 
+const EVENT_ALREADY_PROCESSED = eosio_assert('event already processed')
+
 module.exports = {
   AUTH_MISSING,
   SYMBOL_NOT_FOUND,
@@ -111,4 +113,5 @@ module.exports = {
   INVALID_PAYLOAD,
   CONTRACT_ALREADY_INITIALIZED,
   GRACE_PERIOD_NOT_ELAPSED,
+  EVENT_ALREADY_PROCESSED,
 }

@@ -17,6 +17,8 @@ const {
   getSingletonInstance,
   fromEthersPublicKey,
   deserializeEventBytes,
+  getOperation,
+  serializeOperation,
 } = require('./utils')
 
 const { toBeHex } = require('ethers')
@@ -365,6 +367,94 @@ describe('Adapter Testing - Local deployment', () => {
         expect(eventBytes.recipient).to.be.equal(recipient)
         expect(eventBytes.data).to.be.equal(data)
       })
+    })
+  })
+
+  describe('adapter::settle', () => {
+    const evmSwapAmount = 5
+    const evmOriginChainId = Chains(Protocols.Evm).Mainnet
+    const evmAdapter =
+      '000000000000000000000000bcf063a9eb18bc3c6eb005791c61801b7cb16fe4'
+    const evmTopicZero =
+      '66756e6473206172652073616675207361667520736166752073616675202e2e'
+    const evmSender = '0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266'
+
+    const operation = getOperation({
+      local: true,
+      nonce: 21,
+      token: symbolPrecision,
+      originChainId: evmOriginChainId,
+      destinationChainId: Chains(Protocols.Eos).Mainnet,
+      amount: evmSwapAmount,
+      sender: evmSender,
+      recipient,
+    })
+
+    const event = {
+      blockHash: operation.blockId,
+      transactionHash: operation.txId,
+      address: evmAdapter,
+      topics: [evmTopicZero],
+      data: serializeOperation(operation),
+    }
+
+    const metadata = {
+      preimage: evmEA.getEventPreImage(event),
+      signature: evmEA.formatEosSignature(evmEA.sign(event)),
+    }
+
+    it('Should settle the amount to the recipient', async () => {
+      const before = getAccountsBalances(
+        [recipient, adapter.account, lockbox.account],
+        [token, xerc20],
+      )
+
+      const storage = getSingletonInstance(adapter.contract, TABLE_STORAGE)
+
+      await adapter.contract.actions
+        .settle([user, no0x(operation), no0x(metadata)])
+        .send(active(user))
+
+      const after = getAccountsBalances(
+        [recipient, adapter.account, lockbox.account],
+        [token, xerc20],
+      )
+
+      const zero = Asset.from(0, symbolPrecision)
+      const xzero = Asset.from(0, xsymbolPrecision)
+      const swapAmount = Asset.from(evmSwapAmount, symbolPrecision)
+      expect(
+        substract(
+          before[lockbox.account][token.symbol],
+          after[lockbox.account][token.symbol],
+        ),
+      ).to.be.deep.equal(swapAmount)
+      expect(
+        substract(
+          after[recipient][token.symbol],
+          before[recipient][token.symbol],
+        ),
+      ).to.be.deep.equal(swapAmount)
+      expect(after[lockbox.account][xerc20.symbol]).to.be.deep.equal(xzero)
+      expect(after[adapter.account][xerc20.symbol]).to.be.deep.equal(xzero)
+      expect(after[adapter.account][token.symbol]).to.be.deep.equal(zero)
+      expect(after[recipient][xerc20.symbol]).to.be.deep.equal(xzero)
+
+      const expectedEventId = evmEA.getEventId(event)
+
+      const pastEvent = adapter.contract.tables
+        .pastevents(nameToBigInt(adapter.account))
+        .getTableRow(BigInt(storage.nonce))
+
+      expect(pastEvent.event_id).to.be.equal(no0x(expectedEventId))
+    })
+
+    it('Should reject upon replay attacks', async () => {
+      const action = adapter.contract.actions
+        .settle([user, no0x(operation), no0x(metadata)])
+        .send(active(user))
+
+      await expectToThrow(action, errors.EVENT_ALREADY_PROCESSED)
     })
   })
 })
