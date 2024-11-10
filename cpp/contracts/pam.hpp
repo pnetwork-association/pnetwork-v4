@@ -47,7 +47,7 @@ namespace eosio {
         using tee_pubkey = singleton<"tee"_n, tee>;
         typedef eosio::multi_index<"mappings"_n, mappings> mappings_table;
 
-        static constexpr uint64_t TEE_ADDRESS_CHANGE_GRACE_PERIOD = 172800;
+        static constexpr uint64_t TEE_ADDRESS_CHANGE_GRACE_PERIOD = 172800; // 48 hours
 
         bool context_checks(const operation& operation, const metadata& metadata) {
             uint8_t offset = 2; // Skip protocol, version
