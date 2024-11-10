@@ -27,6 +27,8 @@ yarn install
 yarn test
 ```
 
+Check the package.json for further ways to run the tests.
+
 ### Generate the coverage report
 
 ```
