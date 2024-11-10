@@ -25,7 +25,7 @@ Projects have the flexibility to operate pNetwork v4 either as a standalone serv
 This morepo holds all the on-chain code needed for the protocol to work. In particular there are three folder of relevance:
 
 - **solidity:** keeps all the EVM contract code, relative tests and deployment scripts
-- **cpp:** keeps all the EOSIO contract code, relative tests and deployment scripts
+- **cpp:** keeps all the AntelopeIO contract code, relative tests and deployment scripts
 - **javascript:** common javascript code and utilities used throughout the project
 - **javascript/event-attestator:** a 1:1 JS implementation of the Event Attestator code, useful for testing and generating signatures
 
@@ -42,4 +42,4 @@ The first release of pNetwork v4 will primarily support EVM based chains, ensuri
 - BNB chain
 - Gnosis
 - Polygon
-- EOSIO (Code under `BSL` licence)
+- AntelopeIO (Code under `BSL` licence)
