@@ -55,7 +55,7 @@ void adapter::create(
    }
 
    // Default value for the token symbol on non-local deployments
-   symbol non_local_token_symbol = symbol(symbol_code("XXX"), token_symbol.precision());
+   symbol non_local_token_symbol = symbol(symbol_code("XXX"), 0);
 
    adapter_registry_table registry_data {
       .token = token,
