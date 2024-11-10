@@ -27,12 +27,13 @@ pNetwork v4 introduces new on-chain entities:
 - **pNetwork Adapter contract:** needed to facilitate the wrapping and unwrapping of the ERC20 token. This would be the entry point for UIs.
 - **Lockbox:** vault where the collateral is deposited/released when wrapping/unwrapping ERC20 tokens.
 - **pNetwork fee contract:** responsible for holding all the node operator fees.
-- **pTokensV2:** the wrapped representation of the ERC20 token on the underlying chain.
+- **XERC20:** the wrapped representation of the ERC20 token on the underlying chain.
 - **pNetwork Authorization Module (PAM):** verifies that the operation performed on the destination chain has been authorized by pNetwork Authorization System.
 
 ### pNetwork Authorization System
 
-The new architecture expects each **pNetwork node operator to run an off-chain system that detects a swap event** from the originating chain and **delivers a proof** related to the event emitted via an HTTP API.
+The new architecture expects each **pNetwork node operator to run an off-chain system, called Event Attestator, that detects a swap event** from the originating chain
+and **delivers a proof** related to the event emitted via an HTTP API.
 
 The UI will be responsible for picking this data and submitting it to the pNetwork authorization module to finalise the swap on the destination chain.
 
@@ -46,6 +47,18 @@ The first release of pNetwork v4 will primarily support EVM based chains, ensuri
 - BNB chain
 - Gnosis
 - Polygon
+- EOSIO (Code under `BSL` licence)
+
+## Monorepo structure
+
+This morepo holds all the on-chain code needed for the protocol to work. In particular there are three folder of relevance:
+
+- **solidity:** keeps all the EVM contract code, relative tests and deployment scripts
+- **cpp:** keeps all the EOSIO contract code, relative tests and deployment scripts
+- **javascript:** common javascript code and utilities used throughout the project
+- **javascript/event-attestator:** a 1:1 JS implementation of the Event Attestator code, useful for testing and generating signatures
+
+Inspect each repo's README for further details on the inner architecture and useful assumption made while developing the project.
 
 ## Stay tuned!
 
