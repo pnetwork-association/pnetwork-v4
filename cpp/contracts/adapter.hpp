@@ -51,6 +51,8 @@ namespace eosio {
 
          ACTION setorigin(bytes chain_id, bytes emitter, bytes topic_zero);
 
+         ACTION setchainid(bytes chain_id);
+
          ACTION swap(const bytes& event_bytes);
 
          ACTION settle(const name& caller, const operation& operation, const metadata& metadata);
@@ -96,6 +98,7 @@ namespace eosio {
          // Define alias for ABI inclusion
          using mappings_table = pam::mappings_table;
          using tee_pubkey = pam::tee_pubkey;
+         using chain_id = pam::chain_id;
 
          global_storage_table empty_storage = {
             .nonce = 0,
