@@ -18,8 +18,7 @@ namespace eosio {
       public:
          using contract::contract;
 
-         [[eosio::action]]
-         void create(
+         ACTION create(
             const name& xerc20,
             const symbol& xerc20_symbol,
             const name& token,
