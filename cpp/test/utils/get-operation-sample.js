@@ -1,6 +1,6 @@
 const R = require('ramda')
-const { toBeHex, concat, stripZerosLeft } = require('ethers')
-const { Asset, UInt128 } = require('@wharfkit/antelope')
+const { UInt128 } = require('@wharfkit/antelope')
+const { toBeHex, concat, stripZerosLeft, parseEther } = require('ethers')
 const { _0x, no0x, bytes32 } = require('./bytes-utils')
 const { Protocols, Chains } = require('@pnetwork/event-attestator')
 const { getSymbolCodeRaw } = require('./eos-ext')
@@ -26,22 +26,28 @@ const isEosChain = _chainId =>
   R.values(Chains(Protocols.Eos)).includes(stripZerosLeft(_chainId))
 
 const getOperation = _obj => {
-  const blockId = bytes32(_0x(_obj.blockId))
-  const txId = bytes32(_0x(_obj.txId))
+  const local = _obj.local || false
+  const defaultBlockId =
+    '0x7e21ba208ea2a072bad2d011dbc3a9f870c574a66203d84bde926fcf85756d78'
+  const defaultTxId =
+    '0x2e3704b180feda25af9dfe50793e292fd99d644aa505c3d170fa69407091dbd3'
+  const blockId = bytes32(_0x(_obj.blockId || defaultBlockId))
+  const txId = bytes32(_0x(_obj.txId || defaultTxId))
   const nonce = _obj.nonce
   const originChainId = bytes32(_0x(_obj.originChainId))
-  const token = isEosChain(_obj.originChainId)
-    ? bytes32(toBeHex(_0x(String(getSymbolCodeRaw(_obj.token)))))
-    : bytes32(_0x(_obj.token))
+
+  const token =
+    local && isEosChain(_obj.destinationChainId)
+      ? bytes32(_0x(Number(getSymbolCodeRaw(_obj.token)).toString(16)))
+      : bytes32(_0x(_obj.token))
   const destinationChainId = bytes32(_0x(_obj.destinationChainId))
 
-  const amount = UInt128.from(_obj.amount.toString())
-
+  const amount = String(parseEther(String(_obj.amount))) // UInt128.from()
   const sender = isEosChain(_obj.originChainId)
     ? bytes32(_0x(Buffer.from(_obj.sender, 'utf-8').toString('hex')))
     : bytes32(_obj.sender)
   const recipient = _obj.recipient
-  const data = _0x(_obj.data)
+  const data = _0x(_obj.data || '')
 
   return {
     blockId,
@@ -57,6 +63,8 @@ const getOperation = _obj => {
   }
 }
 
+// From an operation extract the relative
+// event payload
 const serializeOperation = _operation => {
   const amount = bytes32(toBeHex(BigInt(_operation.amount.toString())))
   const recipientLen = bytes32(

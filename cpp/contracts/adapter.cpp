@@ -55,7 +55,7 @@ void adapter::create(
    }
 
    // Default value for the token symbol on non-local deployments
-   symbol non_local_token_symbol = symbol(symbol_code("XXX"), token_symbol.precision());
+   symbol non_local_token_symbol = symbol(symbol_code("XXX"), 0);
 
    adapter_registry_table registry_data {
       .token = token,
@@ -251,8 +251,7 @@ void adapter::settle(const name& caller, const operation& operation, const metad
    name xerc20 = registry_data.xerc20;
    check(is_account(xerc20), "Not valid xerc20 name");
    if (operation.amount > 0) {
-      asset adj_operation_amount = adjust_precision(operation.amount, registry_data.token_symbol, registry_data.xerc20_symbol);
-      asset quantity(adj_operation_amount.amount, registry_data.xerc20_symbol);
+      asset quantity = adjust_precision(operation.amount, registry_data.xerc20_symbol);
       lockbox_singleton _lockbox(xerc20, xerc20.value);
       action_mint _mint(registry_data.xerc20, {get_self(), "active"_n});
       if (_lockbox.exists()) {

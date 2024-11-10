@@ -12,14 +12,11 @@ const {
   bytes32,
   getOperation,
   getMetadataSample,
-  getOperationSample,
   fromEthersPublicKey,
 } = require('./utils')
 const { expect } = require('chai')
-const { parseEther } = require('ethers')
 const { active, getSingletonInstance } = require('./utils/eos-ext')
 const { serializeOperation } = require('./utils/get-operation-sample')
-const { UInt128 } = require('@wharfkit/antelope')
 
 describe('PAM testing', () => {
   const user = 'user'
@@ -64,7 +61,7 @@ describe('PAM testing', () => {
     token: '0xf2e246bb76df876cef8b38ae84130f4f55de395b',
     originChainId: Chains(Protocols.Evm).Mainnet,
     destinationChainId: Chains(Protocols.Eos).Mainnet,
-    amount: Number(parseEther(String(evmSwapAmount))),
+    amount: evmSwapAmount,
     sender: '0x2b5ad5c4795c026514f8317c7a215e218dccd6cf',
     recipient,
     data: '',
@@ -345,6 +342,7 @@ describe('PAM testing', () => {
 
     it('Should authorize an EOSIO operation successfully', async () => {
       let eosOperation = getOperation({
+        local: true,
         nonce: 0,
         blockId:
           '179ed57f474f446f2c9f6ea6702724cdad0cf26422299b368755ed93c0134a35',
@@ -352,7 +350,7 @@ describe('PAM testing', () => {
         token: '4,TKN',
         originChainId: Chains(Protocols.Eos).Jungle,
         destinationChainId: Chains(Protocols.Eos).Mainnet,
-        amount: 9982500000000000000,
+        amount: 9.9825,
         sender: 'user',
         recipient: 'recipient',
         data: '',
@@ -400,9 +398,9 @@ describe('PAM testing', () => {
         .isauthorized([eosOperation, eosMetadata])
         .send(active(user))
 
-      expect(pam.contract.bc.console).to.be.equal(
-        'ff57d8865411fe30f3a29259c17ad16f613bf8fc4ec18269a4ea6c991448d2b6',
-      )
+      const expectedEventId =
+        '190635fc5b0d1b2704567e7a1d379dcf9604119fded50de105a1e77f381d3a0e'
+      expect(pam.contract.bc.console).to.be.equal(expectedEventId)
     })
   })
 })

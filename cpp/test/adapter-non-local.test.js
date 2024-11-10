@@ -145,7 +145,7 @@ describe('Adapter Testing - Non Local Deployment', () => {
       token: '0x810090f35dfa6b18b5eb59d298e2a2443a2811e2',
       originChainId: evmOriginChainId,
       destinationChainId: Chains(Protocols.Eos).Mainnet,
-      amount: Number(parseEther(String(evmSwapAmount))),
+      amount: evmSwapAmount,
       sender:
         '000000000000000000000000f39fd6e51aad88f6f4ce6ab8827279cfffb92266',
       recipient,
@@ -232,14 +232,14 @@ describe('Adapter Testing - Non Local Deployment', () => {
       )
 
       expect(after[recipient][xerc20.symbol]).to.be.deep.equal(
-        Asset.from(evmSwapAmount, xsymbolPrecision).toString(),
+        Asset.from(evmSwapAmount, xsymbolPrecision),
       )
 
       expect(after[adapter.account][xerc20.symbol]).to.be.deep.equal(
-        Asset.from(0, xsymbolPrecision).toString(),
+        Asset.from(0, xsymbolPrecision),
       )
 
-      expect(before[feemanager][xerc20.symbol]).to.be.equal(
+      expect(before[feemanager][xerc20.symbol]).to.be.deep.equal(
         after[feemanager][xerc20.symbol],
       )
     })
@@ -276,15 +276,12 @@ describe('Adapter Testing - Non Local Deployment', () => {
         [xerc20],
       )
 
-      expect(after[recipient][xerc20.symbol]).to.equal(
-        sum(
-          Asset.from(evmSwapAmount, xsymbolPrecision),
-          beforeAsset,
-        ).toString(),
+      expect(after[recipient][xerc20.symbol]).to.be.deep.equal(
+        sum(Asset.from(evmSwapAmount, xsymbolPrecision), beforeAsset),
       )
 
-      expect(after[adapter.account][xerc20.symbol]).to.be.equal(
-        Asset.from(0, xsymbolPrecision).toString(),
+      expect(after[adapter.account][xerc20.symbol]).to.be.deep.equal(
+        Asset.from(0, xsymbolPrecision),
       )
     })
 
@@ -332,7 +329,7 @@ describe('Adapter Testing - Non Local Deployment', () => {
       ).to.be.deep.equal(adjusted)
 
       expect(after[adapter.account][xerc20.symbol]).to.be.deep.equal(
-        Asset.from(0, xsymbolPrecision).toString(),
+        Asset.from(0, xsymbolPrecision),
       )
     })
   })
@@ -361,7 +358,7 @@ describe('Adapter Testing - Non Local Deployment', () => {
       ).to.be.deep.equal(quantity)
 
       expect(after[adapter.account][xerc20.symbol]).to.be.deep.equal(
-        Asset.from(0, xsymbolPrecision).toString(),
+        Asset.from(0, xsymbolPrecision),
       )
 
       const expectedEventBytes =
