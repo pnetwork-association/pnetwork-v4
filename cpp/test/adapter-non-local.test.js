@@ -145,7 +145,7 @@ describe('Adapter Testing - Non Local Deployment', () => {
       token: '0x810090f35dfa6b18b5eb59d298e2a2443a2811e2',
       originChainId: evmOriginChainId,
       destinationChainId: Chains(Protocols.Eos).Mainnet,
-      amount: Number(parseEther(String(evmSwapAmount))),
+      amount: evmSwapAmount, // Number(parseEther(String())),
       sender:
         '000000000000000000000000f39fd6e51aad88f6f4ce6ab8827279cfffb92266',
       recipient,

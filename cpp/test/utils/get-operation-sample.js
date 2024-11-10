@@ -1,6 +1,6 @@
 const R = require('ramda')
-const { toBeHex, concat, stripZerosLeft } = require('ethers')
-const { Asset, UInt128 } = require('@wharfkit/antelope')
+const { UInt128 } = require('@wharfkit/antelope')
+const { toBeHex, concat, stripZerosLeft, parseEther } = require('ethers')
 const { _0x, no0x, bytes32 } = require('./bytes-utils')
 const { Protocols, Chains } = require('@pnetwork/event-attestator')
 const { getSymbolCodeRaw } = require('./eos-ext')
@@ -35,7 +35,7 @@ const getOperation = _obj => {
     : bytes32(_0x(_obj.token))
   const destinationChainId = bytes32(_0x(_obj.destinationChainId))
 
-  const amount = UInt128.from(_obj.amount.toString())
+  const amount = UInt128.from(String(parseEther(String(_obj.amount))))
 
   const sender = isEosChain(_obj.originChainId)
     ? bytes32(_0x(Buffer.from(_obj.sender, 'utf-8').toString('hex')))
