@@ -20,7 +20,9 @@ const {
   Protocols,
   ProofcastEventAttestator,
 } = require('@pnetwork/event-attestator')
+const { TimePointSec } = require('@wharfkit/antelope')
 
+const TEE_ADDRESS_CHANGE_GRACE_PERIOD_MS = 172800 * 1000
 const TABLE_STORAGE = 'storage'
 const TABLE_TEE = 'tee'
 
@@ -83,6 +85,15 @@ describe('Adapter tests', () => {
     protocolId: Protocols.Evm,
     chainId: Chains(Protocols.Evm).Mainnet,
   })
+
+  const NULL_KEY = 'PUB_K1_11111111111111111111111111111111149Mr2R'
+  const anotherAttestation = 'deadc0de'
+  const anotherEventAttestator = new ProofcastEventAttestator()
+  const anotherPublicKey = fromEthersPublicKey(
+    anotherEventAttestator.signingKey.compressedPublicKey,
+  )
+  const teePubKey = fromEthersPublicKey(evmEA.signingKey.compressedPublicKey)
+  const attestation = ''
 
   before(() => {
     blockchain.createAccounts(user, evil, issuer, bridge, recipient, feemanager)
@@ -357,8 +368,6 @@ describe('Adapter tests', () => {
   })
 
   describe('adapter::settee', () => {
-    const teePubKey = fromEthersPublicKey(evmEA.signingKey.compressedPublicKey)
-    const attestation = ''
     it('Should throw if called by not authorized account', async () => {
       const action = adapter.contract.actions
         .settee([teePubKey, attestation])
@@ -372,10 +381,57 @@ describe('Adapter tests', () => {
         .settee([teePubKey, attestation])
         .send(active(adapter.account))
 
-      const tee = getSingletonInstance(adapter.contract, 'tee')
+      const tee = getSingletonInstance(adapter.contract, TABLE_TEE)
 
       expect(tee.key).to.be.equal(teePubKey.toString())
+      expect(tee.updating_key).to.be.equal(NULL_KEY)
       expect(tee.attestation).to.be.equal(attestation)
+      expect(tee.updating_attestation).to.be.equal('')
+      expect(tee.change_grace_threshold).to.be.equal(0)
+    })
+
+    it('Should wait and set a grace time period when a new tee is set', async () => {
+      await adapter.contract.actions
+        .settee([anotherPublicKey, anotherAttestation])
+        .send(active(adapter.account))
+
+      const tee = getSingletonInstance(adapter.contract, TABLE_TEE)
+
+      expect(tee.key).to.be.equal(teePubKey.toString())
+      expect(tee.updating_key).to.be.equal(anotherPublicKey.toString())
+      expect(tee.attestation).to.be.equal(attestation)
+      expect(tee.updating_attestation).to.be.equal(anotherAttestation)
+      expect(tee.change_grace_threshold).to.not.be.equal(0)
+    })
+  })
+
+  describe('adapter::applytee', () => {
+    it('Should reject when calling the action before the grace period elapsed', async () => {
+      const action = adapter.contract.actions
+        .applynewtee([])
+        .send(active(adapter.account))
+
+      await expectToThrow(action, errors.GRACE_PERIOD_NOT_ELAPSED)
+    })
+
+    it('Should be able to apply the new tee key after the grace period', async () => {
+      const timestamp = TimePointSec.fromMilliseconds(
+        Date.now() + TEE_ADDRESS_CHANGE_GRACE_PERIOD_MS,
+      )
+
+      blockchain.setTime(timestamp)
+
+      await adapter.contract.actions
+        .applynewtee([])
+        .send(active(adapter.account))
+
+      const tee = getSingletonInstance(adapter.contract, TABLE_TEE)
+
+      expect(tee.key).to.be.equal(anotherPublicKey.toString())
+      expect(tee.updating_key).to.be.equal(NULL_KEY)
+      expect(tee.attestation).to.be.equal(anotherAttestation)
+      expect(tee.updating_attestation).to.be.equal('')
+      expect(tee.change_grace_threshold).to.be.equal(0)
     })
   })
 

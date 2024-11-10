@@ -82,9 +82,9 @@ describe('PAM testing', () => {
     data,
   }
 
-  const signature = no0x(ea.formatEosSignature(ea.sign(event)))
-  const preimage = no0x(ea.getEventPreImage(event))
-  const metadata = no0x(getMetadataSample({ signature, preimage }))
+  const signature = ea.formatEosSignature(ea.sign(event))
+  const preimage = ea.getEventPreImage(event)
+  const metadata = no0x({ signature, preimage })
 
   before(async () => {
     blockchain.createAccounts(user, recipient)
@@ -116,12 +116,8 @@ describe('PAM testing', () => {
     })
 
     it('Should reject when the origin_chain_id is not set', async () => {
-      const anotherEventAttestator = new ProofcastEventAttestator()
-      const anotherPublicKey = fromEthersPublicKey(
-        anotherEventAttestator.signingKey.compressedPublicKey,
-      )
       await adapter.contract.actions
-        .settee([anotherPublicKey, attestation])
+        .settee([publicKey, attestation])
         .send(active(adapter.account))
 
       const action = pam.contract.actions
@@ -132,25 +128,41 @@ describe('PAM testing', () => {
     })
 
     it('Should reject if the signature is invalid', async () => {
-      // We will correct these later
-      const wrongEmitter = no0x(bytes32('0x010203'))
-      const wrongTopic0 = no0x(bytes32('0x010203'))
       await adapter.contract.actions
-        .setorigin([operation.originChainId, wrongEmitter, wrongTopic0])
+        .setorigin([
+          operation.originChainId,
+          no0x(bytes32(evmEmitter)),
+          no0x(evmTopic0),
+        ])
         .send(active(adapter.account))
 
-      // TODO: change private key and re-enable
+      const tmpEA = new ProofcastEventAttestator()
+      const wrongKeySignedMetadata = no0x({
+        preimage,
+        signature: tmpEA.formatEosSignature(tmpEA.signBytes(preimage)),
+      })
+
       const action = pam.contract.actions
-        .isauthorized([operation, metadata])
+        .isauthorized([operation, wrongKeySignedMetadata])
         .send(active(user))
 
       await expectToThrow(action, errors.INVALID_SIGNATURE)
     })
 
     it('Should reject if the emitter is different', async () => {
-      // Should set the correct key that have signed the event
+      // Setting the correct key
       await adapter.contract.actions
         .settee([publicKey, attestation])
+        .send(active(adapter.account))
+
+      const wrongEmitter = bytes32('0x5123D0aF4bfb6F7B18d6618C166d518E4357ceE2')
+
+      await adapter.contract.actions
+        .setorigin([
+          operation.originChainId,
+          no0x(wrongEmitter),
+          no0x(evmTopic0),
+        ])
         .send(active(adapter.account))
 
       const action = pam.contract.actions
