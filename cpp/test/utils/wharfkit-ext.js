@@ -1,6 +1,7 @@
 const R = require('ramda')
-const { Asset } = require('@wharfkit/antelope')
 const assert = require('assert')
+const { no0x } = require('./bytes-utils')
+const { Asset, PublicKey } = require('@wharfkit/antelope')
 
 const assetOperation = R.curry((_fn, _op1, _op2) => {
   const op1 = _op1 instanceof Asset ? _op1 : Asset.from(_op1)

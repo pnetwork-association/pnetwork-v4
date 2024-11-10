@@ -13,19 +13,24 @@ const { substract } = require('./utils/wharfkit-ext')
 const { getAccountsBalances } = require('./utils/get-token-balance')
 
 describe('Lockbox testing', () => {
+  const decimals = 4
   const symbol = 'TKN'
-  const precision4 = precision(4)
-  const maxSupply = '500000000.0000'
+  const xsymbol = `X${symbol}`
+  const symbolPrecision = precision(decimals, symbol)
+  const xsymbolPrecision = precision(decimals, xsymbol)
+  const maxSupply = 500000000
+
   const token = {
     symbol: symbol,
     account: `${symbol.toLowerCase()}.token`,
-    maxSupply: `${maxSupply} ${symbol}`,
+    maxSupply: Asset.from(maxSupply, symbolPrecision),
     contract: undefined,
   }
+
   const xerc20 = {
-    symbol: `X${symbol}`,
-    account: `x${symbol.toLowerCase()}.token`,
-    maxSupply: `${maxSupply} X${symbol}`,
+    symbol: xsymbol,
+    account: `${xsymbol.toLowerCase()}.token`,
+    maxSupply: Asset.from(maxSupply, xsymbolPrecision),
     contract: undefined,
   }
 
@@ -66,9 +71,9 @@ describe('Lockbox testing', () => {
       const action = lockbox.contract.actions
         .create([
           xerc20.account,
-          precision4(xerc20.symbol),
+          xsymbolPrecision,
           token.account,
-          precision4(token.symbol),
+          symbolPrecision,
         ])
         .send(active(evil))
 
@@ -79,9 +84,9 @@ describe('Lockbox testing', () => {
       const action = lockbox.contract.actions
         .create([
           xerc20.account,
-          precision4(xerc20.symbol),
+          xsymbolPrecision,
           token.account,
-          precision4(token.symbol),
+          symbolPrecision,
         ])
         .send(active(lockbox.account))
 
@@ -94,9 +99,9 @@ describe('Lockbox testing', () => {
       const action = lockbox.contract.actions
         .create([
           xerc20.account,
-          precision4(xerc20.symbol),
+          xsymbolPrecision,
           token.account,
-          precision4(token.symbol),
+          symbolPrecision,
         ])
         .send(active(lockbox.account))
 
@@ -109,9 +114,9 @@ describe('Lockbox testing', () => {
       await lockbox.contract.actions
         .create([
           xerc20.account,
-          precision4(xerc20.symbol),
+          xsymbolPrecision,
           token.account,
-          precision4(token.symbol),
+          symbolPrecision,
         ])
         .send(active(lockbox.account))
 
@@ -121,9 +126,9 @@ describe('Lockbox testing', () => {
 
       expect(after).to.be.deep.equal({
         token: token.account,
-        token_symbol: precision4(token.symbol),
+        token_symbol: symbolPrecision,
         xerc20: xerc20.account,
-        xerc20_symbol: precision4(xerc20.symbol),
+        xerc20_symbol: xsymbolPrecision,
       })
     })
   })

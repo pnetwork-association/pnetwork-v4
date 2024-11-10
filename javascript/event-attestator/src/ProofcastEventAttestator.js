@@ -62,11 +62,15 @@ class ProofcastEventAttestator {
   getEvmEventPayload(event) {
     // EVM event support only: for other chains may be
     // required to change logic based on version and protocolID
-    const topics = [0, 1, 2, 3].map(
-      i => event.topics[i] || zeroPadValue('0x00', 32),
+    const topics = [0, 1, 2, 3].map(i =>
+      this._0x(event.topics[i] || zeroPadValue('0x00', 32)),
     )
 
-    return concat([zeroPadValue(event.address, 32), ...topics, event.data])
+    return concat([
+      zeroPadValue(this._0x(event.address), 32),
+      ...topics,
+      this._0x(event.data),
+    ])
   }
 
   isEvmEvent(event) {

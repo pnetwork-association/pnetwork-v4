@@ -7,6 +7,7 @@ const {
   active,
   getSymbolCodeRaw,
   getAccountCodeRaw,
+  precision,
 } = require('./utils/eos-ext')
 const errors = require('./utils/errors')
 
@@ -15,8 +16,9 @@ const round = (_value, _decimals) =>
 
 describe('xerc20.token', () => {
   const symbol = 'TKN'
+  const symbolPrecision = precision(0, symbol)
   const account = `${symbol.toLowerCase()}.token`
-  const maxSupply = `500000000 ${symbol}`
+  const maxSupply = Asset.from(500000000, symbolPrecision)
   const blockchain = new Blockchain()
   const DURATION = 24 * 60 * 60 // 1 day
 
@@ -40,7 +42,7 @@ describe('xerc20.token', () => {
 
     expect(row).to.be.deep.equal({
       supply: `0 ${symbol}`,
-      max_supply: maxSupply,
+      max_supply: maxSupply.toString(),
       issuer: issuer,
     })
   })
@@ -168,6 +170,7 @@ describe('xerc20.token', () => {
     await xerc20.actions
       .transfer([recipient, bridge, quantity, memo])
       .send(active(recipient))
+
     await xerc20.actions.burn([bridge, quantity, memo]).send(active(bridge))
 
     const bridgeLimits = xerc20.tables

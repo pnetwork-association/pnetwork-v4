@@ -1,11 +1,15 @@
 const R = require('ramda')
 
 const { Asset, Name } = require('@wharfkit/antelope')
+const { Symbol } = Asset
 
 const active = _account => `${_account}@active`
 
 // TODO: replace w/ symbolCodeToBigInt
-const getSymbolCodeRaw = _asset => Asset.from(_asset).symbol.code.value.value
+const getSymbolCodeRaw = _assetOrSymbol =>
+  _assetOrSymbol instanceof Asset
+    ? Asset.from(_assetOrSymbol).symbol.code.value.value
+    : Symbol.from(_assetOrSymbol).value.value
 
 // TODO: replace w/ nameToBigInt
 const getAccountCodeRaw = _account => Name.from(_account).value.value
