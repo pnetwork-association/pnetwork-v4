@@ -59,13 +59,9 @@ void feesmanager::withdrawto( name node, name token, symbol token_symbol ) {
     allowances.modify(allowance_table, node, [&](auto& a) {
         a.node_allowance.amount = 0;
     });
-   
-    action(
-        permission_level{get_self(), "active"_n},
-        token,
-        "transfer"_n,
-        std::make_tuple(get_self(), node, asset_data, std::string("Withdraw"))
-    ).send();
+
+    action_transfer _transfer(token, { get_self(), "active"_n });
+    _transfer.send(get_self(), node, asset_data, std::string("Withdraw"));
 }
 
 // FIXME: multiple withdraw do not work currently

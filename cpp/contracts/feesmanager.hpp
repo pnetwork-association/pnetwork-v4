@@ -4,6 +4,8 @@
 #include <eosio/singleton.hpp>
 #include <eosio/asset.hpp>
 
+#include "xerc20.token.hpp"
+
 using namespace eosio;
 
 CONTRACT feesmanager : public eosio::contract {
@@ -21,6 +23,7 @@ public:
     [[eosio::action]]
     asset getbalance(name token, symbol token_symbol);
 
+    using action_transfer = action_wrapper<"transfer"_n, &xtoken::transfer>;
 private:
     TABLE account {
         asset balance;

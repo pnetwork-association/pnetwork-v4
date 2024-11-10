@@ -60,31 +60,20 @@ void lockbox::ontransfer(
    if (search_token != _registry.end()) {
       check(search_token->token == token, "invalid first receiver");
       auto xerc20_quantity = asset(quantity.amount, search_token->xerc20_symbol);
-      action(
-         permission_level{ get_self(), "active"_n },
-         search_token->xerc20,
-         "mint"_n,
-         std::make_tuple(get_self(), from, xerc20_quantity, memo)
-      ).send();
+
+      action_mint _mint(search_token->xerc20, {get_self(), "active"_n});
+      _mint.send(get_self(), from, xerc20_quantity, memo);
    } else if (search_xerc20 != idx.end()) {
 
       check(search_xerc20->xerc20 == token, "invalid first receiver");
 
-      action(
-         permission_level{ get_self(), "active"_n },
-         token,
-         "burn"_n,
-         std::make_tuple(get_self(), quantity, memo)
-      ).send();
+      action_burn _burn(token, { get_self(), "active"_n });
+      _burn.send(get_self(), quantity, memo);
 
       auto token_quantity = asset(quantity.amount, search_xerc20->token_symbol);
 
-      action(
-         permission_level{ get_self(), "active"_n },
-         search_xerc20->token,
-         "transfer"_n,
-         std::make_tuple(get_self(), from, token_quantity, memo)
-      ).send();
+      action_transfer _transfer(search_xerc20->token, { get_self(), "active"_n });
+      _transfer.send(get_self(), from, token_quantity, memo);
    }
 }
 
