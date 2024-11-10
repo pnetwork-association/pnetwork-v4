@@ -22,7 +22,7 @@ const getAccountsBalances = (_accounts, _tokensAndSymbol) => {
         account,
         token.symbol,
         token.decimals,
-      ).toString()
+      )
     }
   }
 

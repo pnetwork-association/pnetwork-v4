@@ -1,6 +1,6 @@
 const R = require('ramda')
 const { expect } = require('chai')
-const { Asset, Name } = require('@wharfkit/antelope')
+const { Asset } = require('@wharfkit/antelope')
 const { Blockchain, expectToThrow, nameToBigInt } = require('@eosnetwork/vert')
 const { deploy } = require('./utils/deploy')
 const {

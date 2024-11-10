@@ -6,6 +6,7 @@ const { active, getAccountCodeRaw, precision } = require('./utils/eos-ext')
 const errors = require('./utils/errors')
 const { substract } = require('./utils/wharfkit-ext')
 const { getAccountsBalances } = require('./utils/get-token-balance')
+const { Asset } = require('@wharfkit/antelope')
 
 TABLE_FREEZING_ACCOUNT = 'freezeacc'
 
@@ -114,8 +115,8 @@ describe('xerc20.token - Freezing capabilities tests', () => {
 
       let balances = getAccountsBalances([evil, recipient], [xerc20])
 
-      expect(balances[recipient][xerc20.symbol]).to.be.equal(
-        transfereableAmount.toString(),
+      expect(balances[recipient][xerc20.symbol]).to.be.deep.equal(
+        transfereableAmount,
       )
 
       await xerc20.contract.actions.freeze([evil]).send(active(freezingAccount))
@@ -148,8 +149,12 @@ describe('xerc20.token - Freezing capabilities tests', () => {
 
       const after = getAccountsBalances([evil, freezingAccount], [xerc20])
 
-      expect(after[evil][xerc20.symbol]).to.be.equal(`0.0000 ${xerc20.symbol}`)
-      expect(after[freezingAccount][xerc20.symbol]).to.be.equal(stolenAmount)
+      expect(after[evil][xerc20.symbol]).to.be.deep.equal(
+        Asset.from(0, precision(4, xerc20.symbol)),
+      )
+      expect(after[freezingAccount][xerc20.symbol]).to.be.deep.equal(
+        Asset.from(stolenAmount),
+      )
     })
 
     it('Should unfreeze an account successfully', async () => {
