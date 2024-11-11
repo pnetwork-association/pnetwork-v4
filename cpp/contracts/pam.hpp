@@ -10,13 +10,6 @@
 namespace eosio {
     using bytes = std::vector<uint8_t>;
     namespace pam {
-        // aca376f206b8fc25a6ed44dbdc66547c36c6c33e3a119ffbeaef943642f0e906
-        const bytes CHAIN_ID = {
-            0xac, 0xa3, 0x76, 0xf2, 0x06, 0xb8, 0xfc, 0x25,
-            0xa6, 0xed, 0x44, 0xdb, 0xdc, 0x66, 0x54, 0x7c,
-            0x36, 0xc6, 0xc3, 0x3e, 0x3a, 0x11, 0x9f, 0xfb,
-            0xea, 0xef, 0x94, 0x36, 0x42, 0xf0, 0xe9, 0x06
-        };
 
         TABLE mappings {
             bytes chain_id;
@@ -36,6 +29,10 @@ namespace eosio {
             }
         };
 
+        TABLE local_chain_id {
+            bytes chain_id;
+        };
+
         TABLE tee {
             public_key key;
             public_key updating_key;
@@ -44,6 +41,7 @@ namespace eosio {
             uint64_t change_grace_threshold = 0;
         };
 
+        using chain_id = singleton<"chainid"_n, local_chain_id>;
         using tee_pubkey = singleton<"tee"_n, tee>;
         typedef eosio::multi_index<"mappings"_n, mappings> mappings_table;
 
@@ -77,7 +75,12 @@ namespace eosio {
             //    +----------- context ---------+------------- event ---------------+
             check(context_checks(operation, metadata), "unexpected context");
 
+            chain_id _chain_id(adapter, adapter.value);
+            check(_chain_id.exists(), "local chain id singleton not set");
+            bytes local_chain_id = _chain_id.get().chain_id;
+
             tee_pubkey _tee_pubkey(adapter, adapter.value);
+            check(_tee_pubkey.exists(), "tee singleton not set");
             public_key tee_key = _tee_pubkey.get().key;
 
             uint128_t offset = 2;
@@ -148,7 +151,7 @@ namespace eosio {
 
             bytes dest_chain_id = extract_32bytes(event_data, offset);
             check(operation.destinationChainId == dest_chain_id, "destination chain id does not match with the expected one");
-            check(CHAIN_ID == dest_chain_id, "destination chain id does not match with the current chain");
+            check(local_chain_id == dest_chain_id, "destination chain id does not match with the current chain");
             offset += 32;
 
             bytes amount = extract_32bytes(event_data, offset);

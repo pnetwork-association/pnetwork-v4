@@ -27,7 +27,9 @@ const INVALID_MINFEE_SYMBOL = eosio_assert('invalid minimum fee symbol')
 
 const NOT_INITIALIZED = eosio_assert('adapter contract not initialized')
 
-const SINGLETON_NOT_EXISTING = eosio_assert('singleton does not exist')
+const TEE_NOT_SET = eosio_assert('tee singleton not set')
+
+const LOCAL_CHAIN_NOT_SET = eosio_assert('local chain id singleton not set')
 
 const ORIGIN_CHAINID_NOT_REGISTERED = eosio_assert(
   'origin chain_id not registered',
@@ -93,7 +95,8 @@ module.exports = {
   INVALID_MINFEE_SYMBOL,
   NOT_INITIALIZED,
   SYMBOL_NOT_FOUND,
-  SINGLETON_NOT_EXISTING,
+  TEE_NOT_SET,
+  LOCAL_CHAIN_NOT_SET,
   ORIGIN_CHAINID_NOT_REGISTERED,
   INVALID_SIGNATURE,
   UNEXPECTED_EMITTER,

@@ -153,6 +153,15 @@ void adapter::freeuserdata(const name& account) {
    }
 }
 
+void adapter::setchainid(bytes chain_id) {
+   require_auth(get_self());
+   pam::chain_id _chain_id(get_self(), get_self().value);
+   
+   _chain_id.set(pam::local_chain_id{
+      .chain_id = chain_id
+   }, get_self());
+}
+
 void adapter::settee(public_key pub_key, bytes attestation) {
    require_auth(get_self());
    pam::tee_pubkey _tee_pubkey(get_self(), get_self().value);

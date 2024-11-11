@@ -50,6 +50,8 @@ describe('Adapter Testing - Non Local Deployment', () => {
     '000000000000000000000000bcf063a9eb18bc3c6eb005791c61801b7cb16fe4'
   const evmTopicZero =
     '66756e6473206172652073616675207361667520736166752073616675202e2e'
+  const EOSChainId =
+    'aca376f206b8fc25a6ed44dbdc66547c36c6c33e3a119ffbeaef943642f0e906'
 
   const token = {
     symbol,
@@ -178,6 +180,12 @@ describe('Adapter Testing - Non Local Deployment', () => {
           token.bytes,
           xerc20.minFee,
         ])
+        .send(active(adapter.account))
+    })
+
+    it('Should set the local chain id successfully', async () => {
+      await adapter.contract.actions
+        .setchainid([EOSChainId])
         .send(active(adapter.account))
     })
 
