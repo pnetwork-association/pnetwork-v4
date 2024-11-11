@@ -1,6 +1,6 @@
 # Scripts
 
-Please enjoy these scripts facilitating the interaction with EOSIO chains.
+Please enjoy these scripts facilitating the interaction with AntelopeIO chains.
 
 ## Premises:
 

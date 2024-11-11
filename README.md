@@ -1,4 +1,4 @@
-# pNetwork v4:
+# pNetwork v4
 
 ## Overview
 
@@ -20,21 +20,17 @@ Projects have the flexibility to operate pNetwork v4 either as a standalone serv
 - **Global pTokens**: Ensures that users receive the same pToken when bridging across chains, maintaining a seamless and reliable user experience.
 - **Delegated Gas Costs**: Users are now responsible for executing transactions in the destination chain, giving them more control over their transactions and ensuring transparency in gas cost management.
 
-## Technical aspects
+## Monorepo structure
 
-pNetwork v4 introduces new on-chain entities:
+This morepo holds all the on-chain code needed for the protocol to work. In particular there are three folder of relevance:
 
-- **pNetwork Adapter contract:** needed to facilitate the wrapping and unwrapping of the ERC20 token. This would be the entry point for UIs.
-- **Lockbox:** vault where the collateral is deposited/released when wrapping/unwrapping ERC20 tokens.
-- **pNetwork fee contract:** responsible for holding all the node operator fees.
-- **pTokensV2:** the wrapped representation of the ERC20 token on the underlying chain.
-- **pNetwork Authorization Module (PAM):** verifies that the operation performed on the destination chain has been authorized by pNetwork Authorization System.
+- **solidity:** keeps all the EVM contract code, relative tests and deployment scripts
+- **cpp:** keeps all the AntelopeIO contract code, relative tests and deployment scripts
+- **javascript:** common javascript code and utilities used throughout the project
+- **javascript/event-attestator:** a 1:1 JS implementation of the Event Attestator code, useful for testing and generating signatures
 
-### pNetwork Authorization System
-
-The new architecture expects each **pNetwork node operator to run an off-chain system that detects a swap event** from the originating chain and **delivers a proof** related to the event emitted via an HTTP API.
-
-The UI will be responsible for picking this data and submitting it to the pNetwork authorization module to finalise the swap on the destination chain.
+Before inspecting each chain's protocol implementation, please have a look at the [contracts](./docs/contracts-spec.md) specification in
+order to fully grasp each component's purpose and behaviour.
 
 ### Network supported
 
@@ -46,7 +42,4 @@ The first release of pNetwork v4 will primarily support EVM based chains, ensuri
 - BNB chain
 - Gnosis
 - Polygon
-
-## Stay tuned!
-
-This project is currently being developed and this page will be updated in the coming days, stay tuned!
+- AntelopeIO (Code under `BSL` licence)
