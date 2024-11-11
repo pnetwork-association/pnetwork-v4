@@ -9,3 +9,5 @@
 eosio-data-dir
 protocol_features/
 build
+
+!scripts/resources/**/*.*
