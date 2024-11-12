@@ -50,16 +50,16 @@ function usage {
 }
 
 function deploy {
-    local contract
+    local contract_name
     local account
 
-    contract="$1"
+    contract_name="$1"
 
-    exit_if_empty "$contract" "Contract name is required"
+    exit_if_empty "$contract_name" "Contract name is required"
 
-    account="${2:-$contract}"
+    account="${2:-$contract_name}"
 
-    cleos set contract "$account" "$FOLDER_BUILD" "$contract.wasm" "$contract.abi" -p "$account@active"
+    cleos set contract "$account" "$FOLDER_BUILD" "$contract_name.wasm" "$contract_name.abi" -p "$account@active"
 }
 
 

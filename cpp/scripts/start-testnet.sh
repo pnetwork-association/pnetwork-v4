@@ -70,17 +70,17 @@ BURNING_LIMIT="1500.0000 $XSYMBOL"
 MIN_FEE="0.0000 $XSYMBOL"
 
 # ... and the bridge
-eosio.token create owner "$MAX_SUPPLY $SYMBOL"
+eosio.token eosio.token create owner "$MAX_SUPPLY $SYMBOL"
 
-xerc20.token xtoken@active create owner "$MAX_SUPPLY $XSYMBOL"
-xerc20.token setlockbox lockbox
-xerc20.token setlimits  adapter "$MINTING_LIMIT" "$BURNING_LIMIT"
+xerc20.token xtoken xtoken@active create owner "$MAX_SUPPLY $XSYMBOL"
+xerc20.token xtoken setlockbox lockbox
+xerc20.token xtoken setlimits  adapter "$MINTING_LIMIT" "$BURNING_LIMIT"
 
-lockbox create "xtoken" "4,$XSYMBOL" "eosio.token" "4,$SYMBOL"
-adapter create "xtoken" "4,$XSYMBOL" "eosio.token" "4,$SYMBOL" "$SYMBOL_BYTES" "$MIN_FEE"
-adapter setfeemanagr "feesmanager"
+lockbox lockbox create "xtoken" "4,$XSYMBOL" "eosio.token" "4,$SYMBOL"
+adapter adapter create "xtoken" "4,$XSYMBOL" "eosio.token" "4,$SYMBOL" "$SYMBOL_BYTES" "$MIN_FEE"
+adapter adapter setfeemanagr "feesmanager"
 
-eosio.token owner@active issue owner "100.0000 WRAM"
-eosio.token owner@active transfer owner user "10.0000 WRAM"
+eosio.token eosio.token owner@active issue owner "100.0000 WRAM"
+eosio.token eosio.token owner@active transfer owner user "10.0000 WRAM"
 
 echo "Done!"
