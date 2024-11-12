@@ -59,7 +59,6 @@ add_code_permissions adapter
 deploy lockbox lockbox
 add_code_permissions lockbox
 deploy feesmanager feesmanager
-deploy feesmanager feesmanager
 deploy xerc20.token xtoken
 
 SYMBOL=WRAM
