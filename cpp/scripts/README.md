@@ -42,6 +42,10 @@ key of the first pair generated when the wallet was created.
 - Create an account through the `create-account.sh` script. This will create an account assigning the public key relative to
   the specified wallet.
 
+## Deploy
+
+* `deploy-xtoken` can deploy an xtoken to testnet or mainnet given a list of accounts names and their pk. The list of account and token/xtoken infos must be passed through a `.env` file.
+
 **Example:**
 
 ```bash
