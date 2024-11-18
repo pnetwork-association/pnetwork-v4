@@ -20,11 +20,10 @@ const getMetadata = (_event, _options) => {
   const privateKey = fs.readFileSync(_options.privateKeyFile).toString()
   const ea = new ProofcastEventAttestator({
     version: Versions.V1,
-    protocolId: Protocols.Evm,
+    protocolId: _options.protocolId,
     chainId: _options.chainId,
     privateKey,
   })
-
   _event.blockHash = _options.blockHash
   _event.transactionHash = _options.txHash
 
@@ -55,7 +54,7 @@ program
   .option(
     '-c --chain-id <number>',
     'the origin chain id of the event',
-    Number,
+    String,
     Chains(Protocols.Eos).Mainnet,
   )
   .option(
@@ -71,9 +70,12 @@ program
       {
         account,
         action,
-        data,
+        data: JSON.parse(data),
       },
-      options,
+      {
+        ...options,
+        protocolId: Protocols.Eos,
+      }
     ),
   )
 
@@ -108,11 +110,14 @@ program
       {
         address,
         topics,
-        data,
+        data: JSON.parse(data),
         blockHash: options.blockHash,
         transactionHash: options.txHash,
       },
-      options,
+      {
+        ...options,
+        protocolId: Protocols.Evm,
+      }
     ),
   )
 
