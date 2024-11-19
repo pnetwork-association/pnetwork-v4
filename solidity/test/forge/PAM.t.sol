@@ -54,7 +54,7 @@ contract PAMTest is Test, Helper {
         (, , adapter, , ) = _setupChain(
             originChainId,
             owner,
-            address(erc20),
+            bytes32(abi.encode(address(erc20))),
             true,
             false
         );

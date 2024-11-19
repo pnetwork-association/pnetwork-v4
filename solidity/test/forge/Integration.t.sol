@@ -79,7 +79,7 @@ contract IntegrationTest is Test, Helper {
         (xerc20_A, lockbox_A, adapter_A, feesManager_A, pam_A) = _setupChain(
             CHAIN_A,
             owner_A,
-            address(erc20),
+            erc20Bytes,
             LOCAL,
             freezingEnabled
         );
@@ -87,7 +87,7 @@ contract IntegrationTest is Test, Helper {
         (xerc20_B, lockbox_B, adapter_B, feesManager_B, pam_B) = _setupChain(
             CHAIN_B,
             owner_B,
-            address(erc20),
+            erc20Bytes,
             NOT_LOCAL,
             freezingEnabled
         );

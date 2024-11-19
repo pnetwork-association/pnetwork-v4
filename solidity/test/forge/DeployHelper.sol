@@ -17,7 +17,7 @@ contract DeployHelper {
     /// chains.
     function _setupXERC20(
         address factory_,
-        address erc20,
+        bytes32 erc20,
         string memory name,
         string memory symbol,
         bool local,
@@ -40,11 +40,11 @@ contract DeployHelper {
             )
         );
 
-        bool isNative = erc20 == address(0);
+        bool isNative = address(uint160(uint256(erc20))) == address(0);
         XERC20Lockbox lockbox;
         if (local) {
             lockbox = XERC20Lockbox(
-                factory.deployLockbox(address(xerc20), erc20, isNative)
+                factory.deployLockbox(address(xerc20), address(uint160(uint256(erc20))), isNative)
             );
         }
 

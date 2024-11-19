@@ -7,6 +7,7 @@ const {
 } = require('@pnetwork/event-attestator')
 const { expect } = require('chai')
 const hre = require('hardhat')
+const { zeroPadValue } = require('ethers')
 
 const Operation = require('../utils/Operation.js')
 const { decodeSwapEvent } = require('../utils/decode-swap-event.js')
@@ -81,11 +82,9 @@ conditionalDescribe(
         const rpc = hre.config.networks.bscFork.url
         const blockToForkFrom = 43336397 // 2024-10-22 09:25
         await helpers.reset(rpc, blockToForkFrom)
-
         user = await hre.ethers.getImpersonatedSigner(
           '0x816a99530B0f272Bb6ba4913b8952249f8d2E21b',
         )
-
         await helpers.setBalance(user.address, oneEth)
         ptoken = await hre.ethers.getContractAt(PTokenAbi, ADDRESS_PTOKEN)
         proxyAdminOwner = await hre.ethers.getImpersonatedSigner(
@@ -93,7 +92,7 @@ conditionalDescribe(
         )
         adapterBsc = await deploy(hre, 'Adapter', [
           ptoken.target,
-          ADDRESS_ERC20_TOKEN,
+          zeroPadValue(ADDRESS_ERC20_TOKEN, 32),
           isNative,
           feesManagerBsc,
           pamBsc,
@@ -176,7 +175,6 @@ conditionalDescribe(
         const rpc = hre.config.networks.ethFork.url
         const blockToForkFrom = 20369499 // 2024-07-23 15:22
         await helpers.reset(rpc, blockToForkFrom)
-
         erc20 = await hre.ethers.getContractAt(Erc20Abi, ADDRESS_ERC20_TOKEN)
 
         const name = `p${await erc20.name()}`
@@ -204,7 +202,7 @@ conditionalDescribe(
 
         adapterEth = await deploy(hre, 'Adapter', [
           xerc20.target,
-          ADDRESS_ERC20_TOKEN,
+          zeroPadValue(ADDRESS_ERC20_TOKEN, 32),
           isNative,
           feesManagerEth,
           pamEth,
