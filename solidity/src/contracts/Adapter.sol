@@ -24,7 +24,8 @@ contract Adapter is IAdapter, Ownable, ReentrancyGuard {
         ); // swap event custom topic0
 
     uint256 public nonce;
-    address public immutable erc20;
+    bytes32 public immutable erc20;
+    address public immutable erc20Addr;
     address public immutable xerc20;
     address public feesManager;
     address public pam;
@@ -34,7 +35,7 @@ contract Adapter is IAdapter, Ownable, ReentrancyGuard {
 
     constructor(
         address xerc20_,
-        address erc20_,
+        bytes32 erc20_,
         bool isNative_,
         address feesManager_,
         address pam_
@@ -42,6 +43,7 @@ contract Adapter is IAdapter, Ownable, ReentrancyGuard {
         isNative = isNative_;
         if (!isNative) {
             erc20 = erc20_;
+            erc20Addr = address(uint160(uint256(erc20)));
         }
         xerc20 = xerc20_;
         feesManager = feesManager_;
@@ -64,8 +66,7 @@ contract Adapter is IAdapter, Ownable, ReentrancyGuard {
         Operation memory operation,
         IPAM.Metadata calldata metadata
     ) external nonReentrant {
-        if (operation.erc20 != bytes32(abi.encode(erc20)))
-            revert InvalidOperation();
+        if (operation.erc20 != erc20) revert InvalidOperation();
 
         (bool isAuthorized, bytes32 eventId) = IPAM(pam).isAuthorized(
             operation,
@@ -129,7 +130,7 @@ contract Adapter is IAdapter, Ownable, ReentrancyGuard {
         string memory recipient,
         bytes memory data
     ) external payable {
-        if (erc20 == address(0) && isNative) {
+        if (erc20Addr == address(0) && isNative) {
             _swapNative(destinationChainId, recipient, data);
         } else {
             _swapToken(token, amount, destinationChainId, recipient, data);
@@ -151,7 +152,7 @@ contract Adapter is IAdapter, Ownable, ReentrancyGuard {
         bytes memory data
     ) internal {
         if (token == address(0)) revert InvalidTokenAddress(token);
-        if ((token != erc20) && (token != xerc20)) revert NotAllowed();
+        if ((token != erc20Addr) && (token != xerc20)) revert NotAllowed();
         if (amount <= 0) revert InvalidAmount();
 
         address payable lockbox = payable(XERC20(xerc20).lockbox());
@@ -170,7 +171,7 @@ contract Adapter is IAdapter, Ownable, ReentrancyGuard {
             amount
         );
 
-        if (lockbox != address(0) && token == erc20) {
+        if (lockbox != address(0) && token == erc20Addr) {
             // We are on the home chain: then we wrap the ERC20
             // to the relative xERC20
             IERC20(token).approve(lockbox, amount);
@@ -186,7 +187,7 @@ contract Adapter is IAdapter, Ownable, ReentrancyGuard {
         bytes memory data
     ) internal {
         uint256 amount = msg.value;
-        if (erc20 != address(0)) revert NotAllowed();
+        if (erc20Addr != address(0)) revert NotAllowed();
         if (amount == 0) revert InvalidAmount();
 
         address payable lockbox = payable(XERC20(xerc20).lockbox());
@@ -222,7 +223,7 @@ contract Adapter is IAdapter, Ownable, ReentrancyGuard {
         uint256 topic1 = nonce;
         bytes memory eventBytes = bytes.concat(
             bytes32(nonce),
-            bytes32(abi.encode(erc20)),
+            erc20,
             bytes32(destinationChainId),
             bytes32(netAmount),
             bytes32(uint256(uint160(msg.sender))),

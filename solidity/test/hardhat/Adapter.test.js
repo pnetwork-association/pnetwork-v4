@@ -81,7 +81,7 @@ const deployERC1820 = () => setCode(ERC1820, ERC1820BYTES)
         const PAM = await deploy(hre, 'PAM', [])
         const adapter = await deploy(hre, 'Adapter', [
           pTokenV2.target,
-          erc20.target,
+          erc20Bytes,
           _isNative,
           feesManager,
           PAM,

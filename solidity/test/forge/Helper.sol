@@ -73,7 +73,7 @@ abstract contract Helper is Test, DeployHelper {
     function _setupChain(
         uint256 chain,
         address owner_,
-        address erc20,
+        bytes32 erc20,
         bool local,
         bool freezingEnabled
     )
@@ -104,7 +104,7 @@ abstract contract Helper is Test, DeployHelper {
         feesManager = new FeesManager(securityCouncil);
         adapter = new Adapter(
             address(xerc20),
-            address(erc20),
+            erc20,
             notNative,
             address(feesManager),
             address(pam)

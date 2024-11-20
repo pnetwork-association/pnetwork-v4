@@ -32,7 +32,7 @@ contract AdapterTest is Test, Helper {
         ERC20 erc20 = ERC20(new ERC20Test(name, symbol, supply));
         (XERC20 xerc20, , ) = _setupXERC20(
             address(0),
-            address(erc20),
+            bytes32(abi.encode(erc20)),
             string.concat("p", name),
             string.concat("p", symbol),
             local,
@@ -42,7 +42,7 @@ contract AdapterTest is Test, Helper {
         PAM pam = new PAM();
         adapter = new Adapter(
             address(xerc20),
-            address(erc20),
+            bytes32(abi.encode(erc20)),
             notNative,
             address(feesManager),
             address(pam)
