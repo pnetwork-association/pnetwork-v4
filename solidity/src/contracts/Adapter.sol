@@ -66,8 +66,7 @@ contract Adapter is IAdapter, Ownable, ReentrancyGuard {
         Operation memory operation,
         IPAM.Metadata calldata metadata
     ) external nonReentrant {
-        if (operation.erc20 != erc20)
-            revert InvalidOperation();
+        if (operation.erc20 != erc20) revert InvalidOperation();
 
         (bool isAuthorized, bytes32 eventId) = IPAM(pam).isAuthorized(
             operation,

@@ -44,7 +44,11 @@ contract DeployHelper {
         XERC20Lockbox lockbox;
         if (local) {
             lockbox = XERC20Lockbox(
-                factory.deployLockbox(address(xerc20), address(uint160(uint256(erc20))), isNative)
+                factory.deployLockbox(
+                    address(xerc20),
+                    address(uint160(uint256(erc20))),
+                    isNative
+                )
             );
         }
 

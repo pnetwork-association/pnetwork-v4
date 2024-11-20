@@ -153,8 +153,7 @@ const deployERC1820 = () => setCode(ERC1820, ERC1820BYTES)
                 value: amount,
               },
             )
-          } 
-          else {
+          } else {
             await erc20.connect(user).approve(adapter, amount)
             tx = adapter.swap(
               erc20.target,
