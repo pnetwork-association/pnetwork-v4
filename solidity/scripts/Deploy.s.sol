@@ -27,6 +27,7 @@ contract Deploy is Script, DeployHelper {
         string memory name,
         string memory symbol,
         bool local,
+        bool isNative,
         bool freezing
     ) public {
         vm.startBroadcast();
@@ -44,6 +45,7 @@ contract Deploy is Script, DeployHelper {
         Adapter adapter = new Adapter(
             address(xerc20),
             erc20,
+            isNative,
             address(feesManager),
             address(pam)
         );
@@ -72,8 +74,9 @@ contract Deploy is Script, DeployHelper {
         string memory name,
         string memory symbol,
         bool local,
+        bool isNative,
         bool freezing
     ) public {
-        run(address(0), erc20, name, symbol, local, freezing);
+        run(address(0), erc20, name, symbol, local, isNative, freezing);
     }
 }

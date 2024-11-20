@@ -58,19 +58,20 @@ function lockbox {
     local action
     local permission
     local shifting_pos
-    local contract
+    local contract_name
     local json
 
-    contract="${FUNCNAME[0]}"
+    contract_name="$1"
+    shift 
 
-    contract_script_init action permission shifting_pos "$contract" "$@"
+    contract_script_init action permission shifting_pos "$contract_name" "$@"
 
     shift "$shifting_pos"
 
     lockbox.get_json_params json "$action" "$@"
 
     # We call the action
-    push_action "$contract" "$action" "$json" "--permission" "$permission"
+    push_action "$contract_name" "$action" "$json" "--permission" "$permission"
 }
 
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
