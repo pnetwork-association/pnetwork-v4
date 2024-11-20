@@ -16,6 +16,18 @@ contract PAMScript is Script {
         vm.stopBroadcast();
     }
 
+    // Call if emitter is not in a EVM chain
+    function setEmitter(
+        address pam,
+        uint256 chainid,
+        bytes32 emitter
+    ) external {
+        vm.startBroadcast();
+        PAM(pam).setEmitter(bytes32(chainid), emitter);
+        vm.stopBroadcast();
+    }
+
+    // Call if emitter is in a EVM chain
     function setEmitter(
         address pam,
         uint256 chainid,
