@@ -355,7 +355,8 @@ contract PAMTest is Test, Helper {
         bytes32 eosChainId = 0x73e4385a2708e6d7048834fbc1079f2fabb17b3c125b146af438971e90716c4d;
         bytes32 eosAdapter = 0x0000000000000000000000000000000000000000706e6574776f726b61646132; // 'adapter'
         uint256 destinationChainIdSepolia = 11155111;
-        string memory attestatorPublicKey2 = "0x04397db47d49685dfef7dd2d7da91c59a2551d6ea069f58d3e3318b70d34a0f3c7f39d5bd2a92b41f4eddd88caec85d74c39062f6e9abde9da7feef510a4c0b762";
+        string
+            memory attestatorPublicKey2 = "0x04397db47d49685dfef7dd2d7da91c59a2551d6ea069f58d3e3318b70d34a0f3c7f39d5bd2a92b41f4eddd88caec85d74c39062f6e9abde9da7feef510a4c0b762";
         bytes memory userdata;
 
         // Retrieved from the ProofcastEventAttestator testing code
@@ -365,7 +366,7 @@ contract PAMTest is Test, Helper {
         metadata.signature = vm.parseBytes(
             "b76e1eb6e66d979d53a07cc8858fd542ff501e4ec718fc7632c8e323bb9b392d223348ca2c970914000783266a4d7786abb4fae76f85df06e117c63c33f5a9bd1c"
         );
-        
+
         operation = IAdapter.Operation(
             0x0a3bcd8042204cf627b7ae76c4791bbb2b89fa76f49633b2c167f3ac97355a02, // blockhash
             0x387706c47f825caad733c6c4a6eb15be3ac3001fd4437613780c4fe25e968a5d, // txHash

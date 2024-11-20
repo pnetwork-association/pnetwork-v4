@@ -150,11 +150,11 @@ contract PAM is Ownable, IPAM {
         uint256 amount = uint256(bytes32(content[offset:offset += 32]));
         bytes32 sender = bytes32(content[offset:offset += 32]);
         uint256 recipientLen = uint256(bytes32(content[offset:offset += 32]));
-        bytes memory _recipient = recipientLen == 42 ?
-            content[2 + offset:offset += recipientLen] :
-            content[offset:offset += recipientLen];
+        bytes memory _recipient = recipientLen == 42
+            ? content[2 + offset:offset += recipientLen]
+            : content[offset:offset += recipientLen];
         address recipient = _bytesToAddress(_recipient);
-        
+
         bytes memory data = content[offset:];
 
         return (nonce == operation.nonce &&
