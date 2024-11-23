@@ -23,7 +23,7 @@ contract Deploy is Script, DeployHelper {
 
     function run(
         address factory_,
-        address erc20,
+        bytes32 erc20,
         string memory name,
         string memory symbol,
         bool local,
@@ -53,7 +53,7 @@ contract Deploy is Script, DeployHelper {
         xerc20.setLimits(address(adapter), mintingLimit, burningLimit);
 
         console.log("XERC20Factory @", address(factory));
-        console.log("ERC20 @", erc20);
+        console.log("ERC20 @", address(uint160(uint256(erc20))));
         console.log("PAM @", address(pam));
         console.log("XERC20 @", address(xerc20));
         console.log("Lockbox @", address(lockbox));
@@ -70,7 +70,7 @@ contract Deploy is Script, DeployHelper {
     }
 
     function run(
-        address erc20,
+        bytes32 erc20,
         string memory name,
         string memory symbol,
         bool local,
