@@ -110,7 +110,7 @@ program
       {
         address,
         topics,
-        data: JSON.parse(data),
+        data: data,
         blockHash: options.blockHash,
         transactionHash: options.txHash,
       },

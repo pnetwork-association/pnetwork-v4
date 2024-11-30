@@ -17,15 +17,25 @@ contract AdapterScript is Script {
         uint256 destinationChainId,
         string memory recipient,
         bytes memory data
-    ) external {
+    ) external payable{
         vm.startBroadcast();
-        Adapter(adapter).swap(
-            token,
-            amount,
-            destinationChainId,
-            recipient,
-            data
-        );
+        if (token == address(0)) {
+            Adapter(adapter).swap{value: amount}(
+                token,
+                amount,
+                destinationChainId,
+                recipient,
+                data
+            );
+        } else {
+            Adapter(adapter).swap(
+                token,
+                amount,
+                destinationChainId,
+                recipient,
+                data
+            );
+        }
         vm.stopBroadcast();
     }
 
