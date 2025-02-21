@@ -22,6 +22,12 @@ describe('Feesmanager testing', () => {
     maxSupply: `${maxSupply} ${symbol}`,
     contract: undefined,
   }
+  const token2 = {
+    symbol: 'TKM',
+    account: `tkm.token`,
+    maxSupply: `${maxSupply} TKM`,
+    contract: undefined,
+  }
   const xerc20 = {
     symbol: `X${symbol}`,
     account: `x${symbol.toLowerCase()}.token`,
@@ -61,6 +67,11 @@ describe('Feesmanager testing', () => {
     token.contract = deploy(
       blockchain,
       token.account,
+      'contracts/build/eosio.token',
+    )
+    token2.contract = deploy(
+      blockchain,
+      token2.account,
       'contracts/build/eosio.token',
     )
     xerc20.contract = deploy(
@@ -321,6 +332,7 @@ describe('Feesmanager testing', () => {
         .withdrawto([node1, token.account, assetSymbol])
         .send(active(feesmanager.account))
 
+      console.log(feesmanager.contract.bc.console);
       const feesmanagerBalanceAfter = await token.contract.tables
         .accounts(getAccountCodeRaw(feesmanager.account))
         .getTableRows()
@@ -343,74 +355,100 @@ describe('Feesmanager testing', () => {
     })
   })
 
-  // describe('feesmanager::withdrawtomultiple', () => {
-  // it('Should withdraw to the nodes', async () => {
-  //   const feesmanagerBalance = "100.0000 TKN"
-  //   await token.contract.actions
-  //     .create([issuer, token.maxSupply]).send()
-  //   await token.contract.actions
-  //     .issue([issuer, feesmanagerBalance, ''])
-  //     .send(active(issuer))
-  //   await token.contract.actions
-  //     .transfer([issuer, feesmanager.account, feesmanagerBalance, ''])
-  //     .send(active(issuer))
+  describe('feesmanager::withdrawmtto', () => {
+    it('Should withdraw multiple tokens to the node', async () => {
+      const feesmanagerBalance = "50.0000 TKN"
+      const feesmanagerBalance2 = "50.0000 TKM"
+      await token.contract.actions
+        .create([issuer, token.maxSupply]).send()
+      await token.contract.actions
+        .issue([issuer, feesmanagerBalance, ''])
+        .send(active(issuer))
+      await token.contract.actions
+        .transfer([issuer, feesmanager.account, feesmanagerBalance, ''])
+        .send(active(issuer))
+      
+      await token2.contract.actions
+        .create([issuer, token2.maxSupply]).send()
+      await token2.contract.actions
+        .issue([issuer, feesmanagerBalance2, ''])
+        .send(active(issuer))
+      await token2.contract.actions
+        .transfer([issuer, feesmanager.account, feesmanagerBalance2, ''])
+        .send(active(issuer))
 
-  //   const allowanceValue1 = "50.0000 TKN"
-  //   await feesmanager.contract.actions
-  //     .setallowance([node1, token.account, allowanceValue1])
-  //     .send(active(feesmanager.account))
+      const allowanceValue1 = "50.0000 TKN"
+      await feesmanager.contract.actions
+        .setallowance([node1, token.account, allowanceValue1])
+        .send(active(feesmanager.account))
 
-  //   const allowanceValue2 = "50.0000 TKN"
-  //   await feesmanager.contract.actions
-  //     .setallowance([node2, token.account, allowanceValue2])
-  //     .send(active(feesmanager.account))
+      const allowanceValue2 = "50.0000 TKM"
+      await feesmanager.contract.actions
+        .setallowance([node1, token2.account, allowanceValue2])
+        .send(active(feesmanager.account))
 
-  //   const assetSymbol1 = Asset.from(allowanceValue1).symbol
-  //   const assetSymbol1Code = assetSymbol1.code.value.toString()
-  //   const allowance1 = feesmanager.contract.tables.allowances(getAccountCodeRaw(node1)).getTableRow(assetSymbol1Code)
-  //   expect(allowance1).to.be.deep.equal({
-  //     node_allowance: allowanceValue1,
-  //     token: token.account,
-  //   })
+      const assetSymbol1 = Asset.from(allowanceValue1).symbol
+      const assetSymbol1Code = assetSymbol1.code.value.toString()
+      const allowance1 = feesmanager.contract.tables.allowances(getAccountCodeRaw(node1)).getTableRow(assetSymbol1Code)
+      expect(allowance1).to.be.deep.equal({
+        node_allowance: allowanceValue1,
+        token: token.account,
+      })
 
-  //   const assetSymbol2 = Asset.from(allowanceValue2).symbol
-  //   const assetSymbol2Code = assetSymbol2.code.value.toString()
-  //   const allowance2 = feesmanager.contract.tables.allowances(getAccountCodeRaw(node1)).getTableRow(assetSymbol2Code)
-  //   expect(allowance2).to.be.deep.equal({
-  //     node_allowance: allowanceValue1,
-  //     token: token.account,
-  //   })
+      const assetSymbol2 = Asset.from(allowanceValue2).symbol
+      const assetSymbol2Code = assetSymbol2.code.value.toString()
+      const allowance2 = feesmanager.contract.tables.allowances(getAccountCodeRaw(node1)).getTableRow(assetSymbol2Code)
+      expect(allowance2).to.be.deep.equal({
+        node_allowance: allowanceValue2,
+        token: token2.account,
+      })
 
-  //   const feesmanagerBalanceBefore = await token.contract.tables.accounts(getAccountCodeRaw(feesmanager.account)).getTableRows()
-  //   const nodeBalanceBefore1 = await token.contract.tables.accounts(getAccountCodeRaw(node1)).getTableRows()
-  //   const allowanceBefore1 = feesmanager.contract.tables.allowances(getAccountCodeRaw(node1)).getTableRow(assetSymbol1Code)
-  //   expect(feesmanagerBalanceBefore[0]).to.be.deep.equal({
-  //     balance: feesmanagerBalance,
-  //   })
-  //   expect(nodeBalanceBefore1[0]).to.be.deep.equal(undefined)
-  //   expect(allowanceBefore1).to.be.deep.equal({
-  //     node_allowance: allowanceValue1,
-  //     token: token.account,
-  //   })
+      const feesmanagerBalanceBefore = await token.contract.tables.accounts(getAccountCodeRaw(feesmanager.account)).getTableRows()
+      const nodeBalanceBefore1 = await token.contract.tables.accounts(getAccountCodeRaw(node1)).getTableRows()
+      const allowanceBefore1 = feesmanager.contract.tables.allowances(getAccountCodeRaw(node1)).getTableRow(assetSymbol1Code)
+      expect(feesmanagerBalanceBefore[0]).to.be.deep.equal({
+        balance: feesmanagerBalance,
+      })
+      expect(nodeBalanceBefore1[0]).to.be.deep.equal(undefined)
+      expect(allowanceBefore1).to.be.deep.equal({
+        node_allowance: allowanceValue1,
+        token: token.account,
+      })
 
-  //   await feesmanager.contract.actions
-  //     .withdrawto([node1, [token.account, token.account], [assetSymbol1, assetSymbol2]])
-  //     .send(active(feesmanager.account))
+      await feesmanager.contract.actions
+        .withdrawmtto([node1, [token.account, token2.account], [assetSymbol1, assetSymbol2]])
+        .send(active(feesmanager.account))
 
-  //   console.log(feesmanager.contract.bc.console)
-  // const feesmanagerBalanceAfter = await token.contract.tables.accounts(getAccountCodeRaw(feesmanager.account)).getTableRows()
-  // const nodeBalanceAfter = await token.contract.tables.accounts(getAccountCodeRaw(node1)).getTableRows()
-  // const allowanceAfter = feesmanager.contract.tables.allowances(getAccountCodeRaw(node1)).getTableRow(assetSymbol)
-  // expect(feesmanagerBalanceAfter[0]).to.be.deep.equal({
-  //   balance: "0.0000 TKN",
-  // })
-  // expect(nodeBalanceAfter[0]).to.be.deep.equal({
-  //   balance: feesmanagerBalance,
-  // })
-  // expect(allowanceAfter).to.be.deep.equal({
-  //   node_allowance: "0.0000 TKN",
-  //   token: token.account,
-  // })
-  // })
-  // })
+      console.log(feesmanager.contract.bc.console)
+      const feesmanagerBalanceAfter = await token.contract.tables.accounts(getAccountCodeRaw(feesmanager.account)).getTableRows()
+      const nodeBalanceAfter = await token.contract.tables.accounts(getAccountCodeRaw(node1)).getTableRows()
+      const allowanceAfter = feesmanager.contract.tables.allowances(getAccountCodeRaw(node1)).getTableRow(assetSymbol1Code)
+      console.log('aa', feesmanagerBalanceAfter[0])
+      expect(feesmanagerBalanceAfter[0]).to.be.deep.equal({
+        balance: "0.0000 TKN",
+      })
+      expect(nodeBalanceAfter[0]).to.be.deep.equal({
+        balance: feesmanagerBalance,
+      })
+      expect(allowanceAfter).to.be.deep.equal({
+        node_allowance: "0.0000 TKN",
+        token: token.account,
+      })
+
+      const feesmanagerBalance2After = await token2.contract.tables.accounts(getAccountCodeRaw(feesmanager.account)).getTableRows()
+      const nodeBalance2After = await token2.contract.tables.accounts(getAccountCodeRaw(node1)).getTableRows()
+      const allowance2After = feesmanager.contract.tables.allowances(getAccountCodeRaw(node1)).getTableRow(assetSymbol2Code)
+      console.log('aa', feesmanagerBalance2After[0])
+      expect(feesmanagerBalance2After[0]).to.be.deep.equal({
+        balance: "0.0000 TKM",
+      })
+      expect(nodeBalance2After[0]).to.be.deep.equal({
+        balance: feesmanagerBalance2,
+      })
+      expect(allowance2After).to.be.deep.equal({
+        node_allowance: "0.0000 TKM",
+        token: token2.account,
+      })
+    })
+  })
 })
