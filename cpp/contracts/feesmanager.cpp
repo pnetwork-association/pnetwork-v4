@@ -65,7 +65,7 @@ void feesmanager::withdrawto( name node, name token, symbol token_symbol ) {
 }
 
 // FIXME: multiple withdraw do not work currently
-void feesmanager::withdrawto(name node, const std::vector<name>& tokens, const std::vector<symbol>& token_symbols) {
+void feesmanager::withdrawmtto(name node, const std::vector<name>& tokens, const std::vector<symbol>& token_symbols) {
     check(tokens.size() == token_symbols.size(), "Token names and symbol size mismatch");
     for (size_t i = 0; i < tokens.size(); ++i) {
         withdrawto(node, tokens[i], token_symbols[i]);
