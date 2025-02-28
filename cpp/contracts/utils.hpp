@@ -122,6 +122,8 @@ namespace eosio {
    }
 
    uint128_t to_wei(asset quantity) {
+      // We don't need overflow checks here since they are enforced at protocol
+      // level, see https://github.com/AntelopeIO/spring/blob/v1.1.1/libraries/chain/symbol.cpp#L16
       const uint8_t exp = 18 - quantity.symbol.precision();
       return quantity.amount * powint(10, exp);
    }
