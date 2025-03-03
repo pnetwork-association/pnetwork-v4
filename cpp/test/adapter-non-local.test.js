@@ -70,6 +70,15 @@ describe('Adapter Testing - Non Local Deployment', () => {
     contract: null,
   }
 
+  const xerc20Fake = {
+    symbol: xsymbol,
+    decimals: xsymbolDecimals,
+    account: 'xfake.token',
+    maxSupply: Asset.from(maxSupply, xsymbolPrecision),
+    minFee: Asset.from(minFee, xsymbolPrecision),
+    contract: null,
+  }
+
   const adapter = {
     account: 'adapter',
     contract: null,
@@ -106,6 +115,12 @@ describe('Adapter Testing - Non Local Deployment', () => {
       'contracts/build/xerc20.token',
     )
 
+    xerc20Fake.contract = deploy(
+      blockchain,
+      xerc20Fake.account,
+      'contracts/build/xerc20.token',
+    )
+
     adapter.contract = deploy(
       blockchain,
       adapter.account,
@@ -125,17 +140,17 @@ describe('Adapter Testing - Non Local Deployment', () => {
     )
   })
 
-  const setup = async () => {
-    await xerc20.contract.actions
-      .create([issuer, xerc20.maxSupply])
-      .send(active(xerc20.account))
+  const setupXERC20 = async (_xerc20, _minter) => {
+    await _xerc20.contract.actions
+      .create([issuer, _xerc20.maxSupply])
+      .send(active(_xerc20.account))
 
     const mintingLimit = Asset.from(1000, xsymbolPrecision)
     const burningLimit = Asset.from(600, xsymbolPrecision)
 
-    await xerc20.contract.actions
-      .setlimits([adapter.account, mintingLimit, burningLimit])
-      .send(active(xerc20.account))
+    await _xerc20.contract.actions
+      .setlimits([_minter, mintingLimit, burningLimit])
+      .send(active(_xerc20.account))
   }
 
   describe('adapter::settle', () => {
@@ -167,7 +182,7 @@ describe('Adapter Testing - Non Local Deployment', () => {
     const metadata = { preimage, signature }
 
     it('Setup', async () => {
-      await setup()
+      await setupXERC20(xerc20, adapter.account)
     })
 
     it('Should create the pair successfully', async () => {
@@ -373,6 +388,27 @@ describe('Adapter Testing - Non Local Deployment', () => {
         '0000000000000000000000000000000000000000000000000000000000000003000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000005158b1b8444260000000000000000000000000000000000000000000000000000000000075736572000000000000000000000000000000000000000000000000000000000000002a307865333936373537656337653661633763386535616265373238356464653437623938663232646238'
 
       expect(adapter.contract.bc.console).to.be.equal(expectedEventBytes)
+    })
+
+    it('Should throw when the xerc20 is not registered', async () => {
+      const data = ''
+      const recipient = evil
+      const quantity = Asset.from(1000, xsymbolPrecision)
+      const destinationChainId = Chains(Protocols.Evm).Mainnet
+      const memo = getSwapMemo(
+        evil,
+        bytes32(destinationChainId),
+        recipient,
+        data,
+      )
+
+      await setupXERC20(xerc20Fake, evil)
+
+      const action = xerc20Fake.contract.actions
+        .mint([evil, adapter.account, quantity, memo])
+        .send(active(evil))
+
+      await expectToThrow(action, errors.INVALID_FIRST_RECEIVER)
     })
   })
 })
