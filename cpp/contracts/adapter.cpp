@@ -130,7 +130,7 @@ void adapter::adduserdata(const name& caller, bytes payload) {
    // instead of a singleton because we can
    // scope it by account value.
    // Singletons doesn't support scoping and they
-   // are global througout the contract
+   // are global throughout the contract
    if (table.begin() == table.end()) {
       table.emplace(caller, [&](auto& r) {
           r.id = 1;
@@ -146,11 +146,13 @@ void adapter::adduserdata(const name& caller, bytes payload) {
 
 void adapter::freeuserdata(const name& account) {
    require_auth(account);
-   user_data table(account, account.value);
+   user_data table(get_self(), account.value);
 
-   for (auto itr = table.begin(); itr != table.end(); itr++) {
+   // We expect one single element in the table
+   // see comment in adduserdata
+   auto itr = table.begin();
+   if (itr != table.end())
       table.erase(itr);
-   }
 }
 
 void adapter::setchainid(bytes chain_id) {

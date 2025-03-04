@@ -380,7 +380,21 @@ describe('Adapter Testing - Local deployment', () => {
         expect(R.last(rows).payload).to.be.equal(data)
       })
 
+      it('Should free userdata successfully', async () => {
+        await adapter.contract.actions.freeuserdata([user]).send(active(user))
+
+        const rows = adapter.contract.tables
+          .userdata(nameToBigInt(user))
+          .getTableRows()
+
+        expect(rows.length).to.be.equal(0)
+      })
+
       it('Should send user data successfully', async () => {
+        await adapter.contract.actions
+          .adduserdata([user, data])
+          .send(active(user))
+
         await token.contract.actions
           .transfer([user, adapter.account, quantity, memo])
           .send(active(user))
