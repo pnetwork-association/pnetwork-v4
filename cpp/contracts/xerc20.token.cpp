@@ -400,9 +400,14 @@ void xtoken::pullfrozen(const name& frozen, const name& to, const asset& quantit
    check(quantity.symbol.is_valid(), "invalid quantity symbol");
 
    frozens _frozens(get_self(), get_self().value);
+   
    auto itr = _frozens.find(frozen.value);
-
    check(itr != _frozens.end(), "given account is not frozen");
+
+   // Frozen account checks are only on the transfer
+   // action, so we need to replay the check here
+   auto itr2 = _frozens.find(to.value);
+   check(itr2 == _frozens.end(), "to account is frozen");
 
    sub_balance(frozen, quantity);
    add_balance(to, quantity, to);
