@@ -65,6 +65,8 @@ contract PAM is Ownable, IPAM {
     }
 
     function applyNewTeeSigner() external {
+        if (teeAddressNew == address(0)) revert UnsetTeeSigner();
+
         if (block.timestamp < teeAddressChangeGraceThreshold)
             revert GracePeriodNotElapsed();
 
