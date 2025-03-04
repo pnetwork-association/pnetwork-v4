@@ -94,8 +94,8 @@ function add_key_value {
 
     # shellcheck disable=SC2181
     if [[ $? -gt 0 ]]; then
-        raise "Failed to add string '$value' to \"$key\""
         _json=""
+        raise "Failed to add string '$value' to \"$key\""
     fi
 
     eval "$__json"="'$_json'"
