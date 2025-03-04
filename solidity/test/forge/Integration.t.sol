@@ -13,6 +13,7 @@ import {Adapter} from "../../src/contracts/Adapter.sol";
 import {FeesManager} from "../../src/contracts/FeesManager.sol";
 import {IPAM} from "../../src/interfaces/IPAM.sol";
 import {IAdapter} from "../../src/interfaces/IAdapter.sol";
+import {IPReceiver} from "../../src/interfaces/IPReceiver.sol";
 
 import {XERC20} from "../../src/contracts/XERC20.sol";
 import {ERC20Test} from "../../src/contracts/test/ERC20Test.sol";
@@ -379,7 +380,14 @@ contract IntegrationTest is Test, Helper {
         uint256 fees = (amount * FEES_BASIS_POINTS) / FEES_DIVISOR;
         emit IERC20.Transfer(address(0), address(receiver), amount - fees);
         vm.expectEmit(address(receiver));
-        emit DataReceiver.DataReceived(data);
+
+        IPReceiver.UserData memory expectedUserData = IPReceiver.UserData(
+            operation.sender,
+            operation.originChainId,
+            operation.erc20,
+            data
+        );
+        emit DataReceiver.DataReceived(expectedUserData);
         vm.expectEmit(address(adapter_B));
         emit IAdapter.Settled(eventId);
 
