@@ -8,14 +8,15 @@ import {IPReceiver} from "../../interfaces/IPReceiver.sol";
 
 contract DataReceiverReentrancy is IPReceiver {
     event DataReceived(bytes userdata);
-    function receiveUserData(bytes calldata userdata) external {
+
+    function receiveUserData(IPReceiver.UserData memory userdata) external {
         (
             IAdapter.Operation memory operation,
             IPAM.Metadata memory metadata
-        ) = abi.decode(userdata, (IAdapter.Operation, IPAM.Metadata));
+        ) = abi.decode(userdata.data, (IAdapter.Operation, IPAM.Metadata));
 
         Adapter(msg.sender).settle(operation, metadata);
 
-        emit DataReceived(userdata);
+        emit DataReceived(userdata.data);
     }
 }
