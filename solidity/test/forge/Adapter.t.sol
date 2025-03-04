@@ -57,6 +57,8 @@ contract AdapterTest is Test, Helper {
         adapter.setPAM(address(0));
         _expectOwnableUnauthorizedAccountRevert(evil);
         adapter.setFeesManager(address(0));
+        _expectOwnableUnauthorizedAccountRevert(evil);
+        adapter.setMinFee(0);
         vm.stopPrank();
     }
 }
