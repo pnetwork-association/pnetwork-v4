@@ -144,6 +144,34 @@ contract PAMTest is Test, Helper {
         vm.stopPrank();
     }
 
+    function test_applyNewTeeSigner_RevertWhen_newTeeSignerIsZeroAddress()
+        public
+    {
+        vm.startPrank(owner);
+        pam = new PAM();
+        pam.setTeeSigner(vm.parseBytes(attestatorPublicKey), attestation);
+
+        // Grace period testing
+        uint256 gracePeriod = pam.TEE_ADDRESS_CHANGE_GRACE_PERIOD();
+
+        pam.setTeeSigner(vm.parseBytes(otherAttestatorPublicKey), attestation);
+
+        skip(gracePeriod);
+
+        vm.expectEmit(address(pam));
+        emit IPAM.TeeSignerChanged(otherAttestatorAddress);
+        pam.applyNewTeeSigner();
+
+        // Nothing should change for successive calls
+        vm.expectRevert(IPAM.UnsetTeeSigner.selector);
+        pam.applyNewTeeSigner();
+
+        assertEq(pam.teeAddress(), otherAttestatorAddress);
+        assertEq(pam.teeAddressNew(), address(0));
+
+        vm.stopPrank();
+    }
+
     function test_setEmitter_RevertWhen_callerIsNotOwner() public {
         vm.prank(owner);
         pam = new PAM();
