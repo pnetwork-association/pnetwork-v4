@@ -24,12 +24,13 @@ void feesmanager::setallowance( name node, name token, const asset& value ) {
         total_allowance.set({asset(total_token_allowance + value.amount , value.symbol)}, get_self());
     } else {
         check(allowance_itr->token == token, "symbol and token do not match");
-        check(balance.amount >= (total_token_allowance - allowance_itr->node_allowance.amount) + value.amount, "balance is lower than the allowance to be set");
+        auto old_allowance = allowance_itr->node_allowance.amount;
+        check(balance.amount >= (total_token_allowance - old_allowance) + value.amount, "balance is lower than the allowance to be set");
         allowances.modify(allowance_itr, get_self(), [&](auto& a) {
             a.node_allowance = value;
             a.token = token;
         });
-        total_allowance.set({asset(total_token_allowance + value.amount , value.symbol)}, get_self());
+        total_allowance.set({asset(total_token_allowance - old_allowance + value.amount , value.symbol)}, get_self());
     }
 }
 
@@ -56,9 +57,14 @@ void feesmanager::withdrawto( name node, name token, symbol token_symbol ) {
     const auto& allowance_table = allowances.get(token_symbol.code().raw(), "No allowance set for this node");
     asset asset_data = asset(allowance_table.node_allowance.amount, token_symbol);
 
+    total_allowance_table total_allowance(get_self(), token.value);
+    auto total_token_allowance = total_allowance.get().allowance.amount;
+
     allowances.modify(allowance_table, node, [&](auto& a) {
         a.node_allowance.amount = 0;
     });
+    total_allowance.set({asset(total_token_allowance - asset_data.amount , value.symbol)}, get_self());
+    
 
     action_transfer _transfer(token, { get_self(), "active"_n });
     _transfer.send(get_self(), node, asset_data, std::string("Withdraw"));
