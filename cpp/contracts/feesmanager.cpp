@@ -46,6 +46,7 @@ void feesmanager::incallowance( name node, name token, const asset& value ) {
     auto balance = getbalance(token, value.symbol);
     check(balance.amount >= total_token_allowance + value.amount, "[increase allowance]: balance is lower than the allowance to be set");
 
+    total_allowance.set({asset(total_token_allowance + value.amount , value.symbol)}, get_self());
     allowances.modify(allowance_table, get_self(), [&](auto& a) {
         a.node_allowance.amount += value.amount;
     });
@@ -63,9 +64,8 @@ void feesmanager::withdrawto( name node, name token, symbol token_symbol ) {
     allowances.modify(allowance_table, node, [&](auto& a) {
         a.node_allowance.amount = 0;
     });
-    total_allowance.set({asset(total_token_allowance - asset_data.amount , value.symbol)}, get_self());
+    total_allowance.set({asset(total_token_allowance - asset_data.amount , token_symbol)}, get_self());
     
-
     action_transfer _transfer(token, { get_self(), "active"_n });
     _transfer.send(get_self(), node, asset_data, std::string("Withdraw"));
 }
