@@ -57,6 +57,20 @@ When the owner calls `setLimits`, the contract calls `_changeMinterLimit` and `_
    - If the new max limit is lower: The available quota decreases by the difference (but it cannot go below zero).
 5. Ensures that any usage before the change is taken into account smoothly.
 
+```mermaid
+graph TD;
+    A[Start: Call _calculateNewCurrentLimit] --> B{Is _oldLimit > _limit?};
+    B -- Yes --> C[_difference = _oldLimit - _limit];
+    B -- No --> D[_difference = _limit - _oldLimit];
+    C --> E{Is _currentLimit > _difference?};
+    E -- Yes --> F[newCurrentLimit = _currentLimit - _difference];
+    E -- No --> G[newCurrentLimit = 0];
+    D --> H[newCurrentLimit = _currentLimit + _difference];
+    F --> I[Return newCurrentLimit];
+    G --> I;
+    H --> I;
+```
+
 ## Examples
 
 ### New Limit > Current Limit
