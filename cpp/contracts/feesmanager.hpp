@@ -18,7 +18,7 @@ public:
 
     ACTION withdrawto(name node, name token, symbol token_symbol);
 
-    ACTION withdrawto(name node, const std::vector<name>& tokens, const std::vector<symbol>& token_symbols);
+    ACTION withdrawmtto(name node, const std::vector<name>& tokens, const std::vector<symbol>& token_symbols);
 
     [[eosio::action]]
     asset getbalance(name token, symbol token_symbol);
