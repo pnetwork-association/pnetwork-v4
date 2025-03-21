@@ -1,7 +1,12 @@
 const R = require('ramda')
 const { expect } = require('chai')
 const { Asset } = require('@wharfkit/antelope')
-const { Blockchain, expectToThrow, nameToBigInt } = require('@eosnetwork/vert')
+const {
+  Blockchain,
+  expectToThrow,
+  nameToBigInt,
+  logExecutionTrace,
+} = require('@eosnetwork/vert')
 const { deploy } = require('./utils/deploy')
 const {
   no0x,
@@ -51,6 +56,16 @@ describe('Adapter Testing - Local deployment', () => {
   const EOSChainId =
     'aca376f206b8fc25a6ed44dbdc66547c36c6c33e3a119ffbeaef943642f0e906'
 
+  // Token that will be not registered, but we
+  // keep the same symbol and different account
+  const fakeToken = {
+    symbol,
+    account: `fake.token`,
+    maxSupply: Asset.from(maxSupply, symbolPrecision),
+    bytes: no0x(bytes32(toBeHex(String(getSymbolCodeRaw(symbolPrecision))))),
+    contract: null,
+  }
+
   const token = {
     symbol: symbol,
     account: `${symbol.toLowerCase()}.token`,
@@ -58,6 +73,7 @@ describe('Adapter Testing - Local deployment', () => {
     bytes: no0x(bytes32(toBeHex(Number(getSymbolCodeRaw(symbolPrecision))))),
     contract: null,
   }
+
   const xerc20 = {
     symbol: xsymbol,
     account: `${xsymbol.toLowerCase()}.token`,
@@ -107,6 +123,12 @@ describe('Adapter Testing - Local deployment', () => {
     token.contract = deploy(
       blockchain,
       token.account,
+      'contracts/build/eosio.token',
+    )
+
+    fakeToken.contract = deploy(
+      blockchain,
+      fakeToken.account,
       'contracts/build/eosio.token',
     )
 
@@ -374,6 +396,36 @@ describe('Adapter Testing - Local deployment', () => {
         expect(eventBytes.sender).to.be.equal(user)
         expect(eventBytes.recipient).to.be.equal(recipient)
         expect(eventBytes.data).to.be.equal(data)
+      })
+
+      describe('adapter::ontransfer', () => {
+        const fakeTokenSetup = async () => {
+          const emptyMemo = ''
+          const evilFakeTokenInitialBalance = Asset.from(666, symbolPrecision)
+          await fakeToken.contract.actions
+            .create([issuer, fakeToken.maxSupply])
+            .send(active(fakeToken.account))
+
+          await fakeToken.contract.actions
+            .issue([issuer, evilFakeTokenInitialBalance, emptyMemo])
+            .send(active(issuer))
+
+          await fakeToken.contract.actions
+            .transfer([issuer, evil, evilFakeTokenInitialBalance, emptyMemo])
+            .send(active(issuer))
+        }
+
+        it('Should throw if transfering a token that is not registered', async () => {
+          await fakeTokenSetup()
+          const amount = 100
+          const fakeQuantity = Asset.from(amount, symbolPrecision)
+
+          const action = fakeToken.contract.actions
+            .transfer([evil, adapter.account, fakeQuantity, memo])
+            .send(active(evil))
+
+          await expectToThrow(action, errors.INVALID_FIRST_RECEIVER)
+        })
       })
     })
   })

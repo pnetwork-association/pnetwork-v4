@@ -57,6 +57,8 @@ const INVALID_RECIPIENT = eosio_assert('recipient do not match')
 
 const INVALID_USER_DATA = eosio_assert('user data do not match')
 
+const INVALID_FIRST_RECEIVER = eosio_assert('invalid first receiver')
+
 const ACCOUNT_STR_IS_TOO_LONG = eosio_assert(
   'string is too long to be a valid name',
 )
@@ -109,6 +111,7 @@ module.exports = {
   INVALID_RECIPIENT,
   INVALID_USER_DATA,
   INVALID_ACCOUNT,
+  INVALID_FIRST_RECEIVER,
   ACCOUNT_STR_IS_TOO_LONG,
   EXPECTED_32_BYTES,
   INVALID_SYMBOL,

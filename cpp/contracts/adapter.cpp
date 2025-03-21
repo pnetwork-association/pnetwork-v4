@@ -394,14 +394,22 @@ void adapter::ontransfer(const name& from, const name& to, const asset& quantity
    auto token = is_token_transfer ? registry_data.token : registry_data.token;
    auto token_symbol = is_token_transfer ? registry_data.token_symbol : registry_data.token_symbol;
 
+   lockbox_singleton _lockbox(xerc20, xerc20.value);
+   auto lockbox = _lockbox.get_or_default(name(0));
+   auto untrusted_account = get_first_receiver();
+
+   check(
+      untrusted_account == lockbox ||
+      untrusted_account == xerc20 ||
+      untrusted_account == token,
+      "invalid first receiver"
+   );
+      
    if (is_token_transfer) check(quantity.symbol == token_symbol, "invalid token quantity symbol");
    if (is_xerc20_transfer) check(quantity.symbol == xerc20_symbol, "invalid xerc20 quantity symbol");
 
-
    if (is_token_transfer) {
-      lockbox_singleton _lockbox(xerc20, xerc20.value);
       check(_lockbox.exists(), "lockbox is not set for the underlying token");
-      auto lockbox = _lockbox.get();
       check(is_account(lockbox), "lockbox must be a valid account");
       if (from == lockbox) {
          token_transfer_from_lockbox(get_self(), token, quantity, memo);
