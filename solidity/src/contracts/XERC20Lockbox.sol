@@ -6,6 +6,7 @@ import {IERC20} from '@openzeppelin/contracts/token/ERC20/ERC20.sol';
 import {SafeERC20} from '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
 import {SafeCast} from '@openzeppelin/contracts/utils/math/SafeCast.sol';
 import {IXERC20Lockbox} from '../interfaces/IXERC20Lockbox.sol';
+import {TokenWithDecimals} from '../interfaces/TokenWithDecimals.sol';
 
 contract XERC20Lockbox is IXERC20Lockbox {
   using SafeERC20 for IERC20;
@@ -28,6 +29,15 @@ contract XERC20Lockbox is IXERC20Lockbox {
   bool public immutable IS_NATIVE;
 
   /**
+   * @notice Required to handle token with different decimals
+   * @dev The XERC20 as is defined here assumes that it  will always 
+   * have 18 decimals, but the base token may have not 
+   * @dev See _deposit & _withdraw function for more info
+   */
+
+  uint256 conversionRatio;
+
+  /**
    * @notice Constructor
    *
    * @param _xerc20 The address of the XERC20 contract
@@ -39,6 +49,9 @@ contract XERC20Lockbox is IXERC20Lockbox {
     XERC20 = IXERC20(_xerc20);
     ERC20 = IERC20(_erc20);
     IS_NATIVE = _isNative;
+
+    uint256 decimals = _getTokenDecimals(_erc20);
+    conversionRatio = 10 ** (18 - decimals);
   }
 
   /**
@@ -125,7 +138,8 @@ contract XERC20Lockbox is IXERC20Lockbox {
       (bool _success,) = payable(_to).call{value: _amount}('');
       if (!_success) revert IXERC20Lockbox_WithdrawFailed();
     } else {
-      ERC20.safeTransfer(_to, _amount);
+      uint256 amount = _amount / conversionRatio;
+      ERC20.safeTransfer(_to, amount);
     }
   }
 
@@ -141,8 +155,19 @@ contract XERC20Lockbox is IXERC20Lockbox {
       ERC20.safeTransferFrom(msg.sender, address(this), _amount);
     }
 
-    XERC20.mint(_to, _amount);
-    emit Deposit(_to, _amount);
+    uint256 amount = _amount * conversionRatio;
+
+    XERC20.mint(_to, amount);
+    emit Deposit(_to, amount);
+  }
+
+
+  function _getTokenDecimals(address token) internal view returns (uint256) {
+    try TokenWithDecimals(token).decimals() returns (uint256 decimals) {
+      return decimals;
+    } catch {}
+
+    return 18;
   }
 
   /**
