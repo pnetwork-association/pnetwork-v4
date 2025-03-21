@@ -31,14 +31,15 @@ The token owner should validate the claim by:
 Once verified, the token owner can proceed with refunding process. Calling X the quantity of funds to recover
 the process can be summarized as follows:
 
-1. Set XERC20 minting limit to X
-2. Mint X tokens to a secure account we have access (may be the same as the one interacting with the contracts)
+1. Set XERC20 minting limit to X for the `owner`
+2. Mint X tokens (as owner) to a secure account we have access (may be the same as the one interacting with the contracts)
 3. Transfer the tokens to the XERC20 Lockbox contract
 4. The Lockbox contract will return to the account that has sent the XERC20 the relative collateral denominated in the unwrapped ERC20 token
 5. Once the collateral is in our control, transfer X amount of the ERC20 token to the sender of the operation
 6. Refund has been completed
+7. Restore the `owner` limits to 0
 
-Please look into the following section for the right contract calls for each step on each protocol.
+Please look into the following sections for the right contract calls for each step on each protocol.
 
 #### On EOS
 
@@ -48,6 +49,7 @@ Please look into the following section for the right contract calls for each ste
 4. Collateral will be assigned to the `from` account calling `xtoken::transfer`.
 5. Call `token::transfer` using the operation sender as destination account with the correct quantity
 6. Refund completed
+7. Call `xtoken::setlimits` with the active account controlling the `xtoken` contract and set 0 as the minting limit parameter
 
 #### On Ethereum
 
@@ -57,6 +59,7 @@ Please look into the following section for the right contract calls for each ste
 4. Call `XERC20Lockbox.withdraw()` by specifying the amount to withdraw (the ERC20 will be transferred to the EOA calling the withdraw() function)
 5. Call ERC20.transfer() transferring the funds to the Operation.sender EOA
 6. Refund completed
+7. Call `XERC20.setLimits()` with the owner key setting the minting limit to 0
 
 ### 4. Notify the User
 
