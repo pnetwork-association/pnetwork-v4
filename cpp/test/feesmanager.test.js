@@ -7,6 +7,7 @@ const {
   precision,
   getAccountCodeRaw,
   getSymbolCodeRaw,
+  getSingletonInstance,
 } = require('./utils/eos-ext')
 const errors = require('./utils/errors')
 const { substract } = require('./utils/wharfkit-ext')
@@ -125,6 +126,9 @@ describe('Feesmanager testing', () => {
       await token.contract.actions
         .transfer([issuer, feesmanager.account, feesmanagerBalance, ''])
         .send(active(issuer))
+      const totalAllowanceBefore = feesmanager.contract.tables
+        .totallowance(getAccountCodeRaw(token.account))
+        .getTableRows()
       await feesmanager.contract.actions
         .setallowance([node1, token.account, allowanceValue])
         .send(active(feesmanager.account))
@@ -134,6 +138,17 @@ describe('Feesmanager testing', () => {
       const allowance = feesmanager.contract.tables
         .allowances(getAccountCodeRaw(node1))
         .getTableRow(assetSymbol)
+
+      const totalAllowanceAfter = feesmanager.contract.tables
+        .totallowance(getAccountCodeRaw(token.account))
+        .getTableRows()
+
+      expect(totalAllowanceBefore).to.be.deep.equal([])
+      expect(totalAllowanceAfter).to.be.deep.equal([
+        {
+          allowance: allowanceValue,
+        },
+      ])
       expect(allowance).to.be.deep.equal({
         node_allowance: allowanceValue,
         token: token.account,
@@ -151,15 +166,27 @@ describe('Feesmanager testing', () => {
       await token.contract.actions
         .transfer([issuer, feesmanager.account, feesmanagerBalance, ''])
         .send(active(issuer))
+      const totalAllowanceBefore = feesmanager.contract.tables
+        .totallowance(getAccountCodeRaw(token.account))
+        .getTableRows()
       await feesmanager.contract.actions
         .setallowance([node1, token.account, allowanceValue])
         .send(active(feesmanager.account))
 
       const assetSymbol =
         Asset.from(allowanceValue).symbol.code.value.toString()
+      const totalAllowanceAfter = feesmanager.contract.tables
+        .totallowance(getAccountCodeRaw(token.account))
+        .getTableRows()
       const allowance = feesmanager.contract.tables
         .allowances(getAccountCodeRaw(node1))
         .getTableRow(assetSymbol)
+      expect(totalAllowanceBefore).to.be.deep.equal([])
+      expect(totalAllowanceAfter).to.be.deep.equal([
+        {
+          allowance: allowanceValue,
+        },
+      ])
       expect(allowance).to.be.deep.equal({
         node_allowance: allowanceValue,
         token: token.account,
@@ -169,10 +196,17 @@ describe('Feesmanager testing', () => {
       await feesmanager.contract.actions
         .setallowance([node1, token.account, updatedAllowanceValue])
         .send(active(feesmanager.account))
-
+      const totalAllowanceUpdated = feesmanager.contract.tables
+        .totallowance(getAccountCodeRaw(token.account))
+        .getTableRows()
       const updatedAllowance = feesmanager.contract.tables
         .allowances(getAccountCodeRaw(node1))
         .getTableRow(assetSymbol)
+      expect(totalAllowanceUpdated).to.be.deep.equal([
+        {
+          allowance: updatedAllowanceValue,
+        },
+      ])
       expect(updatedAllowance).to.be.deep.equal({
         node_allowance: updatedAllowanceValue,
         token: token.account,
@@ -240,9 +274,17 @@ describe('Feesmanager testing', () => {
 
       const assetSymbol =
         Asset.from(allowanceValue).symbol.code.value.toString()
+      const totalAllowanceBefore = feesmanager.contract.tables
+        .totallowance(getAccountCodeRaw(token.account))
+        .getTableRows()
       const allowance = feesmanager.contract.tables
         .allowances(getAccountCodeRaw(node1))
         .getTableRow(assetSymbol)
+      expect(totalAllowanceBefore).to.be.deep.equal([
+        {
+          allowance: allowanceValue,
+        },
+      ])
       expect(allowance).to.be.deep.equal({
         node_allowance: allowanceValue,
         token: token.account,
@@ -253,10 +295,18 @@ describe('Feesmanager testing', () => {
         .incallowance([node1, token.account, updatedAllowanceValue])
         .send(active(feesmanager.account))
 
+      const totalAllowanceAfter = feesmanager.contract.tables
+        .totallowance(getAccountCodeRaw(token.account))
+        .getTableRows()
       const updatedAllowance = feesmanager.contract.tables
         .allowances(getAccountCodeRaw(node1))
         .getTableRow(assetSymbol)
       const expectedAllowanceValue = '400.0000 TKN'
+      expect(totalAllowanceAfter).to.be.deep.equal([
+        {
+          allowance: expectedAllowanceValue,
+        },
+      ])
       expect(updatedAllowance).to.be.deep.equal({
         node_allowance: expectedAllowanceValue,
         token: token.account,
@@ -284,16 +334,27 @@ describe('Feesmanager testing', () => {
         .transfer([issuer, feesmanager.account, feesmanagerBalance, ''])
         .send(active(issuer))
 
-      const allowanceValue = '100.0000 TKN'
+      const allowanceValue = '50.0000 TKN'
       await feesmanager.contract.actions
         .setallowance([node1, token.account, allowanceValue])
+        .send(active(feesmanager.account))
+      await feesmanager.contract.actions
+        .setallowance([node2, token.account, allowanceValue])
         .send(active(feesmanager.account))
 
       const assetSymbol = Asset.from(allowanceValue).symbol
       const assetSymbolCode = assetSymbol.code.value.toString()
+      const totalAllowance = feesmanager.contract.tables
+        .totallowance(getAccountCodeRaw(token.account))
+        .getTableRows()
       const allowance = feesmanager.contract.tables
         .allowances(getAccountCodeRaw(node1))
         .getTableRow(assetSymbolCode)
+      expect(totalAllowance).to.be.deep.equal([
+        {
+          allowance: '100.0000 TKN', // allowanceValue * 2
+        },
+      ])
       expect(allowance).to.be.deep.equal({
         node_allowance: allowanceValue,
         token: token.account,
@@ -330,11 +391,19 @@ describe('Feesmanager testing', () => {
       const allowanceAfter = feesmanager.contract.tables
         .allowances(getAccountCodeRaw(node1))
         .getTableRow(assetSymbolCode)
+      const totalAllowanceAfter = feesmanager.contract.tables
+        .totallowance(getAccountCodeRaw(token.account))
+        .getTableRows()
+      expect(totalAllowanceAfter).to.be.deep.equal([
+        {
+          allowance: '50.0000 TKN',
+        },
+      ])
       expect(feesmanagerBalanceAfter[0]).to.be.deep.equal({
-        balance: '0.0000 TKN',
+        balance: '50.0000 TKN',
       })
       expect(nodeBalanceAfter[0]).to.be.deep.equal({
-        balance: feesmanagerBalance,
+        balance: allowanceValue,
       })
       expect(allowanceAfter).to.be.deep.equal({
         node_allowance: '0.0000 TKN',
