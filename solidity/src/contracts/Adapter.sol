@@ -110,7 +110,12 @@ contract Adapter is IAdapter, Ownable, ReentrancyGuard {
             // limited to 256 bytes.
             bytes memory data = abi.encodeWithSelector(
                 IPReceiver.receiveUserData.selector,
-                operation.data
+                IPReceiver.UserData(
+                    operation.sender,
+                    operation.originChainId,
+                    operation.erc20,
+                    operation.data
+                )
             );
             uint256 gasReserve = 1000; // enough gas to ensure we eventually emit, and return
 
