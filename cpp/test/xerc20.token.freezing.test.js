@@ -142,6 +142,14 @@ describe('xerc20.token - Freezing capabilities tests', () => {
       await expectToThrow(action, errors.TO_ACCOUNT_IS_FROZEN)
     })
 
+    it('Should throw when withdrawing to a freezed account', async () => {
+      const action = xerc20.contract.actions
+        .pullfrozen([evil, evil, stolenAmount])
+        .send(active(freezingAccount))
+
+      await expectToThrow(action, errors.TO_ACCOUNT_IS_FROZEN)
+    })
+
     it('Should withdraw the stolen amount successfully', async () => {
       await xerc20.contract.actions
         .pullfrozen([evil, freezingAccount, stolenAmount])
