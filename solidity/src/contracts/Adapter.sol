@@ -61,6 +61,10 @@ contract Adapter is IAdapter, Ownable, ReentrancyGuard {
         emit PAMChanged(pam_);
     }
 
+    function setMinFee(uint256 _minFee) external onlyOwner {
+        minFee = _minFee;
+    }
+
     /// @inheritdoc IAdapter
     function settle(
         Operation memory operation,
