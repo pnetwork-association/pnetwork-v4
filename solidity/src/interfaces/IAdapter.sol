@@ -30,6 +30,7 @@ interface IAdapter {
     error InvalidSwap();
     error InvalidAmount();
     error InvalidOperation();
+    error MessageValueNotAccepted();
     error Unauthorized(bytes32 eventId);
     error InvalidTokenAddress(address token);
     error AlreadyProcessed(bytes32 operationId);
