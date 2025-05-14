@@ -17,6 +17,8 @@ contract FeesManager is Ownable {
     event AllowanceSet(address node, address token, uint256 amount);
     event AllowanceIncreased(address node, address token, uint256 amount);
 
+    error InvalidTokenAddress(address token);
+
     constructor(address securityCouncil) Ownable(securityCouncil) {}
 
     /**
@@ -31,6 +33,10 @@ contract FeesManager is Ownable {
         address token,
         uint256 amount
     ) external onlyOwner {
+        if (token == address(0)) {
+            revert InvalidTokenAddress(token);
+        }
+
         allowances[node][token] += amount;
         emit AllowanceIncreased(node, token, amount);
     }
@@ -47,6 +53,10 @@ contract FeesManager is Ownable {
         address token,
         uint256 amount
     ) external onlyOwner {
+        if (token == address(0)) {
+            revert InvalidTokenAddress(token);
+        }
+
         allowances[node][token] = amount;
         emit AllowanceSet(node, token, amount);
     }
@@ -82,10 +92,9 @@ contract FeesManager is Ownable {
      * @param token  token to transfer
      */
     function withdrawTo(address payable to, address token) public {
-        if (
-            (token == address(0) && address(this).balance == 0) ||
-            (token != address(0) && IERC20(token).balanceOf(address(this)) == 0)
-        ) {
+        if (token == address(0)) return;
+
+        if (IERC20(token).balanceOf(address(this)) == 0) {
             emit UnsufficientBalance(token);
             return;
         }
@@ -98,12 +107,7 @@ contract FeesManager is Ownable {
 
         allowances[msg.sender][token] = 0;
 
-        if (token == address(0)) {
-            (bool success, ) = to.call{value: senderAllowance}("");
-            require(success, "Failed to send Ether");
-        } else {
-            IERC20(token).transfer(to, senderAllowance);
-        }
+        IERC20(token).transfer(to, senderAllowance);
     }
 
     /**

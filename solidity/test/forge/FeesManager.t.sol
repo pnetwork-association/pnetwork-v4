@@ -42,7 +42,6 @@ contract FeesManagerTest is Test, Helper {
 
     uint256 tokenAmount_A = 1 ether;
     uint256 tokenAmount_B = 2 ether;
-    uint256 tokenAmount_ether = 3 ether;
 
     bool freezingEnabled = false;
 
@@ -50,7 +49,6 @@ contract FeesManagerTest is Test, Helper {
 
     XERC20 xerc20_A;
     XERC20 xerc20_B;
-    XERC20 xerc20_C;
     FeesManager feesManager;
 
     error FailedToTransfer();
@@ -77,18 +75,15 @@ contract FeesManagerTest is Test, Helper {
     function setUp() public {
         xerc20_A = _deployXERC20("Token A", "TKNA", 100 ether);
         xerc20_B = _deployXERC20("Token B", "TKNB", 100 ether);
-        xerc20_C = _deployXERC20("Token C", "TKNC", 100 ether);
 
         feesManager = new FeesManager(securityCouncil);
 
         vm.startPrank(owner);
         xerc20_A.mint(address(feesManager), tokenAmount_A);
         xerc20_B.mint(address(feesManager), tokenAmount_B);
-        vm.deal(address(feesManager), tokenAmount_ether);
 
         tokensBalances.set(address(xerc20_A), tokenAmount_A);
         tokensBalances.set(address(xerc20_B), tokenAmount_B);
-        tokensBalances.set(address(0), tokenAmount_ether);
 
         vm.startPrank(securityCouncil);
 
@@ -121,10 +116,10 @@ contract FeesManagerTest is Test, Helper {
         uint256 amount = (stakedAmount0 * tokenAmount_A) / totalStaked;
         vm.prank(securityCouncil);
         vm.expectEmit(address(feesManager));
-        emit FeesManager.AllowanceSet(node0, address(xerc20_C), amount);
-        feesManager.setAllowance(node0, address(xerc20_C), amount);
+        emit FeesManager.AllowanceSet(node0, address(xerc20_A), amount);
+        feesManager.setAllowance(node0, address(xerc20_A), amount);
 
-        uint256 allowance = feesManager.allowances(node0, address(xerc20_C));
+        uint256 allowance = feesManager.allowances(node0, address(xerc20_A));
 
         assertEq(allowance, amount);
     }
@@ -149,6 +144,8 @@ contract FeesManagerTest is Test, Helper {
     }
 
     function test_withdraw_EmitUnsufficientBalance() public {
+        XERC20 xerc20_C = _deployXERC20("Token B", "TKNB", 100 ether);
+
         vm.prank(node0);
         vm.expectEmit(address(feesManager));
         emit FeesManager.UnsufficientBalance(address(xerc20_C));
@@ -156,7 +153,6 @@ contract FeesManagerTest is Test, Helper {
 
         assertEq(xerc20_A.balanceOf(address(feesManager)), tokenAmount_A);
         assertEq(xerc20_B.balanceOf(address(feesManager)), tokenAmount_B);
-        assertEq(address(feesManager).balance, tokenAmount_ether);
     }
 
     function test_withdraw_EmitUnsufficientAllowance() public {
@@ -169,32 +165,6 @@ contract FeesManagerTest is Test, Helper {
 
         assertEq(xerc20_A.balanceOf(address(feesManager)), tokenAmount_A);
         assertEq(xerc20_B.balanceOf(address(feesManager)), tokenAmount_B);
-        assertEq(address(feesManager).balance, tokenAmount_ether);
-    }
-
-    function test_withdraw_EmitUnsufficientBalanceForEther() public {
-        vm.deal(address(feesManager), 0);
-        vm.prank(node0);
-        vm.expectEmit(address(feesManager));
-        emit FeesManager.UnsufficientBalance(address(0));
-        feesManager.withdraw(address(0));
-
-        assertEq(xerc20_A.balanceOf(address(feesManager)), tokenAmount_A);
-        assertEq(xerc20_B.balanceOf(address(feesManager)), tokenAmount_B);
-        assertEq(address(feesManager).balance, 0);
-    }
-
-    function test_withdraw_EmitUnsufficientAllowanceForEther() public {
-        vm.prank(securityCouncil);
-        feesManager.setAllowance(node1, address(0), 0);
-        vm.prank(node1);
-        vm.expectEmit(address(feesManager));
-        emit FeesManager.UnsufficientAllowance(address(0));
-        feesManager.withdraw(address(0));
-
-        assertEq(xerc20_A.balanceOf(address(feesManager)), tokenAmount_A);
-        assertEq(xerc20_B.balanceOf(address(feesManager)), tokenAmount_B);
-        assertEq(address(feesManager).balance, tokenAmount_ether);
     }
 
     function test_withdraw_TransferTokenAllowanceToNode() public {
@@ -217,40 +187,15 @@ contract FeesManagerTest is Test, Helper {
             tokenAmount_A - expectedWithdrawnAmount
         );
         assertEq(xerc20_B.balanceOf(address(feesManager)), tokenAmount_B);
-        assertEq(address(feesManager).balance, tokenAmount_ether);
         assertEq(xerc20_A.balanceOf(node0), expectedWithdrawnAmount);
-    }
-
-    function test_withdraw_TransferEtherAllowanceToNode() public {
-        uint256 expectedWithdrawnAmount = feesManager.allowances(
-            node0,
-            address(0)
-        );
-
-        uint256 node0PrevBalance = node0.balance;
-        vm.prank(node0);
-        feesManager.withdraw(address(0));
-
-        assertEq(feesManager.allowances(node0, address(0)), 0);
-        assertEq(
-            address(feesManager).balance,
-            tokenAmount_ether - expectedWithdrawnAmount
-        );
-        assertEq(xerc20_B.balanceOf(address(feesManager)), tokenAmount_B);
-        assertEq(
-            address(feesManager).balance,
-            tokenAmount_ether - expectedWithdrawnAmount
-        );
-        assertEq(node0.balance, node0PrevBalance + expectedWithdrawnAmount);
     }
 
     function test_withdrawTo_TransferASetOfTokensAndEtherAllowancesToAddress()
         public
     {
-        address[] memory tokens = new address[](3);
+        address[] memory tokens = new address[](2);
         tokens[0] = address(xerc20_A);
         tokens[1] = address(xerc20_B);
-        tokens[2] = address(0);
 
         for (uint i = 0; i < nodes.length; i++) {
             vm.startPrank(nodes[i]);
@@ -264,24 +209,16 @@ contract FeesManagerTest is Test, Helper {
                 uint256 expectedWithdrawnAmount = (tokensBalances.get(
                     tokens[j]
                 ) * stakedAmounts[i]) / totalStaked;
-                if (tokens[j] == address(0)) {
-                    assertEq(nodes[i].balance, expectedWithdrawnAmount);
-                } else {
-                    assertEq(
-                        XERC20(tokens[j]).balanceOf(nodes[i]),
-                        expectedWithdrawnAmount
-                    );
-                }
+                assertEq(
+                    XERC20(tokens[j]).balanceOf(nodes[i]),
+                    expectedWithdrawnAmount
+                );
             }
             vm.stopPrank();
         }
 
         for (uint i = 0; i < tokens.length; i++) {
-            if (tokens[i] == address(0)) {
-                assertEq(address(feesManager).balance, 0);
-            } else {
-                assertEq(XERC20(tokens[i]).balanceOf(address(feesManager)), 0);
-            }
+            assertEq(XERC20(tokens[i]).balanceOf(address(feesManager)), 0);
         }
     }
 }

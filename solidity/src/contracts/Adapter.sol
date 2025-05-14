@@ -160,6 +160,7 @@ contract Adapter is IAdapter, Ownable, ReentrancyGuard {
         string memory recipient,
         bytes memory data
     ) internal {
+        if (msg.value > 0) revert MessageValueNotAccepted();
         if (token == address(0)) revert InvalidTokenAddress(token);
         if ((token != erc20Addr) && (token != xerc20)) revert NotAllowed();
         if (amount <= 0) revert InvalidAmount();
