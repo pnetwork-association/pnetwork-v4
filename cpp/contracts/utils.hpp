@@ -143,8 +143,7 @@ namespace eosio {
    }
 
    bytes extract_32bytes(const bytes& data, uint128_t offset) {
-      check(data.size() > offset, "cannot extract 32 bytes: offset greater than data length");
-      check(data.size() > offset + 32, "cannot extract 32 bytes: offset + 32 out of bounds");
+      check(data.size() > offset + 32, "cannot extract 32 bytes: offset greater than data length");
       bytes _data(data.begin() + offset, data.begin() + offset + 32);
       return _data;
    }
